@@ -12,6 +12,7 @@ enum SettingsRoute: Hashable {
     case about
     case privacyPolicy
     case termsOfUse
+    case openSourceLicense
     case diagnostics
 }
 
@@ -124,6 +125,8 @@ struct SettingsTab: View {
                 PrivacyPolicyView()
             case .termsOfUse:
                 TermsOfUseView()
+            case .openSourceLicense:
+                OpenSourceLicenseView()
             case .diagnostics:
                 MetricDiagnosticsView()
             }
@@ -328,7 +331,7 @@ struct AboutSectionView: View {
     }
 }
 
-/// 关于详情：图标卡片（说明/版本）+ 功能组（问题反馈/官网/隐私政策/诊断/检查更新）
+/// 关于详情：图标卡片（说明/版本）+ 功能组（问题反馈/官网/隐私政策/使用条款/开源许可/诊断/检查更新）
 struct AboutDetailView: View {
     /// 二级推入（诊断）回写宿主导航路径
     var onOpen: (SettingsRoute) -> Void
@@ -416,7 +419,7 @@ private struct AboutDetailContent: View {
         return nil
     }
 
-    // MARK: 功能组（无标题）：问题反馈 / 官网 / 隐私政策（在线）/ 诊断数据 / 检查更新
+    // MARK: 功能组（无标题）：问题反馈 / 官网 / 隐私政策（在线）/ 使用条款 / 开源许可 / 诊断数据 / 检查更新
 
     private var actionSection: some View {
         Section {
@@ -451,6 +454,12 @@ private struct AboutDetailContent: View {
                 onOpen(.termsOfUse)
             } label: {
                 Label(L10n.t("使用条款"), systemImage: "doc.text")
+            }
+            // GPLv3 全文（仓库根 LICENSE 原样打包）：随二进制分发附带许可文本
+            Button {
+                onOpen(.openSourceLicense)
+            } label: {
+                Label(L10n.t("开源许可"), systemImage: "building.columns")
             }
             Button {
                 onOpen(.diagnostics)

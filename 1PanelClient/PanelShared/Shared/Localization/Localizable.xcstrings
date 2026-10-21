@@ -15927,6 +15927,17 @@
         }
       }
     },
+    "开源许可" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Source License"
+          }
+        }
+      }
+    },
     "异常" : {
       "extractionState" : "manual",
       "localizations" : {

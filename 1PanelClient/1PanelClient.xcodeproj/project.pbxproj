@@ -283,6 +283,7 @@
 				"$(PROJECT_DIR)/../docs/privacy-policy.en.md",
 				"$(PROJECT_DIR)/../docs/terms-of-use.md",
 				"$(PROJECT_DIR)/../docs/terms-of-use.en.md",
+				"$(PROJECT_DIR)/../LICENSE",
 			);
 			name = "Embed Privacy Policy";
 			outputPaths = (
@@ -290,10 +291,11 @@
 				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/PrivacyPolicy.en.md",
 				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/TermsOfUse.md",
 				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/TermsOfUse.en.md",
+				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/OpenSourceLicense.md",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cp \"${PROJECT_DIR}/../docs/privacy-policy.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PrivacyPolicy.md\"\ncp \"${PROJECT_DIR}/../docs/privacy-policy.en.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PrivacyPolicy.en.md\"\ncp \"${PROJECT_DIR}/../docs/terms-of-use.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/TermsOfUse.md\"\ncp \"${PROJECT_DIR}/../docs/terms-of-use.en.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/TermsOfUse.en.md\"\n";
+			shellScript = "cp \"${PROJECT_DIR}/../docs/privacy-policy.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PrivacyPolicy.md\"\ncp \"${PROJECT_DIR}/../docs/privacy-policy.en.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PrivacyPolicy.en.md\"\ncp \"${PROJECT_DIR}/../docs/terms-of-use.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/TermsOfUse.md\"\ncp \"${PROJECT_DIR}/../docs/terms-of-use.en.md\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/TermsOfUse.en.md\"\ncp \"${PROJECT_DIR}/../LICENSE\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/OpenSourceLicense.md\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
