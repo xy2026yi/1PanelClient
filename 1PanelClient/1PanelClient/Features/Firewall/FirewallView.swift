@@ -663,6 +663,11 @@ struct FirewallView: View {
                         .font(.caption)
                         .foregroundStyle(Color.semanticWarning)
                 }
+                // 地址族待办（v2.4.0 family/operate）：如「IPv6 · 1PANEL_BASIC 链 · 未初始化」
+                if !familyAttentions.isEmpty {
+                    familyAttentionRows
+                        .padding(.top, 4)
+                }
                 operationsRow
                     .padding(.top, 4)
             }
@@ -687,6 +692,50 @@ struct FirewallView: View {
                 return L10n.t("未初始化")
             }
             return L10n.t("运行中")
+        }
+    }
+
+    /// 地址族待办（派生逻辑在 VM.familyAttention，纯函数可单测）：
+    /// available 且 partial → 修复；未初始化 → 初始化；已初始化未绑定 → 绑定
+    private var familyAttentions: [FirewallFamilyAttention] {
+        FirewallViewModel.familyAttention(vm.systemStatus)
+    }
+
+    /// 待办行：族名 · 1PANEL_BASIC 链 · 状态文案 + 右侧动作按钮（任务式，进进度页）
+    private var familyAttentionRows: some View {
+        VStack(spacing: 8) {
+            ForEach(familyAttentions.indices, id: \.self) { idx in
+                let item = familyAttentions[idx]
+                HStack(spacing: 10) {
+                    if item.operation == "repair" {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color.semanticWarning)
+                    }
+                    Text("\(item.family.uppercased()) · \(L10n.t("1PANEL_BASIC 链")) · \(familyStateText(item.operation))")
+                        .font(.footnote)
+                        .foregroundStyle(item.operation == "repair" ? Color.semanticWarning : .primary)
+                    Spacer()
+                    Button {
+                        Task { await vm.operateFamily(item.family, operation: item.operation) }
+                    } label: {
+                        Text(FirewallViewModel.familyActionName(item.operation))
+                            .font(.footnote.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(vm.isOperating)
+                }
+            }
+        }
+    }
+
+    private func familyStateText(_ operation: String) -> String {
+        switch operation {
+        case "initialize": return L10n.t("未初始化")
+        case "bind": return L10n.t("未绑定")
+        case "repair": return L10n.t("状态不完整")
+        default: return operation
         }
     }
 

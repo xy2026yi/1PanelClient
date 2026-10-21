@@ -213,6 +213,7 @@ enum APIEndpoint {
     case firewallBase             // POST 子系统状态 {name: base|docker}（v2.2.5 契约已废弃）
     case firewallOperate          // POST 生命周期（start/stop/restart/disableBanPing/enableBanPing）
     case firewallFilterOperate    // POST 基础链操作（init-base/bind-base/unbind-base，幸存端点）
+    case firewallFamilyOperate    // POST 单地址族操作 {subsystem,backend,family,operation: initialize|repair|bind}（v2.4.0 新增，任务式）
     case firewallRulesSearch      // POST 统一规则清单（scope/families 筛选）
     case firewallRulesCreate      // POST 批量创建规则（items[{rule}]，任务式）
     case firewallRulesUpdate      // POST 更新规则（scope+instanceKey + rule/description 互斥）
@@ -874,6 +875,7 @@ enum APIEndpoint {
         case .firewallBase:          return "/api/v2/hosts/firewall/base"
         case .firewallOperate:       return "/api/v2/hosts/firewall/operate"
         case .firewallFilterOperate: return "/api/v2/hosts/firewall/filter/operate"
+        case .firewallFamilyOperate: return "/api/v2/hosts/firewall/family/operate"
         case .firewallRulesSearch:   return "/api/v2/hosts/firewall/rules/search"
         case .firewallRulesCreate:   return "/api/v2/hosts/firewall/rules"
         case .firewallRulesUpdate:   return "/api/v2/hosts/firewall/rules/update"

@@ -77,6 +77,21 @@ nonisolated struct FirewallTaskResponse: Decodable, Sendable {
     let queued: Bool?
 }
 
+// MARK: - 单地址族操作（POST /firewall/family/operate，v2.4.0 新增）
+
+/// 按地址族初始化/修复/绑定（仅 iptables/nftables 有 1PANEL_BASIC 双栈链概念；
+/// 抓包 2026-10-21 覆盖 system+ipv6 的 initialize/bind，repair 来自 swagger 枚举）
+nonisolated struct FirewallFamilyOperateRequest: Encodable, Sendable {
+    /// system / forwarding / docker（本端仅 system 主机防火墙）
+    let subsystem: String
+    /// iptables / nftables
+    let backend: String
+    /// ipv4 / ipv6
+    let family: String
+    /// initialize / repair / bind
+    let operation: String
+}
+
 // MARK: - 规则域（filter 包）
 
 /// 规则作用域：iptables/nftables 带 table+chain；firewalld 带 zone；ufw 带 chain(incoming)

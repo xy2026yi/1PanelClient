@@ -741,6 +741,69 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
+    /// 单地址族操作（family/operate，任务式；抓包 2026-10-21：
+    /// {"subsystem":"system","backend":"iptables","family":"ipv6",
+    ///  "operation":"initialize"|"bind"}，进度走通用任务页）
+    func operateFamily(_ family: String, operation: String) async {
+        guard let backend = systemStatus?.backend else { return }
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallTaskResponse = try await client.send(
+                path: APIEndpoint.firewallFamilyOperate.path,
+                body: FirewallFamilyOperateRequest(subsystem: "system", backend: backend,
+                                                   family: family, operation: operation),
+                as: FirewallTaskResponse.self
+            )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(
+                    taskID: taskID,
+                    title: "\(family.uppercased()) · \(Self.familyActionName(operation))",
+                    refreshAfterDone: true)
+            }
+            await loadSystemStatus()
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// family/operate 动作名（任务标题/按钮共用）
+    nonisolated static func familyActionName(_ operation: String) -> String {
+        switch operation {
+        case "initialize": return L10n.t("初始化")
+        case "repair": return L10n.t("修复")
+        case "bind": return L10n.t("绑定")
+        default: return operation
+        }
+    }
+
+    /// 状态卡的地址族待办派生（Web 端「IPv6 · 1PANEL_BASIC 链 · 未初始化」同款入口；
+    /// 抓包 2026-10-21）：available 且 partial → repair；available 未初始化 → initialize；
+    /// 已初始化未绑定 → bind；健康/不可用不展示。仅 iptables/nftables、整体已初始化
+    /// （整体未初始化走全局初始化流程）、IPv6 支持开启（ipv6Enabled）时才有族级行
+    nonisolated static func familyAttention(
+        _ status: FirewallSubsystemStatus?
+    ) -> [FirewallFamilyAttention] {
+        guard let s = status,
+              s.backend == "iptables" || s.backend == "nftables",
+              s.isInit == true else { return [] }
+        var result: [FirewallFamilyAttention] = []
+        for family in ["ipv4", "ipv6"] {
+            guard let fs = family == "ipv4" ? s.ipv4 : s.ipv6 else { continue }
+            if family == "ipv6", s.ipv6Enabled == false { continue }
+            guard fs.available == true else { continue }
+            if fs.partial == true {
+                result.append(FirewallFamilyAttention(family: family, operation: "repair"))
+            } else if fs.initialized != true {
+                result.append(FirewallFamilyAttention(family: family, operation: "initialize"))
+            } else if fs.bound != true {
+                result.append(FirewallFamilyAttention(family: family, operation: "bind"))
+            }
+        }
+        return result
+    }
+
     // MARK: Docker 守护
 
     func loadDockerGuard() async {
@@ -1062,4 +1125,11 @@ struct FirewallTaskTarget: Identifiable, Hashable {
     /// 规则/白名单/容器 IPv6 端口，返回时需重拉校准）
     var refreshAfterDone: Bool = false
     var id: String { taskID }
+}
+
+/// 状态卡的地址族待办（VM.familyAttention 派生结果；family = ipv4/ipv6，
+/// operation = initialize/repair/bind）
+struct FirewallFamilyAttention: Equatable {
+    let family: String
+    let operation: String
 }

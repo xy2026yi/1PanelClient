@@ -669,6 +669,17 @@
         }
       }
     },
+    "1PANEL_BASIC 链" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1PANEL_BASIC Chain"
+          }
+        }
+      }
+    },
     "1Panel" : {
       "localizations" : {
         "en" : {
@@ -5770,6 +5781,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Info"
+          }
+        }
+      }
+    },
+    "修复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repair"
           }
         }
       }
@@ -25548,6 +25570,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Status"
+          }
+        }
+      }
+    },
+    "状态不完整" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partial State"
           }
         }
       }

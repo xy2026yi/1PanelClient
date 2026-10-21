@@ -533,6 +533,73 @@ struct FirewallInitBackupTests {
         #expect(obj?["operate"] as? String == "init-base")
         #expect(obj?["taskID"] as? String == "cb9873c5-a21b-464c-b556-96df87e222cc")
     }
+
+    @Test("单地址族操作请求编码（family/operate 四字段齐全；抓包 2026-10-21）")
+    func familyOperateEncode() throws {
+        let data = try JSONEncoder().encode(FirewallFamilyOperateRequest(
+            subsystem: "system", backend: "iptables",
+            family: "ipv6", operation: "initialize"))
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["subsystem"] as? String == "system")
+        #expect(obj?["backend"] as? String == "iptables")
+        #expect(obj?["family"] as? String == "ipv6")
+        #expect(obj?["operation"] as? String == "initialize")
+    }
+
+    @Test("地址族待办派生（partial>初始化>绑定 优先级；门禁：仅 iptables/nftables、整体已初始化、IPv6 开启）")
+    func familyAttentionDerivation() throws {
+        func status(_ json: String) throws -> FirewallSubsystemStatus {
+            try JSONDecoder().decode(FirewallSubsystemStatus.self, from: Data(json.utf8))
+        }
+        // 抓包 2026-10-21：ipv4 健康、ipv6 未初始化 → 仅 IPv6 待初始化
+        let captured = try status("""
+        {"name":"iptables","backend":"iptables","isExist":true,"isActive":true,
+         "isInit":true,"isBind":true,"ipv6Enabled":true,
+         "ipv4":{"partial":false,"available":true,"initialized":true,"bound":true},
+         "ipv6":{"partial":false,"available":true,"initialized":false,"bound":false}}
+        """)
+        #expect(FirewallViewModel.familyAttention(captured)
+                == [FirewallFamilyAttention(family: "ipv6", operation: "initialize")])
+
+        // ipv6 已初始化未绑定 → bind
+        let unbound = try status("""
+        {"backend":"iptables","isInit":true,"ipv6Enabled":true,
+         "ipv4":{"available":true,"initialized":true,"bound":true},
+         "ipv6":{"available":true,"initialized":true,"bound":false}}
+        """)
+        #expect(FirewallViewModel.familyAttention(unbound)
+                == [FirewallFamilyAttention(family: "ipv6", operation: "bind")])
+
+        // partial 优先级最高（修复入口；swagger repair 枚举）
+        let partial = try status("""
+        {"backend":"nftables","isInit":true,"ipv6Enabled":true,
+         "ipv4":{"partial":true,"available":true,"initialized":true,"bound":true},
+         "ipv6":{"available":true,"initialized":true,"bound":true}}
+        """)
+        #expect(FirewallViewModel.familyAttention(partial)
+                == [FirewallFamilyAttention(family: "ipv4", operation: "repair")])
+
+        // 门禁：IPv6 支持停用 / 整体未初始化 / 非 iptables 系 / 族不可用 → 无待办
+        let ipv6Off = try status("""
+        {"backend":"iptables","isInit":true,"ipv6Enabled":false,
+         "ipv4":{"available":true,"initialized":true,"bound":true},
+         "ipv6":{"available":true,"initialized":false,"bound":false}}
+        """)
+        #expect(FirewallViewModel.familyAttention(ipv6Off).isEmpty)
+        let notInit = try status("""
+        {"backend":"iptables","isInit":false,"ipv6Enabled":true,
+         "ipv4":{"available":true,"initialized":false,"bound":false}}
+        """)
+        #expect(FirewallViewModel.familyAttention(notInit).isEmpty)
+        let ufw = try status(#"{"backend":"ufw","isInit":true,"ipv4":{"available":true,"initialized":true,"bound":true}}"#)
+        #expect(FirewallViewModel.familyAttention(ufw).isEmpty)
+        let unavailable = try status("""
+        {"backend":"iptables","isInit":true,"ipv6Enabled":true,
+         "ipv4":{"available":true,"initialized":true,"bound":true},
+         "ipv6":{"available":false,"initialized":false,"bound":false,"reason":"no ipv6"}}
+        """)
+        #expect(FirewallViewModel.familyAttention(unavailable).isEmpty)
+    }
 }
 
 // MARK: - 低频操作回归（排序/原文/导入导出；v2.4.0 移除纳管）
