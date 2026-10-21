@@ -455,7 +455,7 @@ private struct AboutDetailContent: View {
             } label: {
                 Label(L10n.t("使用条款"), systemImage: "doc.text")
             }
-            // GPLv3 全文（仓库根 LICENSE 原样打包）：随二进制分发附带许可文本
+            // 许可条目页：整行点击应用内浏览器打开对应仓库（GPL 全文走在线版）
             Button {
                 onOpen(.openSourceLicense)
             } label: {

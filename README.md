@@ -54,3 +54,4 @@ https://github.com/xy2026yi/1PanelClient/releases/latest/download/altstore.json
 
 本项目基于 [GPL-3.0](LICENSE) 许可发布。
 1Panel 本体（[1Panel-dev/1Panel](https://github.com/1Panel-dev/1Panel)）同样采用 GPL-3.0。
+本项目使用 [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm)（MIT License）。
