@@ -233,7 +233,7 @@ struct CronjobsTab: View {
         items.append(ActionMenuItem(title: L10n.t("编辑任务"), icon: "pencil", color: .blue) {
             Task { await loadEditInfo(job: job) }
         })
-        items.append(ActionMenuItem(title: L10n.t("导出任务"), icon: "square.and.arrow.up", color: .teal) {
+        items.append(ActionMenuItem(title: L10n.t("导出任务"), icon: "square.and.arrow.down", color: .teal) {
             exportPreselect = [job.id]
             showExport = true
         })

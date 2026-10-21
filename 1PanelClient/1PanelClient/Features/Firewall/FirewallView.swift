@@ -352,7 +352,7 @@ struct FirewallView: View {
                             Haptic.warning()
                             if let rule { pendingDeleteForward = rule }
                         },
-                        ActionMenuItem(title: L10n.t("导出规则"), icon: "square.and.arrow.up",
+                        ActionMenuItem(title: L10n.t("导出规则"), icon: "square.and.arrow.down",
                                        color: .teal) {
                             // 仅预选长按的这条转发（与计划任务「导出任务」语义一致）
                             if let rule {
@@ -820,7 +820,7 @@ struct FirewallView: View {
         // 出现「已选 1 条」却无勾选行、点导出必弹「暂无可导出的规则」
         if item.manageableUUID != nil && item.state != "protected" {
             items.append(ActionMenuItem(title: L10n.t("导出规则"),
-                                        icon: "square.and.arrow.up", color: .teal) {
+                                        icon: "square.and.arrow.down", color: .teal) {
                 // 仅预选长按的这条规则（与计划任务「导出任务」语义一致）
                 ruleExportPreselect = [item.id]
                 showExportPicker = true

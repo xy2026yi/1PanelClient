@@ -5422,6 +5422,17 @@
         }
       }
     },
+    "保存到「文件」App" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save to the Files app"
+          }
+        }
+      }
+    },
     "保存前请先发送测试邮件确认配置可用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6969,39 +6980,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Day of Month"
-          }
-        }
-      }
-    },
-    "分享" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share"
-          }
-        }
-      }
-    },
-    "分享 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share %@"
-          }
-        }
-      }
-    },
-    "分享 / 另存为" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share / Save To"
           }
         }
       }
@@ -14332,24 +14310,13 @@
         }
       }
     },
-    "已保存到「文件」App · 我的 iPhone/1PanelClient" : {
+    "已保存到「文件」App：%@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saved to Files · On My iPhone/1PanelClient"
-          }
-        }
-      }
-    },
-    "已保存到「文件」App：我的 iPhone/1PanelClient/%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saved to the Files app: On My iPhone/1PanelClient/%@"
+            "value" : "Saved to the Files app: %@"
           }
         }
       }

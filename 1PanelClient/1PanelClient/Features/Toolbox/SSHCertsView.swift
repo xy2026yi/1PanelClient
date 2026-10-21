@@ -664,32 +664,14 @@ struct SSHCertDetailView: View {
         }
     }
 
-    /// 导出到 Documents（同名加序号），经「文件」App 取用
+    /// 导出到 Documents/SSH Keys（同名加序号），经「文件」App 取用
     private func exportKey(content: String, fileName: String) {
-        let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let finalName = Self.uniqueFileName(fileName, in: destDir)
-        let destURL = destDir.appendingPathComponent(finalName)
         do {
-            try content.data(using: .utf8)?.write(to: destURL)
-            showToast(L10n.f("已保存到「文件」App：我的 iPhone/1PanelClient/%@", finalName))
+            let saved = try LocalDownloads.save(
+                data: Data(content.utf8), fileName: fileName, category: .sshKeys)
+            showToast(saved.successMessage)
         } catch {
             showToast(L10n.f("导出失败：%@", error.localizedDescription))
-        }
-    }
-
-    /// 目标目录下不冲突的文件名：同名时追加序号（与 FilesView/BackupListView 一致）
-    private static func uniqueFileName(_ name: String, in dir: URL) -> String {
-        let fm = FileManager.default
-        if !fm.fileExists(atPath: dir.appendingPathComponent(name).path) { return name }
-        let ext = (name as NSString).pathExtension
-        let base = ext.isEmpty ? name : String(name.dropLast(ext.count + 1))
-        var index = 1
-        while true {
-            let candidate = ext.isEmpty ? "\(base) \(index)" : "\(base) \(index).\(ext)"
-            if !fm.fileExists(atPath: dir.appendingPathComponent(candidate).path) {
-                return candidate
-            }
-            index += 1
         }
     }
 

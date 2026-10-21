@@ -572,9 +572,10 @@ private struct AboutDetailContent: View {
     }
 }
 
-/// ADR-0002：本地 MetricKit 诊断数据列表（仅落盘，不联网），支持系统分享导出
+/// ADR-0002：本地 MetricKit 诊断数据列表（仅落盘，不联网），可逐个保存到 Documents/Diagnostics
 struct MetricDiagnosticsView: View {
     @State private var files: [URL] = []
+    @State private var toast: String?
 
     var body: some View {
         Group {
@@ -596,10 +597,13 @@ struct MetricDiagnosticsView: View {
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                                 Spacer()
-                                ShareLink(item: url) {
-                                    Image(systemName: "square.and.arrow.up")
+                                Button {
+                                    save(url)
+                                } label: {
+                                    Image(systemName: "square.and.arrow.down")
                                 }
                                 .buttonStyle(.borderless)
+                                .accessibilityLabel(L10n.t("保存到「文件」App"))
                             }
                         }
                     } footer: {
@@ -610,7 +614,19 @@ struct MetricDiagnosticsView: View {
         }
         .navigationTitle(L10n.t("诊断数据"))
         .navigationBarTitleDisplayMode(.inline)
+        .localToast(message: $toast)
         .onAppear { files = MetricStore.listFiles() }
+    }
+
+    /// 复制到 Documents/Diagnostics；源文件保留，仍受 MetricStore 的 30 天滚动清理
+    private func save(_ url: URL) {
+        do {
+            let saved = try LocalDownloads.copy(
+                file: url, fileName: url.lastPathComponent, category: .diagnostics)
+            toast = saved.successMessage
+        } catch {
+            toast = L10n.f("导出失败：%@", error.localizedDescription)
+        }
     }
 }
 

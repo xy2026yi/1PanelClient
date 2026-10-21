@@ -436,7 +436,7 @@ struct FirewallDockerImportView: View {
 
 // MARK: - 规则导出多选（长按菜单「导出规则」进入）
 
-/// 可导出规则多选：全选/反全选 + 勾选 → 导出（本地组 JSON → 分享）
+/// 可导出规则多选：全选/反全选 + 勾选 → 导出（本地组 JSON → Documents/Exports）
 struct FirewallExportPickerView: View {
     @ObservedObject var vm: FirewallViewModel
     /// 长按入口预选（仅长按的这条；nil = 默认全选）
@@ -444,8 +444,6 @@ struct FirewallExportPickerView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selected: Set<String> = []
-    @State private var exportedURL: URL?
-    @State private var showShare = false
 
     private var exportable: [FirewallInventoryItem] {
         vm.inventory.filter { $0.manageableUUID != nil && $0.state != "protected" }
@@ -511,25 +509,6 @@ struct FirewallExportPickerView: View {
                         .disabled(selected.isEmpty)
                 }
             }
-            // 导出结果分享（本地组 JSON，无服务端端点）
-            .sheet(isPresented: $showShare) {
-                if let url = exportedURL {
-                    VStack(spacing: 16) {
-                        Image(systemName: "doc.badge.arrow.up")
-                            .font(.title)
-                            .foregroundStyle(.tint)
-                        Text(url.lastPathComponent)
-                            .font(.dataMonospaced)
-                        ShareLink(item: url) {
-                            Label(L10n.t("分享"), systemImage: "square.and.arrow.up")
-                                .frame(maxWidth: 240)
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(24)
-                    .presentationDetents([.height(220)])
-                }
-            }
             .onAppear {
                 selected = preselectedIDs ?? Set(exportable.map(\.id))
                 // 主列表懒加载只到当前滚动位置：导出前后台补齐剩余分页，
@@ -561,20 +540,21 @@ struct FirewallExportPickerView: View {
         }
     }
 
+    /// 落盘后关闭多选页，保存位置经防火墙页的 toast 呈现（本页之下，关掉才看得见）
     private func export() {
         let chosen = exportable.filter { selected.contains($0.id) }
-        exportedURL = vm.exportRulesURL(for: chosen)
-        if exportedURL != nil {
-            showShare = true
-        } else {
+        guard let saved = vm.exportRules(for: chosen) else {
             vm.toastMessage = L10n.t("暂无可导出的规则")
+            return
         }
+        dismiss()
+        vm.toastMessage = saved.successMessage
     }
 }
 
 // MARK: - 转发导出多选（长按菜单「导出规则」进入）
 
-/// 可导出转发多选：全选/反全选 + 勾选 → 导出（本地组 JSON → 分享）
+/// 可导出转发多选：全选/反全选 + 勾选 → 导出（本地组 JSON → Documents/Exports）
 struct FirewallForwardExportPickerView: View {
     @ObservedObject var vm: FirewallViewModel
     /// 长按入口预选（仅长按的这条转发；nil = 默认全选）
@@ -582,8 +562,6 @@ struct FirewallForwardExportPickerView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selected: Set<Int> = []
-    @State private var exportedURL: URL?
-    @State private var showShare = false
 
     /// 转发 id 为可选，导入文件可能缺 id，按下标选择
     private var indices: Range<Int> { vm.forwards.indices }
@@ -648,25 +626,6 @@ struct FirewallForwardExportPickerView: View {
                         .disabled(selected.isEmpty)
                 }
             }
-            // 导出结果分享（本地组 JSON，无服务端端点）
-            .sheet(isPresented: $showShare) {
-                if let url = exportedURL {
-                    VStack(spacing: 16) {
-                        Image(systemName: "doc.badge.arrow.up")
-                            .font(.title)
-                            .foregroundStyle(.tint)
-                        Text(url.lastPathComponent)
-                            .font(.dataMonospaced)
-                        ShareLink(item: url) {
-                            Label(L10n.t("分享"), systemImage: "square.and.arrow.up")
-                                .frame(maxWidth: 240)
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(24)
-                    .presentationDetents([.height(220)])
-                }
-            }
             .onAppear {
                 if let preselectedIndex, vm.forwards.indices.contains(preselectedIndex) {
                     selected = [preselectedIndex]
@@ -681,18 +640,18 @@ struct FirewallForwardExportPickerView: View {
         let chosen = selected.sorted().compactMap {
             vm.forwards.indices.contains($0) ? vm.forwards[$0] : nil
         }
-        exportedURL = vm.exportForwardsURL(for: chosen)
-        if exportedURL != nil {
-            showShare = true
-        } else {
+        guard let saved = vm.exportForwards(for: chosen) else {
             vm.toastMessage = L10n.t("暂无可导出的转发")
+            return
         }
+        dismiss()
+        vm.toastMessage = saved.successMessage
     }
 }
 
 // MARK: - Docker 导出多选（容器行长按「导出规则」进入）
 
-/// 可导出防护策略多选：全选/反全选 + 勾选 → 导出（本地组 JSON → 分享）
+/// 可导出防护策略多选：全选/反全选 + 勾选 → 导出（本地组 JSON → Documents/Exports）
 struct FirewallDockerExportPickerView: View {
     @ObservedObject var vm: FirewallViewModel
     /// 容器行长按入口预选（仅该容器的策略；nil = 默认全选）
@@ -700,8 +659,6 @@ struct FirewallDockerExportPickerView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selected: Set<Int> = []
-    @State private var exportedURL: URL?
-    @State private var showShare = false
 
     private let modeLabels = [
         "deny_sources": L10n.t("禁止指定来源"),
@@ -792,25 +749,6 @@ struct FirewallDockerExportPickerView: View {
                         .disabled(selected.isEmpty)
                 }
             }
-            // 导出结果分享（本地组 JSON，无服务端端点）
-            .sheet(isPresented: $showShare) {
-                if let url = exportedURL {
-                    VStack(spacing: 16) {
-                        Image(systemName: "doc.badge.arrow.up")
-                            .font(.title)
-                            .foregroundStyle(.tint)
-                        Text(url.lastPathComponent)
-                            .font(.dataMonospaced)
-                        ShareLink(item: url) {
-                            Label(L10n.t("分享"), systemImage: "square.and.arrow.up")
-                                .frame(maxWidth: 240)
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(24)
-                    .presentationDetents([.height(220)])
-                }
-            }
             .onAppear {
                 selected = preselectedIndices ?? Set(vm.dockerExportablePolicies.indices)
             }
@@ -820,11 +758,11 @@ struct FirewallDockerExportPickerView: View {
     private func export() {
         let all = vm.dockerExportablePolicies
         let chosen = selected.sorted().compactMap { all.indices.contains($0) ? all[$0] : nil }
-        exportedURL = vm.exportDockerPoliciesURL(for: chosen)
-        if exportedURL != nil {
-            showShare = true
-        } else {
+        guard let saved = vm.exportDockerPolicies(for: chosen) else {
             vm.toastMessage = L10n.t("暂无可导出的防护策略")
+            return
         }
+        dismiss()
+        vm.toastMessage = saved.successMessage
     }
 }

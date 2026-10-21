@@ -3,7 +3,7 @@
 //  1PanelClient
 //
 //  计划任务导入导出（cronjobs/export · import，logs/可选增加-2 抓包 2026-09-16）：
-//  导出 = 勾选任务 → export {ids} → 落地 1panel-cronjob-*.json → 系统分享；
+//  导出 = 勾选任务 → export {ids} → 落盘 Documents/Exports/1panel-cronjob-*.json（「文件」App 可见）；
 //  导入 = 选 json 文件 → 解析并列出任务（名称/类型/周期/保留份数）→ 勾选 import
 //
 
@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 
 // MARK: - 导出
 
-/// 导出计划任务：任务勾选列表（全选/反全选）+ 导出按钮（导出后出现分享行）。
+/// 导出计划任务：任务勾选列表（全选/反全选）+ 导出按钮（导出后显示保存位置）。
 /// preselectedIDs：长按菜单「导出任务」进入时仅勾选当前任务；nil = 默认全选
 struct CronjobExportView: View {
     let server: ServerConfig
@@ -25,8 +25,8 @@ struct CronjobExportView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedIDs: Set<Int>
     @State private var isExporting = false
-    /// 导出成功后的本地文件（出现「分享 / 另存为」）
-    @State private var exportedURL: URL?
+    /// 导出成功后的保存结果（footer 显示保存位置）
+    @State private var saved: LocalDownloads.Saved?
     @State private var errorMessage: String?
     @State private var showError = false
 
@@ -112,16 +112,12 @@ struct CronjobExportView: View {
         .buttonStyle(.plain)
     }
 
-    /// 导出后出现「分享」入口（文件已写入临时目录）
+    /// 导出后 footer 显示保存位置
     @ViewBuilder
     private var exportFooter: some View {
-        if let url = exportedURL {
-            ShareLink(item: url) {
-                Label(
-                    L10n.f("分享 %@", url.lastPathComponent),
-                    systemImage: "square.and.arrow.up"
-                )
-            }
+        if let saved {
+            Label(saved.successMessage, systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
         } else {
             Text(L10n.t("勾选要导出的任务，导出为 JSON 文件用于迁移或备份"))
         }
@@ -155,28 +151,15 @@ struct CronjobExportView: View {
             // 文件名对齐网页端下载：1panel-cronjob-YYYYMMddHHmmss.json
             let stamp = DateFormatter()
             stamp.dateFormat = "yyyyMMddHHmmss"
-            // 先清掉历史导出文件再写新文件（分享用的是本次的 exportedURL）
-            cleanupOldExports()
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("1panel-cronjob-\(stamp.string(from: Date())).json")
-            try data.write(to: url)
-            exportedURL = url
+            saved = try LocalDownloads.save(
+                data: data,
+                fileName: "1panel-cronjob-\(stamp.string(from: Date())).json",
+                category: .exports)
             Haptic.success()
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
             showError = true
-        }
-    }
-
-    /// 清理临时目录里历史导出的 cronjob JSON（每次导出只保留最新一份）
-    private func cleanupOldExports() {
-        let fm = FileManager.default
-        guard let files = try? fm.contentsOfDirectory(
-            at: fm.temporaryDirectory, includingPropertiesForKeys: nil) else { return }
-        for url in files
-        where url.lastPathComponent.hasPrefix("1panel-cronjob-") && url.pathExtension == "json" {
-            try? fm.removeItem(at: url)
         }
     }
 }

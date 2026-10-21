@@ -125,11 +125,11 @@ struct TransferState: Identifiable {
     var total: Int64 = 0
     var status: Status = .running
     var errorText: String?
-    /// 下载完成后的本地文件 URL（用于分享）
-    var localURL: URL?
+    /// 下载完成后的保存结果（完成页展示保存位置）
+    var saved: LocalDownloads.Saved?
 }
 
-/// 上传/下载进度弹窗：进度条 + 已传大小 + 取消/分享/关闭
+/// 上传/下载进度弹窗：进度条 + 已传大小 + 取消/关闭
 struct TransferSheet: View {
     let state: TransferState
     let onCancel: () -> Void
@@ -149,10 +149,11 @@ struct TransferSheet: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .truncationMode(.middle)
-                if state.status == .done, state.localURL != nil {
-                    Text(L10n.t("已保存到「文件」App · 我的 iPhone/1PanelClient"))
+                if state.status == .done, let saved = state.saved {
+                    Text(saved.successMessage)
                         .font(.caption)
                         .foregroundStyle(.green)
+                        .multilineTextAlignment(.center)
                 }
             }
 
@@ -183,14 +184,6 @@ struct TransferSheet: View {
                         onCancel()
                     } label: {
                         Text(L10n.t("取消传输"))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                    }
-                    .buttonStyle(.bordered)
-                }
-                if state.status == .done, let url = state.localURL {
-                    ShareLink(item: url) {
-                        Label(L10n.t("分享 / 另存为"), systemImage: "square.and.arrow.up")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
                     }

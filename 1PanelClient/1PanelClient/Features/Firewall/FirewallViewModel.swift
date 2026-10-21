@@ -557,8 +557,8 @@ final class FirewallViewModel: ObservableObject {
     }
 
     /// 导出：对齐 Web 端——面板管理且可删除的规则，去除 uuid 后本地组 JSON
-    /// （无服务端端点），写入临时文件供 ShareLink 分享
-    func exportRulesURL(for items: [FirewallInventoryItem]? = nil) -> URL? {
+    /// （无服务端端点），落盘 Documents/Exports
+    func exportRules(for items: [FirewallInventoryItem]? = nil) -> LocalDownloads.Saved? {
         let exportable = items ?? inventory.filter { item in
             guard item.manageableUUID != nil, item.state != "protected" else { return false }
             return true
@@ -569,24 +569,12 @@ final class FirewallViewModel: ObservableObject {
             rule.uuid = nil
             return rule
         }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(rules) else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMddHHmmss"
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("1panel-firewall-rules-\(formatter.string(from: Date())).json")
-        do {
-            try data.write(to: url)
-            return url
-        } catch {
-            return nil
-        }
+        return Self.saveExport(rules, prefix: "1panel-firewall-rules")
     }
 
     /// 导出转发规则（本地组 JSON，无服务端端点；清 id/num 等运行时字段；
     /// 传入子集时长按菜单多选导出，nil = 全量）
-    func exportForwardsURL(for rules: [FirewallForwardRule]? = nil) -> URL? {
+    func exportForwards(for rules: [FirewallForwardRule]? = nil) -> LocalDownloads.Saved? {
         let list = rules ?? forwards
         guard !list.isEmpty else { return nil }
         let cleaned = list.map { rule -> FirewallForwardRule in
@@ -595,19 +583,7 @@ final class FirewallViewModel: ObservableObject {
             r.num = nil
             return r
         }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(cleaned) else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMddHHmmss"
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("1panel-firewall-forwards-\(formatter.string(from: Date())).json")
-        do {
-            try data.write(to: url)
-            return url
-        } catch {
-            return nil
-        }
+        return Self.saveExport(cleaned, prefix: "1panel-firewall-forwards")
     }
 
     /// 导入转发（forward/operate 批量 add；抓包 2026-09-19 logs/iptables.md）
@@ -645,22 +621,23 @@ final class FirewallViewModel: ObservableObject {
     /// 导出 Docker 端口防护策略（本地组 JSON；含容器端点策略与孤儿策略，
     /// 不含 host_firewall 托管的端点——那类须在规则段调整；
     /// 传入子集时长按菜单多选导出，nil = 全量）
-    func exportDockerPoliciesURL(for policies: [DockerGuardPolicy]? = nil) -> URL? {
+    func exportDockerPolicies(for policies: [DockerGuardPolicy]? = nil) -> LocalDownloads.Saved? {
         let list = policies ?? allExportableDockerPolicies()
         guard !list.isEmpty else { return nil }
+        return Self.saveExport(list, prefix: "1panel-firewall-docker")
+    }
+
+    /// 本地组 JSON 落盘 Documents/Exports/<prefix>-yyyyMMddHHmmss.json；编码或写入失败返回 nil
+    private static func saveExport<T: Encodable>(_ value: T, prefix: String) -> LocalDownloads.Saved? {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(list) else { return nil }
+        guard let data = try? encoder.encode(value) else { return nil }
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMddHHmmss"
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("1panel-firewall-docker-\(formatter.string(from: Date())).json")
-        do {
-            try data.write(to: url)
-            return url
-        } catch {
-            return nil
-        }
+        return try? LocalDownloads.save(
+            data: data,
+            fileName: "\(prefix)-\(formatter.string(from: Date())).json",
+            category: .exports)
     }
 
     /// 全部可导出策略（容器端点 + 孤儿策略）

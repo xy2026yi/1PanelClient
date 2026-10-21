@@ -31,8 +31,8 @@ final class BackupViewModel: ObservableObject {
     @Published var downloadingRecordIDs: Set<Int> = []
     /// 下载进度：记录 id → 0...1（-1 表示总大小未知，无法计算百分比）
     @Published var downloadProgress: [Int: Double] = [:]
-    /// 最近一次下载保存到「文件」App 的文件名（完成提示用）
-    @Published var downloadedFileName: String?
+    /// 最近一次下载的保存结果（完成提示用）
+    @Published var downloadedFile: LocalDownloads.Saved?
     /// 正在删除的记录 id
     @Published var deletingRecordID: Int?
 
@@ -204,14 +204,14 @@ final class BackupViewModel: ObservableObject {
         downloadTasks[record.id]?.cancel()
     }
 
-    /// 先取备份文件在服务器上的绝对路径，再经 files/download 流式下载到本地 Documents，
-    /// 完成后置 downloadedFileName 弹出保存位置提示。
+    /// 先取备份文件在服务器上的绝对路径，再经 files/download 流式下载，
+    /// 落盘 Documents/Backups 后置 downloadedFile 弹出保存位置提示。
     private func downloadRecord(_ record: BackupRecord) async {
         guard let rawName = record.fileName, !rawName.isEmpty else {
             showAlert(message: L10n.t("备份记录缺少文件名，无法下载"))
             return
         }
-        // 本地保存只用最后一段文件名，防止服务端异常数据拼出目录穿越路径
+        // 临时文件名只用最后一段，防止服务端异常数据拼出目录穿越路径
         let fileName = (rawName as NSString).lastPathComponent
         let recordID = record.id
         downloadingRecordIDs.insert(recordID)
@@ -226,7 +226,6 @@ final class BackupViewModel: ObservableObject {
             fileDir: record.fileDir ?? "",
             fileName: rawName
         )
-        var tempURL: URL?
         do {
             let serverPath: String = try await client.send(
                 path: APIEndpoint.backupsRecordDownload.path, body: req, as: String.self
@@ -246,40 +245,12 @@ final class BackupViewModel: ObservableObject {
                     }
                 }
             )
-            tempURL = downloaded
-            // 移入 Documents（同名自动加序号，通过 UIFileSharingEnabled 暴露到「文件」App）
-            let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let finalName = Self.uniqueFileName(fileName, in: destDir)
-            let finalURL = destDir.appendingPathComponent(finalName)
-            do {
-                try FileManager.default.moveItem(at: downloaded, to: finalURL)
-            } catch {
-                try? FileManager.default.removeItem(at: downloaded)
-                throw error
-            }
-            downloadedFileName = finalName
+            downloadedFile = try LocalDownloads.move(tempFile: downloaded, fileName: fileName, category: .backups)
         } catch {
-            if let tempURL { try? FileManager.default.removeItem(at: tempURL) }
             // 用户主动取消不弹错误
             if !error.isUserCancellation {
                 showAlert(message: L10n.f("下载失败：%@", error.localizedDescription))
             }
-        }
-    }
-
-    /// 目标目录下不冲突的文件名：同名时追加序号
-    private static func uniqueFileName(_ name: String, in dir: URL) -> String {
-        let fm = FileManager.default
-        if !fm.fileExists(atPath: dir.appendingPathComponent(name).path) { return name }
-        let ext = (name as NSString).pathExtension
-        let base = ext.isEmpty ? name : String(name.dropLast(ext.count + 1))
-        var index = 1
-        while true {
-            let candidate = ext.isEmpty ? "\(base) \(index)" : "\(base) \(index).\(ext)"
-            if !fm.fileExists(atPath: dir.appendingPathComponent(candidate).path) {
-                return candidate
-            }
-            index += 1
         }
     }
 
@@ -470,15 +441,15 @@ struct BackupListView: View {
         .alert(
             L10n.t("下载完成"),
             isPresented: Binding(
-                get: { vm.downloadedFileName != nil },
+                get: { vm.downloadedFile != nil },
                 // 关闭发生在视图更新事务内：同步清 @Published 会触发
                 // "Publishing changes from within view updates"，推迟到下一周期
-                set: { if !$0 { Task { @MainActor in vm.downloadedFileName = nil } } }
+                set: { if !$0 { Task { @MainActor in vm.downloadedFile = nil } } }
             )
         ) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
-            Text(L10n.f("已保存到「文件」App：我的 iPhone/1PanelClient/%@", vm.downloadedFileName ?? ""))
+            Text(vm.downloadedFile?.successMessage ?? "")
         }
     }
 

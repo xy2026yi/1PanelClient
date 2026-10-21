@@ -918,8 +918,7 @@ struct FilesView: View {
 
     // MARK: - 下载
 
-    /// 下载文件到本地 Documents 目录（通过 Info.plist 的 UIFileSharingEnabled
-    /// 暴露到「文件」App 的 我的iPhone/1PanelClient），同名文件自动加序号
+    /// 下载文件到 Documents/Files（「文件」App 可见），同名文件自动加序号
     private func downloadFile(_ item: FileItem) {
         transfer = TransferState(kind: L10n.t("下载"), fileName: item.name, total: Int64(item.size ?? 0))
         let totalSize = Int64(item.size ?? 0)
@@ -946,15 +945,9 @@ struct FilesView: View {
                         }
                     }
                 )
-                // 移入 Documents 根目录（同名自动加序号）
-                let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let finalName = uniqueFileName(item.name, in: destDir)
-                let finalURL = destDir.appendingPathComponent(finalName)
-                try? FileManager.default.removeItem(at: finalURL)
-                try FileManager.default.moveItem(at: tempURL, to: finalURL)
-
-                transfer?.fileName = finalName
-                transfer?.localURL = finalURL
+                let saved = try LocalDownloads.move(tempFile: tempURL, fileName: item.name, category: .files)
+                transfer?.fileName = saved.fileName
+                transfer?.saved = saved
                 transfer?.progress = 1
                 transfer?.status = .done
             } catch {
@@ -966,22 +959,6 @@ struct FilesView: View {
                     transfer?.errorText = error.localizedDescription
                 }
             }
-        }
-    }
-
-    /// 目标目录下不冲突的文件名：同名时追加序号（如 "a 1.txt"、"a 2.txt"）
-    private func uniqueFileName(_ name: String, in dir: URL) -> String {
-        let fm = FileManager.default
-        if !fm.fileExists(atPath: dir.appendingPathComponent(name).path) { return name }
-        let ext = (name as NSString).pathExtension
-        let base = ext.isEmpty ? name : String(name.dropLast(ext.count + 1))
-        var index = 1
-        while true {
-            let candidate = ext.isEmpty ? "\(base) \(index)" : "\(base) \(index).\(ext)"
-            if !fm.fileExists(atPath: dir.appendingPathComponent(candidate).path) {
-                return candidate
-            }
-            index += 1
         }
     }
 

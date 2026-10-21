@@ -262,8 +262,8 @@ struct CertificateDetailView: View {
             Task {
                 // 反馈就地呈现：列表页的 toast 挂在被 push 的本页下面不可见
                 switch await vm.downloadSSL(cert: detail ?? cert) {
-                case .saved(let name):
-                    downloadToast = L10n.f("已保存到「文件」App：我的 iPhone/1PanelClient/%@", name)
+                case .saved(let saved):
+                    downloadToast = saved.successMessage
                 case .failed(let err):
                     if !err.isEmpty { downloadError = err }
                 }
@@ -901,22 +901,22 @@ final class CertificatesViewModel: ObservableObject {
     /// 下载进行中的证书 id（详情页据此在 toolbar 转圈）
     @Published var downloadingSSLID: Int?
 
-    /// 下载结果：成功带保存文件名、失败带可读错误。由详情页就地呈现——
+    /// 下载结果：成功带保存结果、失败带可读错误。由详情页就地呈现——
     /// 列表页的 toast/alert 挂在被 push 的详情页下面，成功 toast 必不可见
     enum SSLDownloadResult {
-        case saved(String)
+        case saved(LocalDownloads.Saved)
         case failed(String)
     }
 
-    /// 下载证书 zip（fullchain.pem + privkey.pem）到本机 Documents
-    /// （经 UIFileSharingEnabled 暴露到「文件」App），文件名优先取服务端
-    /// Content-Disposition，兜底「主域名.zip」
+    /// 下载证书 zip（fullchain.pem + privkey.pem）到 Documents/Certificates
+    /// （「文件」App 可见），文件名优先取服务端 Content-Disposition，兜底「主域名.zip」
     func downloadSSL(cert: WebsiteSSLCert) async -> SSLDownloadResult {
         guard downloadingSSLID == nil else { return .failed(L10n.t("正在下载中，请稍候")) }
         downloadingSSLID = cert.id
         defer { downloadingSSLID = nil }
         let domain = (cert.primaryDomain ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let fallback = Self.localFileName(domain.isEmpty ? "cert-\(cert.id)" : domain, ext: "zip")
+        let fallback = LocalDownloads.sanitizedFileName(
+            domain.isEmpty ? "cert-\(cert.id)" : domain, defaultExtension: "zip")
         do {
             let (data, serverName) = try await client.downloadPOST(
                 path: APIEndpoint.websitesSSLDownload.path,
@@ -926,45 +926,14 @@ final class CertificatesViewModel: ObservableObject {
             guard !data.isEmpty else {
                 return .failed(L10n.t("下载失败：文件内容为空"))
             }
-            // 服务端文件名同样过一遍本地合法化（通配符域名等字符）
-            let baseName = serverName.isEmpty ? fallback : Self.localFileName(serverName, ext: nil)
-            let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let finalName = Self.uniqueFileName(baseName, in: destDir)
-            try data.write(to: destDir.appendingPathComponent(finalName), options: .atomic)
-            return .saved(finalName)
+            // 服务端文件名（通配符域名等字符）由 LocalDownloads 统一合法化
+            let saved = try LocalDownloads.save(
+                data: data, fileName: serverName.isEmpty ? fallback : serverName, category: .certificates)
+            return .saved(saved)
         } catch {
             if APIError.isCancellation(error) { return .failed("") }
             return .failed(L10n.f("下载失败：%@",
                 (error as? APIError)?.errorDescription ?? error.localizedDescription))
-        }
-    }
-
-    /// 本地文件系统合法名：取最后一段路径（防目录穿越），替换 iOS 非法字符；
-    /// ext 非空且原名无扩展名时补上（如主域名兜底名补 .zip）
-    private static func localFileName(_ name: String, ext: String?) -> String {
-        var safe = (name as NSString).lastPathComponent
-        for ch in ["/", ":", "\0"] where safe.contains(ch) {
-            safe = safe.replacingOccurrences(of: ch, with: "_")
-        }
-        if let ext, !ext.isEmpty, safe.lowercased().suffix(ext.count + 1) != ".\(ext.lowercased())" {
-            safe += ".\(ext)"
-        }
-        return safe
-    }
-
-    /// 目标目录下不冲突的文件名：同名时追加序号（与备份下载同策略）
-    private static func uniqueFileName(_ name: String, in dir: URL) -> String {
-        let fm = FileManager.default
-        if !fm.fileExists(atPath: dir.appendingPathComponent(name).path) { return name }
-        let ext = (name as NSString).pathExtension
-        let base = ext.isEmpty ? name : String(name.dropLast(ext.count + 1))
-        var index = 1
-        while true {
-            let candidate = ext.isEmpty ? "\(base) \(index)" : "\(base) \(index).\(ext)"
-            if !fm.fileExists(atPath: dir.appendingPathComponent(candidate).path) {
-                return candidate
-            }
-            index += 1
         }
     }
 

@@ -202,12 +202,12 @@ struct WebsiteLogPage: View {
         }
     }
 
-    /// 下载日志文件（GET /files/download?path=<站点日志路径>，保存到「文件」App）
+    /// 下载日志文件（GET /files/download?path=<站点日志路径>，落盘 Documents/Logs）
     private func downloadLog() async {
         isOperatingLog = true
         defer { isOperatingLog = false }
         do {
-            // downloadFile 落盘带 UUID 前缀，移入「文件」App 时用目标名（不带前缀）
+            // downloadFile 落盘带 UUID 前缀，移入 Documents/Logs 时用目标名（不带前缀）
             let fileName = "\(website.alias ?? website.primaryDomain ?? "site")-\(selectedTab.fileName)"
             let tempURL = try await vm.client.downloadFile(
                 path: APIEndpoint.filesDownload.path,
@@ -217,11 +217,8 @@ struct WebsiteLogPage: View {
                 ],
                 fileName: fileName,
                 progress: nil)
-            let destDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let finalURL = destDir.appendingPathComponent(fileName)
-            try? FileManager.default.removeItem(at: finalURL)
-            try FileManager.default.moveItem(at: tempURL, to: finalURL)
-            downloadDone = L10n.t("已保存到「文件」App · 我的 iPhone/1PanelClient")
+            let saved = try LocalDownloads.move(tempFile: tempURL, fileName: fileName, category: .logs)
+            downloadDone = saved.successMessage
         } catch {
             guard !APIError.isCancellation(error) else { return }
             opFailed = error.localizedDescription
