@@ -397,6 +397,17 @@
         }
       }
     },
+    "%ld 条规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld rules"
+          }
+        }
+      }
+    },
     "%ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4498,6 +4509,17 @@
         }
       }
     },
+    "仅初始化" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialize Only"
+          }
+        }
+      }
+    },
     "仅文本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4516,6 +4538,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Only installed apps of type Website that are not in use"
+          }
+        }
+      }
+    },
+    "仅重置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Only"
           }
         }
       }
@@ -7893,6 +7926,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Initializing container port guard takes over access control of published ports; policies cannot be configured until it completes."
+          }
+        }
+      }
+    },
+    "初始化并恢复规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initialize & Restore Rules"
           }
         }
       }
@@ -12110,6 +12154,17 @@
         }
       }
     },
+    "备份目录：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup directory: %@"
+          }
+        }
+      }
+    },
     "备份网站" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12117,6 +12172,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back Up Website"
+          }
+        }
+      }
+    },
+    "备份规则后重置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back Up Rules, then Reset"
           }
         }
       }
@@ -13694,6 +13760,17 @@
         }
       }
     },
+    "将初始化基础链并从备份恢复 %ld 条规则，当前运行时规则将被替换。确认使用备份「%@」吗？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This initializes the base chain and restores %ld rules from the backup, replacing the current runtime rules. Use backup \"%@\"?"
+          }
+        }
+      }
+    },
     "将删除 %@ 中的 1Panel Docker 端口防护运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13716,13 +13793,24 @@
         }
       }
     },
-    "将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置后需重新初始化或同步。请输入后端名「%@」以确认。" : {
+    "将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略，且不生成备份。请输入后端名「%@」以确认。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This deletes all 1Panel runtime rules and chains in %@, keeping only database policies; re-initialize or sync afterwards. Type the backend name \"%@\" to confirm."
+            "value" : "This deletes all 1Panel runtime rules and chains in %@, keeping only database policies, without creating a backup. Type the backend name \"%@\" to confirm."
+          }
+        }
+      }
+    },
+    "将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置前将自动备份当前规则并显示保存路径。请输入后端名「%@」以确认。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes all 1Panel runtime rules and chains in %@, keeping only database policies; the current rules will be backed up first and the save path shown. Type the backend name \"%@\" to confirm."
           }
         }
       }
@@ -15208,6 +15296,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Moved to recycle bin"
+          }
+        }
+      }
+    },
+    "已移除 %ld 条规则，规则备份已保存至：" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed %ld rules. Rule backup saved to:"
           }
         }
       }
@@ -16747,7 +16846,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Resume"
+            "value" : "Restore"
           }
         }
       }
@@ -20488,6 +20587,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No backups"
+          }
+        }
+      }
+    },
+    "暂无备份文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Backup Files"
           }
         }
       }
@@ -26758,6 +26868,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm Password"
+          }
+        }
+      }
+    },
+    "确认恢复规则" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Rules"
           }
         }
       }
@@ -33879,6 +34000,17 @@
         }
       }
     },
+    "选择备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Backup"
+          }
+        }
+      }
+    },
     "选择对象" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34799,6 +34931,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reset to New Version Defaults"
+          }
+        }
+      }
+    },
+    "重置完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Complete"
+          }
+        }
+      }
+    },
+    "重置时勾选「备份规则后重置」会生成备份文件，生成后可在此恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choosing \"Back Up Rules, then Reset\" when resetting creates a backup file that can be restored here."
           }
         }
       }

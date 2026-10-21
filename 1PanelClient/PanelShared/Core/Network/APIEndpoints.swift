@@ -217,7 +217,8 @@ enum APIEndpoint {
     case firewallRulesCreate      // POST 批量创建规则（items[{rule}]，任务式）
     case firewallRulesUpdate      // POST 更新规则（scope+instanceKey + rule/description 互斥）
     case firewallRulesDelete      // POST 批量删除规则 {targets[{scope,instanceKey,observed}]}
-    case firewallRulesReset        // POST 重置运行时规则（需输入后端名确认）
+    case firewallRulesReset        // POST 重置运行时规则 {backup,provider,withDockerRestart}（需输入后端名确认）
+    case firewallRulesBackups      // GET  规则备份文件列表 ?subsystem=system（v2.4.0 新增；初始化并恢复规则用）
     case firewallRulesReorder      // POST 调整链内位置（Web 未用，保留能力）
     case firewallNativeDetail      // POST 原生对象配置原文（zone_service/ufw_application）
     case firewallForwardBase      // POST 转发子系统状态（无请求体）
@@ -877,6 +878,7 @@ enum APIEndpoint {
         case .firewallRulesUpdate:   return "/api/v2/hosts/firewall/rules/update"
         case .firewallRulesDelete:   return "/api/v2/hosts/firewall/rules/delete"
         case .firewallRulesReset:    return "/api/v2/hosts/firewall/rules/reset"
+        case .firewallRulesBackups:  return "/api/v2/hosts/firewall/rules/backups"
         case .firewallRulesReorder:  return "/api/v2/hosts/firewall/rules/reorder"
         case .firewallNativeDetail:  return "/api/v2/hosts/firewall/rules/native/detail"
         case .firewallForwardBase:   return "/api/v2/hosts/firewall/forward/base"

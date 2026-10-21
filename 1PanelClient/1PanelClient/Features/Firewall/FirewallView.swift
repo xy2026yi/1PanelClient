@@ -38,6 +38,8 @@ struct FirewallView: View {
     @State private var pendingDeleteForward: FirewallForwardRule?
     // 重置 / Docker 策略
     @State private var showRulesReset = false
+    /// 重置方式（确认弹窗文案随动）：true = 备份规则后重置，false = 仅重置
+    @State private var resetWithBackup = true
     @State private var showDockerReset = false
     @State private var showForwardReset = false
     @State private var editingPolicy: DockerGuardEndpoint?
@@ -50,6 +52,12 @@ struct FirewallView: View {
     @State private var showDockerImport = false
     /// 长按弹出的规则操作目标
     @State private var actionItem: FirewallInventoryItem?
+    /// 初始化方式菜单（未初始化占位卡入口：仅初始化 / 初始化并恢复规则）
+    @State private var showInitMenu = false
+    /// 初始化并恢复规则的备份选择 sheet
+    @State private var showRestorePicker = false
+    /// 重置方式菜单（备份规则后重置 / 仅重置）
+    @State private var showResetMenu = false
     /// 孤立策略长按菜单目标 / 删除确认目标（与规则/转发同款交互）
     @State private var actionOrphan: DockerGuardEndpoint?
     @State private var pendingDeleteOrphan: DockerGuardEndpoint?
@@ -276,7 +284,7 @@ struct FirewallView: View {
             }
     }
 
-    /// 弹层：半屏操作菜单 / 导入导出 / 同步预览 / 策略表单 / 重置确认 / 原文查看
+    /// 弹层：半屏操作菜单 / 导入导出 / 策略表单 / 初始化与重置方式菜单 / 重置确认 / 备份恢复 / 原文查看
     private func sheetLayer(_ content: some View) -> some View {
         content
             // Docker 端点防护策略表单
@@ -398,17 +406,18 @@ struct FirewallView: View {
             } message: {
                 Text(L10n.t("确定删除该端口的防护策略吗？删除后不可恢复。"))
             }
-            // 规则重置（R1：输入后端名确认，对齐 Web 端「请手动输入 iptables」）
+            // 规则重置（先选方式：备份规则后重置 / 仅重置；R1 均需输入后端名确认，
+            // 对齐 Web 端「请手动输入 iptables」；抓包 2026-10-21）
             .sheet(isPresented: $showRulesReset) {
                 TextInputConfirmSheet(
                     title: L10n.t("重置防火墙规则"),
-                    message: L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置后需重新初始化或同步。请输入后端名「%@」以确认。", vm.systemStatus?.backend ?? "", vm.systemStatus?.backend ?? ""),
+                    message: resetConfirmMessage,
                     expectedText: vm.systemStatus?.backend ?? "",
                     fieldLabel: L10n.t("确认输入"),
                     fieldPlaceholder: vm.systemStatus?.backend,
                     confirmTitle: L10n.t("重置")
                 ) {
-                    Task { await vm.resetRules() }
+                    Task { await vm.resetRules(backup: resetWithBackup) }
                 }
             }
             // Docker 守护重置（R1：同款输入后端名确认；settings/operate cleanup）
@@ -437,6 +446,73 @@ struct FirewallView: View {
                     Task { await vm.resetForwarding() }
                 }
             }
+            // 初始化方式菜单（未初始化占位卡入口；对齐 Web 端下拉二选一）
+            .sheet(isPresented: $showInitMenu) {
+                ActionBottomSheet(
+                    title: L10n.t("初始化"),
+                    items: [
+                        ActionMenuItem(title: L10n.t("仅初始化"), icon: "wand.and.stars",
+                                       color: .blue) {
+                            Task { await vm.operateFilterChain("init-base") }
+                        },
+                        ActionMenuItem(title: L10n.t("初始化并恢复规则"),
+                                       icon: "arrow.counterclockwise.circle",
+                                       color: .teal) {
+                            showRestorePicker = true
+                        },
+                    ],
+                    onDismiss: { showInitMenu = false }
+                )
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+                .presentationDragIndicator(.visible)
+            }
+            // 初始化并恢复规则：备份选择（rules/backups → POST rules initialize）
+            .sheet(isPresented: $showRestorePicker) {
+                FirewallRestoreBackupView(vm: vm)
+            }
+            // 重置方式菜单（备份规则后重置 / 仅重置，随后进输入后端名确认）
+            .sheet(isPresented: $showResetMenu) {
+                ActionBottomSheet(
+                    title: L10n.t("重置防火墙规则"),
+                    items: [
+                        ActionMenuItem(title: L10n.t("备份规则后重置"),
+                                       icon: "externaldrive.badge.timemachine",
+                                       color: .orange) {
+                            resetWithBackup = true
+                            showRulesReset = true
+                        },
+                        ActionMenuItem(title: L10n.t("仅重置"), icon: "trash",
+                                       color: .statusError, role: .destructive) {
+                            resetWithBackup = false
+                            showRulesReset = true
+                        },
+                    ],
+                    onDismiss: { showResetMenu = false }
+                )
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+                .presentationDragIndicator(.visible)
+            }
+            // 备份后重置完成：弹窗提醒服务器保存路径（对齐 Web 端；抓包 2026-10-21）
+            .alert(L10n.t("重置完成"), isPresented: Binding(
+                get: { vm.lastResetResult != nil },
+                set: { if !$0 { vm.lastResetResult = nil } }
+            )) {
+                Button(L10n.t("好的"), role: .cancel) { vm.lastResetResult = nil }
+            } message: {
+                if let result = vm.lastResetResult {
+                    Text(L10n.f("已移除 %ld 条规则，规则备份已保存至：", result.removed ?? 0)
+                         + "\n" + (result.backupPath ?? ""))
+                }
+            }
+    }
+
+    /// 重置确认弹窗文案（随方式变化；v2.4.0 上游已移除同步，提示只提重新初始化）
+    private var resetConfirmMessage: String {
+        let backend = vm.systemStatus?.backend ?? ""
+        if resetWithBackup {
+            return L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置前将自动备份当前规则并显示保存路径。请输入后端名「%@」以确认。", backend, backend)
+        }
+        return L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略，且不生成备份。请输入后端名「%@」以确认。", backend, backend)
     }
 
     private func deleteForward() {
@@ -644,7 +720,7 @@ struct FirewallView: View {
                     filterChainBindButton
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
                                      color: .statusError, busy: vm.isOperating) {
-                        showRulesReset = true
+                        showResetMenu = true
                     }
                     CardActionButton(title: L10n.t("导入"), icon: "square.and.arrow.down",
                                      color: .teal, busy: false,
@@ -725,7 +801,8 @@ struct FirewallView: View {
                     message: L10n.t("初始化后将创建 1Panel 基础链并接管规则管理；完成前不可创建规则。"),
                     buttonTitle: L10n.t("初始化")
                 ) {
-                    Task { await vm.operateFilterChain("init-base") }
+                    // 初始化方式（仅初始化 / 初始化并恢复规则）经菜单二选一
+                    showInitMenu = true
                 }
             } else if isRulesUnbound {
                 unboundPlaceholder

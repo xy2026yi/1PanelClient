@@ -56,8 +56,15 @@ final class FirewallViewModel: ObservableObject {
     @Published var isOperating = false
     @Published var errorMessage: String?
     @Published var toastMessage: String?
-    /// 任务式操作的进度页目标（init-base / forward enable / 白名单 / Docker 初始化）
+    /// 任务式操作的进度页目标（init-base / 初始化恢复 / forward enable / 白名单 / Docker 初始化）
     @Published var activeTask: FirewallTaskTarget?
+    /// 规则备份列表（rules/backups；「初始化并恢复规则」流程按需加载）
+    @Published var ruleBackups: FirewallRuleBackupsResponse?
+    @Published var isLoadingBackups = false
+    /// 备份列表加载失败（恢复 sheet 内展示 + 重试；不占用整页 errorMessage）
+    @Published var ruleBackupsError: String?
+    /// 备份后重置的结果（含服务器保存路径；弹窗提醒后清除）
+    @Published var lastResetResult: FirewallRuleResetResponse?
     /// 端口+协议 → 监听进程名（键 "端口|tcp" / "端口|udp"；process/listening 裸数组）
     @Published var portProcessNames: [String: String] = [:]
     /// 端口 → 监听进程名（无协议维度兜底；协议未命中时使用）
@@ -351,20 +358,27 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    // MARK: 规则重置 / Docker 策略（v2.4.0：上游移除 rules/sync 全家，不再提供同步）
+    // MARK: 规则重置 / 备份 / Docker 策略（v2.4.0：上游移除 rules/sync 全家，不再提供同步）
 
-    /// 重置运行时规则（R1：调用方需先经输入后端名确认）
-    func resetRules() async {
+    /// 重置运行时规则（R1：调用方需先经输入后端名确认）。
+    /// backup=true 时服务端先落备份文件，成功后经 lastResetResult 弹窗展示保存路径
+    /// （抓包 2026-10-21：响应 {backupPath, removed, disabled}）
+    func resetRules(backup: Bool) async {
         isOperating = true
         defer { isOperating = false }
         do {
             let resp: FirewallRuleResetResponse = try await client.send(
                 path: APIEndpoint.firewallRulesReset.path,
-                body: FirewallRuleResetRequest(provider: systemStatus?.backend,
+                body: FirewallRuleResetRequest(backup: backup,
+                                               provider: systemStatus?.backend,
                                                withDockerRestart: false),
                 as: FirewallRuleResetResponse.self
             )
-            toastMessage = L10n.f("已重置：移除 %ld 条规则", resp.removed ?? 0)
+            if backup, let path = resp.backupPath, !path.isEmpty {
+                lastResetResult = resp
+            } else {
+                toastMessage = L10n.f("已重置：移除 %ld 条规则", resp.removed ?? 0)
+            }
             await loadSystemStatus()
             await loadRules(replacing: true)
             // 重置会改变 settings 各组当前后端的 initialized，同步刷新供切换预检
@@ -372,6 +386,49 @@ final class FirewallViewModel: ObservableObject {
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 规则备份列表（rules/backups?subsystem=system；初始化并恢复规则的选择来源）
+    func loadRuleBackups() async {
+        guard !isLoadingBackups else { return }
+        isLoadingBackups = true
+        ruleBackupsError = nil
+        defer { isLoadingBackups = false }
+        do {
+            ruleBackups = try await client.send(
+                path: APIEndpoint.firewallRulesBackups.path, method: "GET",
+                queryItems: [URLQueryItem(name: "subsystem", value: "system")],
+                as: FirewallRuleBackupsResponse.self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            ruleBackupsError = error.localizedDescription
+        }
+    }
+
+    /// 初始化并恢复规则（抓包 2026-10-21：POST rules
+    /// {"initialize":true,"backupFile":…,"items":[]}，任务式）
+    func initializeWithRestore(backupFile: String) async -> Bool {
+        isOperating = true
+        defer { isOperating = false }
+        do {
+            let resp: FirewallRuleCreateResponse = try await client.send(
+                path: APIEndpoint.firewallRulesCreate.path,
+                body: FirewallRuleCreateRequest(items: [], initialize: true,
+                                                backupFile: backupFile),
+                as: FirewallRuleCreateResponse.self
+            )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID,
+                                                title: L10n.t("初始化并恢复规则"))
+            }
+            await loadSystemStatus()
+            return true
+        } catch {
+            guard !APIError.isCancellation(error) else { return false }
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 
@@ -660,14 +717,18 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// 基础链：init-base / bind-base / unbind-base（iptables/nftables）
+    /// 基础链：init-base / bind-base / unbind-base（iptables/nftables）。
+    /// taskID 与 Web 端一致由客户端生成（抓包 2026-10-21：请求即携带 UUID，
+    /// 响应原样回显；服务端对缺省也会生成，这里显式带上保证一致）
     func operateFilterChain(_ operate: String) async {
         isOperating = true
         defer { isOperating = false }
+        let clientTaskID = UUID().uuidString.lowercased()
         do {
             let resp: FirewallTaskResponse = try await client.send(
                 path: APIEndpoint.firewallFilterOperate.path,
-                body: FirewallFilterOperateRequest(name: "1PANEL_BASIC", operate: operate, taskID: nil),
+                body: FirewallFilterOperateRequest(name: "1PANEL_BASIC", operate: operate,
+                                                   taskID: clientTaskID),
                 as: FirewallTaskResponse.self
             )
             if let taskID = resp.taskID, !taskID.isEmpty {

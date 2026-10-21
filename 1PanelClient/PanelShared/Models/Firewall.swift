@@ -266,6 +266,11 @@ nonisolated struct FirewallRuleCreateItem: Encodable, Sendable {
 
 nonisolated struct FirewallRuleCreateRequest: Encodable, Sendable {
     var items: [FirewallRuleCreateItem]
+    /// 「初始化并恢复规则」流程（抓包 2026-10-21）：true = 先建基础链再恢复
+    /// backupFile 内的规则，items 传空数组
+    var initialize: Bool? = nil
+    /// 恢复使用的备份文件名（rules/backups 返回的 name；仅 initialize=true 时携带）
+    var backupFile: String? = nil
 }
 
 nonisolated struct FirewallRuleCreateFailure: Decodable, Sendable {
@@ -299,7 +304,10 @@ nonisolated struct FirewallRuleDeleteRequest: Encodable, Sendable {
 
 // MARK: - 规则重置（rules/reset；v2.4.0 响应含备份路径，需输入后端名确认）
 
+/// 抓包 2026-10-21：{"backup":true,"provider":"iptables","withDockerRestart":false}；
+/// backup=true 时响应带 backupFile 保存路径（弹窗提醒）
 nonisolated struct FirewallRuleResetRequest: Encodable, Sendable {
+    var backup: Bool = true
     var provider: String?
     var withDockerRestart: Bool
 }
@@ -308,6 +316,24 @@ nonisolated struct FirewallRuleResetResponse: Decodable, Sendable {
     let backupPath: String?
     let removed: Int?
     let disabled: Bool?
+}
+
+// MARK: - 规则备份（GET rules/backups?subsystem=system；v2.4.0 新增，抓包 2026-10-21）
+
+nonisolated struct FirewallRuleBackupFile: Decodable, Identifiable, Sendable {
+    let name: String?
+    let provider: String?
+    let ruleCount: Int?
+    /// 毫秒级修改时间（如 1792584345384）
+    let modifiedAt: Int64?
+    /// 行键：name 缺失时回落时间戳（避免随机重建导致列表闪动）
+    var id: String { name ?? "backup-\(modifiedAt ?? 0)" }
+}
+
+nonisolated struct FirewallRuleBackupsResponse: Decodable, Sendable {
+    /// 备份目录（服务器路径，如 /opt/1panel/backup/firewall/host）
+    let directory: String?
+    let files: [FirewallRuleBackupFile]?
 }
 
 // MARK: - 排序 / 原文查看（规则清单低频操作）

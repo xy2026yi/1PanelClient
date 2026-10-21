@@ -401,12 +401,109 @@ struct FirewallDeleteAndPolicyTests {
         #expect(item?["description"] == nil)
     }
 
-    @Test("重置响应（v2.4.0：backupPath + removed/disabled）")
+    @Test("重置响应（v2.4.0：backupPath + removed/disabled；抓包 2026-10-21 真实样本）")
     func resetResponse() throws {
         let resp = try JSONDecoder().decode(FirewallRuleResetResponse.self,
-                                            from: Data(#"{"backupPath":"/opt/1panel/firewall/bk-1.json","removed":5,"disabled":true}"#.utf8))
-        #expect(resp.backupPath?.hasSuffix("bk-1.json") == true)
-        #expect(resp.removed == 5 && resp.disabled == true)
+                                            from: Data(#"{"backupPath":"/opt/1panel/backup/firewall/host/iptables-20261021-200545-9ba43503-e6c3-4827-82fb-597172fd7715.json","removed":18,"disabled":true}"#.utf8))
+        #expect(resp.backupPath?.hasPrefix("/opt/1panel/backup/firewall/host/") == true)
+        #expect(resp.removed == 18 && resp.disabled == true)
+    }
+
+    @Test("重置请求编码（抓包 2026-10-21：backup + provider + withDockerRestart 三字段齐全）")
+    func resetRequestEncode() throws {
+        let data = try JSONEncoder().encode(
+            FirewallRuleResetRequest(backup: false, provider: "iptables", withDockerRestart: false))
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["backup"] as? Bool == false)
+        #expect(obj?["provider"] as? String == "iptables")
+        #expect(obj?["withDockerRestart"] as? Bool == false)
+        // 缺省 backup=true（与上游 DTO default 一致）
+        let defaulted = try JSONEncoder().encode(
+            FirewallRuleResetRequest(provider: "iptables", withDockerRestart: false))
+        let dobj = try JSONSerialization.jsonObject(with: defaulted) as? [String: Any]
+        #expect(dobj?["backup"] as? Bool == true)
+    }
+}
+
+// MARK: - 初始化 / 规则备份回归（v2.4.0 新增 rules/backups；抓包 2026-10-21）
+
+@Suite("防火墙初始化与规则备份回归")
+struct FirewallInitBackupTests {
+
+    @Test("备份列表解码（directory + files[name/provider/ruleCount/modifiedAt 毫秒]）")
+    func backupsDecode() throws {
+        let json = """
+        {"directory":"/opt/1panel/backup/firewall/host",
+         "files":[{"name":"iptables-20261021-200545-9ba43503-e6c3-4827-82fb-597172fd7715.json",
+                   "provider":"iptables","ruleCount":6,"modifiedAt":1792584345384}]}
+        """
+        let resp = try JSONDecoder().decode(FirewallRuleBackupsResponse.self, from: Data(json.utf8))
+        #expect(resp.directory == "/opt/1panel/backup/firewall/host")
+        let file = try #require(resp.files?.first)
+        #expect(file.name?.hasPrefix("iptables-20261021-200545") == true)
+        #expect(file.provider == "iptables")
+        #expect(file.ruleCount == 6)
+        #expect(file.modifiedAt == 1792584345384)
+        // 行键取文件名（稳定，不随解码随机重建）
+        #expect(file.id == file.name)
+    }
+
+    @Test("备份列表空态解码（无备份时 files 为空数组）")
+    func backupsEmptyDecode() throws {
+        let resp = try JSONDecoder().decode(
+            FirewallRuleBackupsResponse.self,
+            from: Data(#"{"directory":"/opt/1panel/backup/firewall/host","files":[]}"#.utf8))
+        #expect(resp.directory?.isEmpty == false)
+        #expect(resp.files?.isEmpty == true)
+    }
+
+    @Test("初始化并恢复规则请求编码（initialize:true + backupFile + items:[]）")
+    func initializeRestoreEncode() throws {
+        let req = FirewallRuleCreateRequest(
+            items: [], initialize: true,
+            backupFile: "iptables-20261021-200545-9ba43503-e6c3-4827-82fb-597172fd7715.json")
+        let data = try JSONEncoder().encode(req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["initialize"] as? Bool == true)
+        #expect((obj?["backupFile"] as? String)?.hasSuffix(".json") == true)
+        #expect((obj?["items"] as? [Any])?.isEmpty == true)
+    }
+
+    @Test("普通建规则请求不带 initialize/backupFile（可选字段缺省不编码）")
+    func createRequestOmitsInitializeFields() throws {
+        let rule = FirewallRule(
+            scope: FirewallScope(provider: "iptables", family: "ipv4",
+                                 table: "filter", chain: "1PANEL_BASIC"),
+            nativeKind: "rule", protocolField: "tcp",
+            destinationPort: "443", action: "accept")
+        let req = FirewallRuleCreateRequest(
+            items: [FirewallRuleCreateItem(rule: rule, sourceKind: "user")])
+        let data = try JSONEncoder().encode(req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["initialize"] == nil)
+        #expect(obj?["backupFile"] == nil)
+        #expect((obj?["items"] as? [Any])?.count == 1)
+    }
+
+    @Test("初始化并恢复响应解码（任务式 + 计数三元组）")
+    func initializeRestoreResponse() throws {
+        let resp = try JSONDecoder().decode(
+            FirewallRuleCreateResponse.self,
+            from: Data(#"{"taskID":"391553b6-9d66-4d8d-ae25-72bd6a52dc6b","queued":true,"succeeded":0,"failed":0,"skipped":0}"#.utf8))
+        #expect(resp.taskID == "391553b6-9d66-4d8d-ae25-72bd6a52dc6b")
+        #expect(resp.queued == true)
+        #expect(resp.succeeded == 0 && resp.failed == 0 && resp.skipped == 0)
+    }
+
+    @Test("基础链操作请求编码（name/operate/taskID；taskID 由客户端生成随请求携带）")
+    func filterOperateEncode() throws {
+        let data = try JSONEncoder().encode(FirewallFilterOperateRequest(
+            name: "1PANEL_BASIC", operate: "init-base",
+            taskID: "cb9873c5-a21b-464c-b556-96df87e222cc"))
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["name"] as? String == "1PANEL_BASIC")
+        #expect(obj?["operate"] as? String == "init-base")
+        #expect(obj?["taskID"] as? String == "cb9873c5-a21b-464c-b556-96df87e222cc")
     }
 }
 

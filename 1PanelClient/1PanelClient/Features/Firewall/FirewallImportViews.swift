@@ -135,6 +135,138 @@ private enum FirewallImportPreview {
     }
 }
 
+// MARK: - 初始化并恢复规则（rules/backups 选择 + POST rules initialize）
+
+/// 「初始化并恢复规则」：列出服务器上的规则备份（rules/backups?subsystem=system），
+/// 点选一条 → 确认 → POST rules {"initialize":true,"backupFile":…,"items":[]}（任务进度页）。
+/// 抓包 2026-10-21
+struct FirewallRestoreBackupView: View {
+    @ObservedObject var vm: FirewallViewModel
+
+    @Environment(\.dismiss) private var dismiss
+    /// 待确认恢复的备份
+    @State private var pendingRestore: FirewallRuleBackupFile?
+    @State private var isRestoring = false
+
+    private var files: [FirewallRuleBackupFile] { vm.ruleBackups?.files ?? [] }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let err = vm.ruleBackupsError {
+                    LoadErrorStateView(message: err) {
+                        Task { await vm.loadRuleBackups() }
+                    }
+                } else if vm.isLoadingBackups && vm.ruleBackups == nil {
+                    LoadingStateView()
+                } else if files.isEmpty {
+                    ContentUnavailableView(
+                        L10n.t("暂无备份文件"),
+                        systemImage: "externaldrive.badge.timemachine",
+                        description: Text(L10n.t("重置时勾选「备份规则后重置」会生成备份文件，生成后可在此恢复。"))
+                    )
+                } else {
+                    backupList
+                }
+            }
+            .navigationTitle(L10n.t("初始化并恢复规则"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isRestoring)
+                }
+            }
+            .interactiveDismissDisabled(isRestoring)
+            .refreshable { await vm.loadRuleBackups() }
+        }
+        .task {
+            if vm.ruleBackups == nil && vm.ruleBackupsError == nil {
+                await vm.loadRuleBackups()
+            }
+        }
+        .alert(L10n.t("确认恢复规则"), isPresented: Binding(
+            get: { pendingRestore != nil },
+            set: { if !$0 { pendingRestore = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingRestore = nil }
+            Button(L10n.t("恢复"), role: .destructive) {
+                Haptic.warning()
+                guard let file = pendingRestore, let name = file.name else { return }
+                pendingRestore = nil
+                isRestoring = true
+                Task {
+                    // 成功即 dismiss：activeTask 已携带任务号，进度页随外层导航推出
+                    if await vm.initializeWithRestore(backupFile: name) {
+                        dismiss()
+                    } else {
+                        isRestoring = false
+                    }
+                }
+            }
+        } message: {
+            if let file = pendingRestore {
+                Text(L10n.f("将初始化基础链并从备份恢复 %ld 条规则，当前运行时规则将被替换。确认使用备份「%@」吗？",
+                            file.ruleCount ?? 0, file.name ?? ""))
+            }
+        }
+    }
+
+    private var backupList: some View {
+        Form {
+            Section {
+                ForEach(files) { file in
+                    Button {
+                        pendingRestore = file
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(file.name ?? "—")
+                                    .font(.footnote)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                HStack(spacing: 8) {
+                                    if let provider = file.provider {
+                                        Text(provider.uppercased())
+                                            .font(.caption2.weight(.semibold))
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 1)
+                                            .background(Color.secondary.opacity(0.15),
+                                                        in: RoundedRectangle(cornerRadius: 4))
+                                    }
+                                    Text(L10n.f("%ld 条规则", file.ruleCount ?? 0))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    if let ts = file.modifiedAt {
+                                        Text(Date(timeIntervalSince1970:
+                                                    TimeInterval(ts) / 1000)
+                                            .formatted(date: .numeric, time: .shortened))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isRestoring)
+                }
+            } header: {
+                SectionLabel(title: L10n.t("选择备份"), systemImage: "externaldrive.badge.timemachine")
+            } footer: {
+                if let dir = vm.ruleBackups?.directory, !dir.isEmpty {
+                    Text(L10n.f("备份目录：%@", dir))
+                }
+            }
+        }
+    }
+}
+
 // MARK: - 规则原文查看（observed.raw / native detail）
 
 struct FirewallRawDetailView: View {
