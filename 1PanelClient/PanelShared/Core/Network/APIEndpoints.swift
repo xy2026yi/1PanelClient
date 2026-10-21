@@ -224,7 +224,7 @@ enum APIEndpoint {
     case firewallNativeDetail      // POST 原生对象配置原文（zone_service/ufw_application）
     case firewallForwardBase      // POST 转发子系统状态（无请求体）
     case firewallForwardSearch    // POST 转发规则分页（PageEnvelope 信封）
-    case firewallForwardOperate   // POST 转发批量 add/remove（删除带 forceDelete）
+    case firewallForwardOperate   // POST 转发批量 add/remove（v2.4.0：forceDelete→import 导入语义）
     case firewallForwardEnable    // POST 启用转发子系统（任务式 {taskID?}）
     case firewallSettings         // GET  三组后端设置 + ping + 端口白名单
     case firewallSettingsOperate  // POST 后端操作 {subsystem,backend,operation: select|initialize|cleanup}

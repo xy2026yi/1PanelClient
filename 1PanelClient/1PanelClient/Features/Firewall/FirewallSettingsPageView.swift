@@ -86,7 +86,7 @@ struct FirewallSettingsContent: View {
         )) {
             Button(L10n.t("好的"), role: .cancel) { blockedSwitch = nil }
         } message: {
-            Text(L10n.f("当前后端 %@ 仍存在 1Panel 运行时规则，请先重置该后端，再切换到 %@。重置仅清理运行时规则，数据库策略会保留，切换后可以重新初始化或同步。", blockedSwitch?.current ?? "", blockedSwitch?.target ?? ""))
+            Text(L10n.f("当前后端 %@ 仍存在 1Panel 运行时规则，请先重置该后端，再切换到 %@。重置仅清理运行时规则，数据库策略会保留，切换后可以重新初始化。", blockedSwitch?.current ?? "", blockedSwitch?.target ?? ""))
         }
         // 停用 IPv6 支持确认（开启无确认直接执行；抓包 2026-10-21 只有停用提示文案）
         .alert(L10n.t("停用 IPv6 支持"), isPresented: $pendingIPv6Off) {

@@ -348,7 +348,9 @@ final class FirewallViewModel: ObservableObject {
                 as: FirewallTaskResponse.self
             )
             if let taskID = resp.taskID, !taskID.isEmpty {
-                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("启用端口转发"))
+                // 启用任务在服务端异步建链，完成返回时整页刷新校准
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("启用端口转发"),
+                                                refreshAfterDone: true)
             }
             await loadForwardStatus()
             await loadForwards(replacing: true)
@@ -421,7 +423,8 @@ final class FirewallViewModel: ObservableObject {
             )
             if let taskID = resp.taskID, !taskID.isEmpty {
                 activeTask = FirewallTaskTarget(taskID: taskID,
-                                                title: L10n.t("初始化并恢复规则"))
+                                                title: L10n.t("初始化并恢复规则"),
+                                                refreshAfterDone: true)
             }
             await loadSystemStatus()
             return true
@@ -732,7 +735,9 @@ final class FirewallViewModel: ObservableObject {
                 as: FirewallTaskResponse.self
             )
             if let taskID = resp.taskID, !taskID.isEmpty {
-                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("防火墙初始化"))
+                // 初始化/绑定/解绑的任务效应落在规则清单上，完成返回时整页刷新校准
+                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("防火墙初始化"),
+                                                refreshAfterDone: true)
             }
             await loadSystemStatus()
         } catch {
@@ -831,7 +836,9 @@ final class FirewallViewModel: ObservableObject {
                     as: FirewallTaskResponse.self
                 )
                 if let taskID = resp.taskID, !taskID.isEmpty {
-                    activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("Docker 端口守护"))
+                    // 初始化任务在服务端异步接管端口，完成返回时整页刷新校准
+                    activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("Docker 端口守护"),
+                                                    refreshAfterDone: true)
                 }
             } else {
                 let _: EmptyResponse = try await client.send(

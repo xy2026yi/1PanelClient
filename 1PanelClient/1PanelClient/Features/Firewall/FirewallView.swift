@@ -5,7 +5,8 @@
 //  防火墙 v2.3.0（上游 2026-09 整体重构后的 API，doc/references/v2.3.0-upstream-diff.md）：
 //  状态卡（系统子系统生命周期 + 基础链初始化/绑定）+ 四段内容——
 //  规则（统一规则清单）/ 转发（forward 子域）/ Docker 端口守护 / 设置（三组后端）。
-//  旧 v2.2.5 端口/IP/链规则三段模型已被上游「rules 统一命名空间 + states 五态」取代。
+//  v2.4.0（2026-10）：拆对账模型（无 state/sync/adopt），新增备份恢复、
+//  IPv6 支持开关与单地址族操作（见 Firewall.swift 头注）。
 //
 
 import SwiftUI
@@ -144,7 +145,7 @@ struct FirewallView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     if !vm.unsupportedPanel {
-                        // + 按段条件渲染（未初始化段不显示；导入/导出/同步/重置均已收进
+                        // + 按段条件渲染（未初始化段不显示；导入/导出/重置均已收进
                         // 状态抽屉，规则与转发都只剩创建，直接点击不经菜单）
                         if segment == 0 && !needsRulesInit && !isRulesUnbound {
                             Button { showAddRule = true } label: {
@@ -546,7 +547,7 @@ struct FirewallView: View {
         vm.systemStatus?.isBind == false
     }
 
-    /// 解绑态占位：说明绑定入口在上方操作行（隐藏 +、列表与同步/导入）
+    /// 解绑态占位：说明绑定入口在上方操作行（隐藏 +、列表与导入）
     private var unboundPlaceholder: some View {
         Section {
             VStack(spacing: 14) {
@@ -646,6 +647,11 @@ struct FirewallView: View {
                     Spacer()
                     if let conflict = vm.systemStatus?.conflictBackend, !conflict.isEmpty {
                         StatusBadge(text: L10n.t("后端冲突"), color: .semanticWarning)
+                    }
+                    // 收起态摘要提示族待办（展开区有逐族入口；v2.4.0 family/operate）
+                    if !statusExpanded, let first = familyAttentions.first {
+                        StatusBadge(text: "\(first.family.uppercased()) · \(familyStateText(first.operation))",
+                                    color: .semanticWarning)
                     }
                     Image(systemName: statusExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption.weight(.bold))

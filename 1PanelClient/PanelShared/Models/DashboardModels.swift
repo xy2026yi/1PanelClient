@@ -216,8 +216,9 @@ nonisolated struct PanelUpgradeInfo: Decodable {
 enum PanelVersionTools {
     /// 客户端当前适配的面板基线（README 对外承诺同一版本；升级适配流程完成后改此值）。
     /// v2.4.0（2026-10）：防火墙拆除 sync/adopt 与 state/match/desired 对账模型，
-    /// 增删改操作键改 (scope,instanceKey,observed)；新增 IPv6 族开关/规则备份端点
-    ///（App 暂未接入）；Docker 策略去 description；其余模块经源码 diff 为字段级小改；
+    /// 增删改操作键改 (scope,instanceKey,observed)；新增 IPv6 族开关（settings/ipv6）、
+    /// 规则备份（rules/backups）与单地址族操作（family/operate，均已接入）；
+    /// Docker 策略去 description；其余模块经源码 diff 为字段级小改；
     /// v2.3.2：v0.2.2–v0.2.4 实测适配版本；
     /// v2.3.1（2026-09-22）：小版本修复，无 API 变更（经核实兼容）；
     /// v2.3.0（2026-09-17 M1）：防火墙模块已对齐 v2.3.0 重构后 API（旧面板访问防火墙页
