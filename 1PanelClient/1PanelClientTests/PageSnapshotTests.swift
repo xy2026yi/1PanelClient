@@ -3,7 +3,9 @@
 //  1PanelClientTests
 //
 //  PageVMStore 磁盘快照层测试：落盘/回填闭环、服务器移除清理、
-//  数量上限淘汰。写盘经后台任务，测试以轮询等其落地（上限 2s）
+//  数量上限淘汰。注入同步 IO 派发器，落盘/清理在调用点即完成——
+//  曾以轮询等后台任务落地，CI 高负载下 utility 任务饿过超时窗口
+//  反复脆断，时序等待测的是调度器不是被测逻辑，故改为确定性断言
 //
 
 import Testing
@@ -41,17 +43,11 @@ struct PageSnapshotTests {
         try? FileManager.default.removeItem(at: dir)
     }
 
-    /// 后台写盘落地等待：轮询直至谓词成立或超时。CI 机器高负载下
-    /// utility 优先级的 detached 写任务可能饿几秒，超时窗口给足防时序脆断
-    private func waitUntil(_ condition: @autoclosure () -> Bool,
-                           timeout: TimeInterval = 15,
-                           _ what: String) async {
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if condition() { return }
-            try? await Task.sleep(for: .milliseconds(20))
-        }
-        Issue.record("等待超时：\(what)")
+    /// 同步执行磁盘 IO 的 store：断言即时成立，不依赖后台调度时序
+    private func makeStore(_ dir: URL) -> PageVMStore {
+        let store = PageVMStore(snapshotDirectory: dir)
+        store.dispatchSnapshotIO = { $0() }
+        return store
     }
 
     @Test("落盘与回填闭环：autoRefresh 后写盘，新 store 冷启动回填")
@@ -59,12 +55,12 @@ struct PageSnapshotTests {
         let dir = makeDir("roundtrip")
         defer { cleanup(dir) }
         let key = "page|apps|\(UUID().uuidString)|1|node|local"
-        let store = PageVMStore(snapshotDirectory: dir)
+        let store = makeStore(dir)
 
         let vm = store.vm(key: key) { SnapshotVM() }
         vm.items = ["nginx", "redis"]
         await store.autoRefresh(vm: vm) { }
-        await waitUntil(PageVMStore.readSnapshot(dir: dir, key: key) != nil, "快照写盘")
+        #expect(PageVMStore.readSnapshot(dir: dir, key: key) != nil)
 
         // 冷启动：新 store、新 VM 实例，建 VM 即回填
         let store2 = PageVMStore(snapshotDirectory: dir)
@@ -79,15 +75,15 @@ struct PageSnapshotTests {
         defer { cleanup(dir) }
         let serverID = UUID()
         let key = "page|apps|\(serverID.uuidString)|1|node|local"
-        let store = PageVMStore(snapshotDirectory: dir)
+        let store = makeStore(dir)
 
         let vm = store.vm(key: key) { SnapshotVM() }
         vm.items = ["a"]
         await store.autoRefresh(vm: vm) { }
-        await waitUntil(PageVMStore.readSnapshot(dir: dir, key: key) != nil, "快照写盘")
+        #expect(PageVMStore.readSnapshot(dir: dir, key: key) != nil)
 
         store.purge(serverID: serverID)
-        await waitUntil(PageVMStore.readSnapshot(dir: dir, key: key) == nil, "purge 删盘")
+        #expect(PageVMStore.readSnapshot(dir: dir, key: key) == nil)
     }
 
     @Test("数量上限：超限按 savedAt 淘汰最旧")
@@ -115,13 +111,13 @@ struct PageSnapshotTests {
         let dir = makeDir("background")
         defer { cleanup(dir) }
         let key = "page|apps|\(UUID().uuidString)|1|node|local"
-        let store = PageVMStore(snapshotDirectory: dir)
+        let store = makeStore(dir)
 
         // 建 VM 后直接改数据（模拟手动下拉刷新拿到的新结果），不经 autoRefresh
         let vm = store.vm(key: key) { SnapshotVM() }
         vm.items = ["fresh-from-pull-refresh"]
         store.persistAllSnapshots()
-        await waitUntil(PageVMStore.readSnapshot(dir: dir, key: key) != nil, "回后台补写")
+        #expect(PageVMStore.readSnapshot(dir: dir, key: key) != nil)
 
         let store2 = PageVMStore(snapshotDirectory: dir)
         let vm2 = store2.vm(key: key) { SnapshotVM() }
@@ -133,7 +129,7 @@ struct PageSnapshotTests {
         let dir = makeDir("garbage")
         defer { cleanup(dir) }
         let key = "page|x|\(UUID().uuidString)|1|node|local"
-        let store = PageVMStore(snapshotDirectory: dir)
+        let store = makeStore(dir)
 
         // 目录为空：不回填
         let vm = store.vm(key: key) { SnapshotVM() }

@@ -55,6 +55,12 @@ final class PageVMStore {
     nonisolated private static let snapshotFileLimit = 24
     private let snapshotDir: URL
 
+    /// 磁盘 IO 派发：生产派到 utility 后台任务不阻塞主线程；测试注入同步
+    /// 执行器让 IO 在调用点即完成——CI 高负载下后台任务可能饿过轮询窗口，
+    /// 时序等待测的是调度器不是被测逻辑，故开此缝
+    internal var dispatchSnapshotIO: (@escaping @Sendable () -> Void) -> Void =
+        { work in Task.detached(priority: .utility) { work() } }
+
     /// VM 实例 → store key：autoRefresh 落盘时反查（弱引用判活，
     /// 与 autoRefreshedAt 的清理口径一致）
     private struct KeyEntry {
@@ -138,9 +144,7 @@ final class PageVMStore {
               let data = provider.snapshotData() else { return }
         let dir = snapshotDir
         let envelope = SnapshotEnvelope(key: key, savedAt: .now, payload: data)
-        Task.detached(priority: .utility) {
-            Self.writeSnapshot(envelope, dir: dir)
-        }
+        dispatchSnapshotIO { Self.writeSnapshot(envelope, dir: dir) }
     }
 
     /// 回到后台时全量补写：覆盖不经 autoRefresh 的数据更新路径（手动下拉
@@ -154,9 +158,7 @@ final class PageVMStore {
                   let data = provider.snapshotData() else { continue }
             let envelope = SnapshotEnvelope(key: entry.key, savedAt: .now, payload: data)
             let dir = snapshotDir
-            Task.detached(priority: .utility) {
-                Self.writeSnapshot(envelope, dir: dir)
-            }
+            dispatchSnapshotIO { Self.writeSnapshot(envelope, dir: dir) }
         }
     }
 
@@ -171,9 +173,7 @@ final class PageVMStore {
             order.removeAll { $0 == key }
         }
         let dir = snapshotDir
-        Task.detached(priority: .utility) {
-            Self.purgeSnapshots(marker: marker, dir: dir)
-        }
+        dispatchSnapshotIO { Self.purgeSnapshots(marker: marker, dir: dir) }
     }
 
     var count: Int { storage.count }
