@@ -26,7 +26,8 @@ struct FirewallView: View {
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var editingRule: FirewallRule?
-    @State private var editingRuleUUID: String?
+    /// 编辑中规则的操作目标键（v2.4.0：scope+instanceKey，弃 uuid）
+    @State private var editingRuleTarget: FirewallRuleOperationTarget?
     /// 编辑中规则的链内优先级（observed.locator.position；表单回显当前值）
     @State private var editingRulePosition: Int?
     @State private var pendingDeleteItem: FirewallInventoryItem?
@@ -35,9 +36,7 @@ struct FirewallView: View {
     @State private var showAddForward = false
     @State private var editingForward: FirewallForwardRule?
     @State private var pendingDeleteForward: FirewallForwardRule?
-    @State private var pendingDeleteForwardForce = false
-    // 同步 / 重置 / Docker 策略（抓包 2026-09-17 补齐）
-    @State private var showSyncPreview = false
+    // 重置 / Docker 策略
     @State private var showRulesReset = false
     @State private var showDockerReset = false
     @State private var showForwardReset = false
@@ -192,14 +191,14 @@ struct FirewallView: View {
         content
             // 规则：创建 / 编辑
             .navigationDestination(isPresented: $showAddRule) {
-                FirewallRuleFormView(vm: vm, editing: nil, editingUUID: nil)
+                FirewallRuleFormView(vm: vm, editing: nil, editingTarget: nil)
             }
             .navigationDestination(isPresented: Binding(
                 get: { editingRule != nil },
-                set: { if !$0 { editingRule = nil; editingRuleUUID = nil; editingRulePosition = nil } }
+                set: { if !$0 { editingRule = nil; editingRuleTarget = nil; editingRulePosition = nil } }
             )) {
                 if let rule = editingRule {
-                    FirewallRuleFormView(vm: vm, editing: rule, editingUUID: editingRuleUUID,
+                    FirewallRuleFormView(vm: vm, editing: rule, editingTarget: editingRuleTarget,
                                          editingPosition: editingRulePosition)
                 }
             }
@@ -233,21 +232,17 @@ struct FirewallView: View {
                 }
             }
             .alert(L10n.t("删除端口转发"), isPresented: Binding(
-                get: { pendingDeleteForward != nil && !pendingDeleteForwardForce },
+                get: { pendingDeleteForward != nil },
                 set: { if !$0 { pendingDeleteForward = nil } }
             )) {
                 Button(L10n.t("取消"), role: .cancel) { pendingDeleteForward = nil }
                 Button(L10n.t("删除"), role: .destructive) {
                     Haptic.warning()
-                    deleteForward(force: false)
-                }
-                Button(L10n.t("强制删除"), role: .destructive) {
-                    Haptic.warning()
-                    deleteForward(force: true)
+                    deleteForward()
                 }
             } message: {
                 if let rule = pendingDeleteForward {
-                    Text(L10n.f("确定删除端口转发「%@」吗？若端口被占用可选择强制删除。", rule.port ?? ""))
+                    Text(L10n.f("确定删除端口转发「%@」吗？", rule.port ?? ""))
                 }
             }
             // 生命周期确认（start/stop/restart 大操作保留确认；ping 开关直接执行）
@@ -284,14 +279,6 @@ struct FirewallView: View {
     /// 弹层：半屏操作菜单 / 导入导出 / 同步预览 / 策略表单 / 重置确认 / 原文查看
     private func sheetLayer(_ content: some View) -> some View {
         content
-            // 同步预览（规则 / 转发 / Docker 三段共用）：子系统在呈现时按当前段
-            // 即时求值（单一事实源）——此前用独立 @State 中转，切段/重进页面后
-            // 抽屉按钮闭包可能拿到过期段，导致 Docker/转发段弹出规则的预览数据
-            .sheet(isPresented: $showSyncPreview) {
-                FirewallSyncPreviewView(vm: vm, subsystem: syncSubsystemName)
-                    .bottomSheetDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-            }
             // Docker 端点防护策略表单
             .sheet(item: $editingPolicy) { endpoint in
                 DockerPolicyFormView(vm: vm, endpoint: endpoint)
@@ -452,11 +439,11 @@ struct FirewallView: View {
             }
     }
 
-    private func deleteForward(force: Bool) {
+    private func deleteForward() {
         guard let rule = pendingDeleteForward else { return }
         pendingDeleteForward = nil
         Task {
-            _ = await vm.submitForward([.remove(rule)], forceDelete: force)
+            _ = await vm.submitForward([.remove(rule)])
         }
     }
 
@@ -552,15 +539,6 @@ struct FirewallView: View {
 
     // MARK: 状态卡
 
-    /// 同步子系统随当前段即时求值（不落独立状态，杜绝切段后过期）
-    private var syncSubsystemName: String {
-        switch segment {
-        case 1: return "forwarding"
-        case 2: return "docker"
-        default: return "system"
-        }
-    }
-
     private var statusSection: some View {
         Section {
             Button {
@@ -649,7 +627,7 @@ struct FirewallView: View {
                     }
                 }
             }
-            // 随段变化的上下文操作：同名按钮（解绑/绑定、同步规则、重置）按段传对应参数
+            // 随段变化的上下文操作：同名按钮（解绑/绑定、重置）按段传对应参数
             contextOperationsRow
         }
     }
@@ -658,17 +636,12 @@ struct FirewallView: View {
     private var contextOperationsRow: some View {
         switch segment {
         case 0:
-            // 规则段：基础链解绑/绑定 + 同步 + 重置 + 导入/导出（未初始化段不提供；
-            // 解绑态下同步/导入不可用——基础链已摘除，规则清单不展示）
+            // 规则段：基础链解绑/绑定 + 重置 + 导入/导出（未初始化段不提供；
+            // 解绑态下导入不可用——基础链已摘除，规则清单不展示）。
+            // v2.4.0 上游移除 rules/sync 全家，「同步规则」按钮随之取消
             if !needsRulesInit {
                 HStack(spacing: 8) {
                     filterChainBindButton
-                    CardActionButton(title: L10n.t("同步规则"),
-                                     icon: "arrow.triangle.2.circlepath",
-                                     color: .blue, busy: vm.isOperating,
-                                     disabled: isRulesUnbound) {
-                        showSyncPreview = true
-                    }
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
                                      color: .statusError, busy: vm.isOperating) {
                         showRulesReset = true
@@ -681,14 +654,9 @@ struct FirewallView: View {
                 }
             }
         case 1:
-            // 转发段：同步 + 重置 + 导入（导出走长按菜单，子系统无绑定概念）
+            // 转发段：重置 + 导入（导出走长按菜单，子系统无绑定概念）
             if !needsForwardInit {
                 HStack(spacing: 8) {
-                    CardActionButton(title: L10n.t("同步规则"),
-                                     icon: "arrow.triangle.2.circlepath",
-                                     color: .blue, busy: vm.isOperating) {
-                        showSyncPreview = true
-                    }
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
                                      color: .statusError, busy: vm.isOperating) {
                         showForwardReset = true
@@ -700,8 +668,8 @@ struct FirewallView: View {
                 }
             }
         case 2:
-            // Docker 段：端口守护解绑/绑定 + 同步 + 重置 + 导入/导出（未初始化/不可用不提供；
-            // 解绑态下同步/导入不可用——守护链已摘除，容器列表不展示）
+            // Docker 段：端口守护解绑/绑定 + 重置 + 导入/导出（未初始化/不可用不提供；
+            // 解绑态下导入不可用——守护链已摘除，容器列表不展示）
             if let base = vm.dockerGuard?.base,
                base.isExist == true, base.initialized == true {
                 HStack(spacing: 8) {
@@ -712,12 +680,6 @@ struct FirewallView: View {
                         busy: vm.isOperating
                     ) {
                         Task { await vm.dockerOperate(base.bound == true ? "unbind" : "bind") }
-                    }
-                    CardActionButton(title: L10n.t("同步规则"),
-                                     icon: "arrow.triangle.2.circlepath",
-                                     color: .blue, busy: vm.isOperating,
-                                     disabled: base.bound != true) {
-                        showSyncPreview = true
                     }
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
                                      color: .statusError, busy: vm.isOperating) {
@@ -773,16 +735,16 @@ struct FirewallView: View {
         }
     }
 
-    /// 长按规则弹窗（半屏）菜单项：可管理且非系统保护 → 编辑/删除/上移下移；
-    /// external/drifted → 纳管；末尾固定 导出规则 + 查看原文
+    /// 长按规则弹窗（半屏）菜单项：可操作且非白名单保护 → 编辑/删除/上移下移；
+    /// 末尾固定 导出规则 + 查看原文（v2.4.0 上游移除纳管，外部规则即普通规则）
     private var ruleActionItems: [ActionMenuItem] {
         guard let item = actionItem else { return [] }
         var items: [ActionMenuItem] = []
-        if let uuid = item.manageableUUID, let rule = item.rule {
-            // 系统保护规则（state=protected）不可编辑/删除；managed 等常规规则可
+        if let target = item.operationTarget, let rule = item.rule {
+            // 白名单保护规则（isWhitelist）不可编辑/删除；其余常规规则可
             if !item.isProtected {
                 items.append(ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .blue) {
-                    editingRuleUUID = uuid
+                    editingRuleTarget = target
                     editingRulePosition = item.observed?.locator?.position
                     editingRule = rule
                 })
@@ -800,25 +762,20 @@ struct FirewallView: View {
                 let maxPos = range?.max ?? Int.max
                 if position > minPos {
                     items.append(ActionMenuItem(title: L10n.t("上移"), icon: "arrow.up", color: .orange) {
-                        Task { await vm.reorderRule(uuid: uuid, to: Int64(max(minPos, position - 1))) }
+                        Task { await vm.reorderRule(target: target, to: Int64(max(minPos, position - 1))) }
                     })
                 }
                 if position < maxPos {
                     items.append(ActionMenuItem(title: L10n.t("下移"), icon: "arrow.down", color: .orange) {
-                        Task { await vm.reorderRule(uuid: uuid, to: Int64(min(maxPos, position + 1))) }
+                        Task { await vm.reorderRule(target: target, to: Int64(min(maxPos, position + 1))) }
                     })
                 }
             }
-        } else if item.state == "external" || item.state == "drifted" {
-            items.append(ActionMenuItem(title: L10n.t("纳管"),
-                                        icon: "square.and.arrow.down.on.square", color: .blue) {
-                Task { await vm.adoptRule(item) }
-            })
         }
         // 导出入口仅对可导出规则展示（与导出页 exportable 过滤一致）：
-        // external/drifted/protected 在导出页被过滤，预选 id 落在列表外会
+        // 白名单保护规则在导出页被过滤，预选 id 落在列表外会
         // 出现「已选 1 条」却无勾选行、点导出必弹「暂无可导出的规则」
-        if item.manageableUUID != nil && item.state != "protected" {
+        if item.operationTarget != nil && !item.isProtected {
             items.append(ActionMenuItem(title: L10n.t("导出规则"),
                                         icon: "square.and.arrow.down", color: .teal) {
                 // 仅预选长按的这条规则（与计划任务「导出任务」语义一致）
@@ -853,10 +810,10 @@ struct FirewallView: View {
                                         priority: item.observed?.locator?.position)
                         .rowTapAndLongPress(
                             onTap: {
-                                // 系统保护规则与不可管理规则：点击不进编辑
-                                guard item.manageableUUID != nil, !item.isProtected else { return }
-                                if let uuid = item.manageableUUID, let rule = item.rule {
-                                    editingRuleUUID = uuid
+                                // 白名单保护规则与不可操作规则：点击不进编辑
+                                guard item.operationTarget != nil, !item.isProtected else { return }
+                                if let target = item.operationTarget, let rule = item.rule {
+                                    editingRuleTarget = target
                                     editingRulePosition = item.observed?.locator?.position
                                     editingRule = rule
                                 }
@@ -894,37 +851,20 @@ struct FirewallView: View {
     }
 
     private var rulesHeaderText: String {
-        var parts: [String] = []
-        if let state = vm.ruleStateFilter,
-           let label = Self.ruleStates.first(where: { $0.0 == state })?.1 {
-            parts.append(label)
-        }
+        // v2.4.0 上游移除状态维度（state/managedTotal），仅剩地址族筛选。
+        // 筛选/搜索生效时计数取结果总数（rulesResultTotal），与下方列表一致
         if let family = vm.ruleFamilyFilter {
-            parts.append(family.uppercased())
+            return L10n.f("共 %ld 条 · %@", vm.rulesResultTotal, family.uppercased())
         }
-        // 筛选/搜索生效时计数取结果总数（rulesResultTotal），
-        // 与下方列表一致——筛空时显示「共 0 条」而非全量数
-        if !parts.isEmpty || !vm.ruleSearchText.isEmpty {
-            let suffix = parts.joined(separator: " · ")
-            return suffix.isEmpty
-                ? L10n.f("共 %ld 条", vm.rulesResultTotal)
-                : L10n.f("共 %ld 条 · %@", vm.rulesResultTotal, suffix)
-        }
-        // 无筛选：面板创建为 0 时不显示括号（纯外部规则的机器上恒为 0，无信息量）
-        if vm.rulesManagedTotal > 0 {
-            return L10n.f("共 %ld 条（面板创建 %ld 条）", vm.rulesAllTotal, vm.rulesManagedTotal)
+        if !vm.ruleSearchText.isEmpty {
+            return L10n.f("共 %ld 条", vm.rulesResultTotal)
         }
         return L10n.f("共 %ld 条", vm.rulesAllTotal)
     }
 
-    /// 状态/族两组合一的漏斗菜单；任一维度生效时图标实心高亮
+    /// 地址族筛选漏斗菜单；筛选生效时图标实心高亮
     private var rulesFilterMenu: some View {
         Menu {
-            stateMenuButton(nil, L10n.t("全部状态"))
-            ForEach(Self.ruleStates, id: \.0) { state, label in
-                stateMenuButton(state, label)
-            }
-            Divider()
             familyMenuButton(nil, L10n.t("全部族"))
             familyMenuButton("ipv4", "IPv4")
             familyMenuButton("ipv6", "IPv6")
@@ -937,25 +877,11 @@ struct FirewallView: View {
                 .frame(width: 24, height: 24)
                 .contentShape(Rectangle())
         }
-        .accessibilityLabel(L10n.t("状态筛选"))
+        .accessibilityLabel(L10n.t("地址族筛选"))
     }
 
     private var filterActive: Bool {
-        vm.ruleStateFilter != nil || vm.ruleFamilyFilter != nil
-    }
-
-    private func stateMenuButton(_ state: String?, _ label: String) -> some View {
-        Button {
-            guard vm.ruleStateFilter != state else { return }
-            vm.ruleStateFilter = state
-            reloadRules()
-        } label: {
-            if vm.ruleStateFilter == state {
-                Label(label, systemImage: "checkmark")
-            } else {
-                Text(label)
-            }
-        }
+        vm.ruleFamilyFilter != nil
     }
 
     private func familyMenuButton(_ family: String?, _ label: String) -> some View {
@@ -984,17 +910,9 @@ struct FirewallView: View {
     }
 
     private func processName(for item: FirewallInventoryItem) -> String? {
-        let rule = item.rule ?? item.desired?.rule
+        let rule = item.rule
         return vm.processName(port: rule?.destinationPort, proto: rule?.protocolField)
     }
-
-    private static let ruleStates: [(String, String)] = [
-        ("managed", L10n.t("面板创建")),
-        ("adopted", L10n.t("外部纳管")),
-        ("external", L10n.t("外部规则")),
-        ("drifted", L10n.t("异常")),
-        ("protected", L10n.t("系统保护")),
-    ]
 
     // MARK: 转发段
 
@@ -1127,10 +1045,10 @@ struct FirewallView: View {
                     Section {
                         ForEach(orphans) { endpoint in
                             // 可删除的孤立策略：长按弹半屏菜单（与规则/转发行一致，
-                            // 替代原右划删除）；只读/无策略 id 的行不可删（VM 侧会
-                            // 静默 return），不挂菜单以免确认后零反馈
-                            if endpoint.readOnly != true,
-                               let uuid = endpoint.policyUUID, !uuid.isEmpty {
+                            // 替代原右划删除）；无策略 id 的行不可删（VM 侧会
+                            // 静默 return），不挂菜单以免确认后零反馈。
+                            // v2.4.0 上游移除 readOnly 字段，不再有只读孤立策略
+                            if let uuid = endpoint.policyUUID, !uuid.isEmpty {
                                 orphanRow(endpoint)
                             } else {
                                 DockerGuardEndpointRow(endpoint: endpoint)

@@ -127,12 +127,11 @@ struct FirewallImportView: View {
     }
 }
 
-/// 导入预览用的极简 InventoryItem 包装（状态未知，按 external 呈现中性样式）
+/// 导入预览用的极简 InventoryItem 包装（无观察态，中性样式）
 private enum FirewallImportPreview {
     static func item(for rule: FirewallRule) -> FirewallInventoryItem {
         FirewallInventoryItem(
-            incompatible: nil, error: nil, rule: rule,
-            observed: nil, desired: nil, state: nil, match: nil)
+            rule: rule, observed: nil, isWhitelist: nil, descriptionID: nil)
     }
 }
 
@@ -446,7 +445,7 @@ struct FirewallExportPickerView: View {
     @State private var selected: Set<String> = []
 
     private var exportable: [FirewallInventoryItem] {
-        vm.inventory.filter { $0.manageableUUID != nil && $0.state != "protected" }
+        vm.inventory.filter { $0.operationTarget != nil && !$0.isProtected }
     }
 
     var body: some View {

@@ -2,67 +2,72 @@
 //  FirewallV2ModelsTests.swift
 //  1PanelClientTests
 //
-//  防火墙 v2.3.0 契约解码测试（M1）。夹具按上游 v2.3.0 Go DTO 的
+//  防火墙 v2.4.0 契约解码测试。夹具按上游 v2.4.0 Go DTO 的
 //  json tag 合成（agent/app/dto/firewall.go + forwarding.go +
 //  utils/firewall/filter/{model,inventory}.go），真机抓包验证后补真实样本。
+//  v2.4.0 移除 sync/adopt 与 state/match/desired 对账模型：增删改操作键
+//  换成 (scope, instanceKey, observed) 三元组。
 //
 
 import Testing
 import Foundation
 @testable import _PanelClient
 
-@Suite("防火墙 v2.3.0 模型解码")
+@Suite("防火墙 v2.4.0 模型解码")
 struct FirewallV2ModelsTests {
 
-    @Test("子系统状态（含冲突后端与双栈族状态）")
+    @Test("子系统状态（含冲突后端、双栈族状态与 ipv6Enabled/partial）")
     func subsystemStatus() throws {
         let json = """
         {"name":"system","backend":"iptables","conflictBackend":"firewalld",
          "isExist":true,"isActive":true,"isInit":true,"isBind":false,
          "version":"1.8.7","pingStatus":"Enable","message":"","reason":"",
-         "syncError":"","ipv4":{"available":true,"initialized":true,"bound":false,"reason":""},
-         "ipv6":{"available":false,"initialized":false,"bound":false,"reason":"no ipv6"}}
+         "ipv6Enabled":true,
+         "ipv4":{"available":true,"initialized":true,"bound":false,"reason":"","partial":false},
+         "ipv6":{"available":false,"initialized":true,"bound":false,"reason":"no ipv6","partial":true}}
         """
         let status = try JSONDecoder().decode(FirewallSubsystemStatus.self, from: Data(json.utf8))
         #expect(status.backend == "iptables")
         #expect(status.conflictBackend == "firewalld")
         #expect(status.isInit == true && status.isBind == false)
         #expect(status.pingBlocked == true)
+        #expect(status.ipv6Enabled == true)
         #expect(status.ipv4?.available == true)
-        #expect(status.ipv6?.available == false)
+        #expect(status.ipv6?.partial == true)
     }
 
-    @Test("规则清单响应（managed/external 混合 + 计数）")
+    @Test("规则清单响应（v2.4.0：无 state/desired，isWhitelist 表达保护）")
     func inventoryResponse() throws {
         let json = """
         {"ipv4Range":{"min":1,"max":42},"ipv6Range":{"min":0,"max":0},
-         "total":2,"allTotal":5,"managedTotal":2,
+         "total":2,"allTotal":5,
          "items":[
            {"rule":{"uuid":"u-1","scope":{"provider":"iptables","family":"ipv4",
               "table":"filter","chain":"1PANEL_BASIC","direction":"input"},
              "nativeKind":"rule","protocol":"tcp","sourceAddress":"192.168.1.0/24",
              "destinationPort":"443","action":"accept","description":"https"},
-            "desired":{"uuid":"u-1","rule":{"uuid":"u-1"},"origin":"created","protected":false},
-            "state":"managed","match":"exact"},
+            "observed":{"rule":{},"instanceKey":"sha256:aa","parseStatus":"supported"},
+            "isWhitelist":false},
            {"rule":{"scope":{"provider":"iptables","family":"ipv4","table":"filter",
               "chain":"INPUT","direction":"input"},"nativeKind":"opaque",
              "protocol":"","action":"drop"},
             "observed":{"rule":{},"instanceKey":"k-9","parseStatus":"opaque",
              "raw":"-A INPUT -j DROP","protected":true},
-            "state":"external","match":"opaque"}],
-         "notices":[{"code":"default_scope_mismatch","values":["INPUT"]}]}
+            "isWhitelist":true,"descriptionID":"dw-3"}],
+         "notices":[{"code":"managed_scope_inactive","values":["INPUT"]}]}
         """
         let resp = try JSONDecoder().decode(FirewallRuleInventoryResponse.self, from: Data(json.utf8))
         #expect(resp.allTotal == 5)
-        #expect(resp.managedTotal == 2)
         #expect(resp.items?.count == 2)
-        #expect(resp.items?[0].state == "managed")
-        #expect(resp.items?[0].manageableUUID == "u-1")
-        #expect(resp.items?[0].rule?.destinationPort == "443")
-        #expect(resp.items?[1].state == "external")
-        #expect(resp.items?[1].manageableUUID == nil)
-        #expect(resp.items?[1].observed?.raw?.contains("DROP") == true)
-        #expect(resp.notices?.first?.code == "default_scope_mismatch")
+        let first = resp.items?[0]
+        #expect(first?.rule?.destinationPort == "443")
+        #expect(first?.operationTarget?.instanceKey == "sha256:aa")
+        #expect(first?.operationTarget?.scope.chain == "1PANEL_BASIC")
+        #expect(first?.isProtected == false)
+        let second = resp.items?[1]
+        #expect(second?.isProtected == true)
+        #expect(second?.observed?.raw?.contains("DROP") == true)
+        #expect(resp.notices?.first?.code == "managed_scope_inactive")
     }
 
     @Test("创建响应（任务式 + 部分失败明细）")
@@ -84,14 +89,13 @@ struct FirewallV2ModelsTests {
         #expect(resp2.errors?.first?.error?.contains("covered") == true)
     }
 
-    @Test("转发规则（PageEnvelope 信封 + 目标字段）")
+    @Test("转发规则（PageEnvelope 信封 + 目标字段；v2.4.0 无同步字段）")
     func forwardRules() throws {
         let json = """
         {"total":1,"items":[{"id":12,"chain":"1PANEL_FORWARD","family":"ipv4",
           "address":"","port":"8080","protocol":"tcp","strategy":"accept",
           "num":"3","targetIP":"10.0.0.5","targetPort":"80","interface":"eth0",
-          "usedStatus":"1PanelClient","description":"web","isDesired":true,
-          "isRuntime":true,"syncStatus":"ok"}]}
+          "usedStatus":"1PanelClient","description":"web"}]}
         """
         let page = try JSONDecoder().decode(PageEnvelope<FirewallForwardRule>.self, from: Data(json.utf8))
         #expect(page.total == 1)
@@ -99,7 +103,6 @@ struct FirewallV2ModelsTests {
         #expect(rule?.port == "8080")
         #expect(rule?.targetIP == "10.0.0.5")
         #expect(rule?.num == "3")
-        #expect(rule?.isDesired == true)
     }
 
     @Test("设置（三组后端 + ping + 白名单 v2.3.1 数组）")
@@ -166,9 +169,10 @@ struct FirewallV2ModelsTests {
     }
 }
 
-// MARK: - 抓包核对回归（2026-09-17 logs/防火墙_v2.3.0.md + iptables.md）
+// MARK: - 抓包核对回归（2026-09-17 logs/防火墙_v2.3.0.md + iptables.md；
+// 未标注 v2.4.0 的样本字段在两版间无变化）
 
-@Suite("防火墙 v2.3.0 抓包核对回归")
+@Suite("防火墙抓包核对回归")
 struct FirewallV2CaptureRegressionTests {
 
     @Test("搜索作用域构造：iptables 六链 / ufw 单链 / firewalld zone（抓包+源码口径）")
@@ -188,25 +192,24 @@ struct FirewallV2CaptureRegressionTests {
         #expect(nft.count == 6 && nft[0].provider == "nftables")
     }
 
-    @Test("转发 remove 整行回显（抓包：编辑/删除回传原始行 + operation）")
+    @Test("转发 remove 整行回显（编辑/删除回传原始行 + operation）")
     func forwardRemoveEchoesFullRow() throws {
         let rule = FirewallForwardRule(
             id: 9, chain: "", family: "ipv4", address: "", port: "8080",
             protocolField: "tcp", strategy: "", num: "3",
             targetIP: "127.0.0.1", targetPort: "21", interface: "",
-            usedStatus: "", descriptionText: nil,
-            isDesired: true, isRuntime: true, syncStatus: "converged"
+            usedStatus: "", descriptionText: nil
         )
         let op = FirewallForwardOperation.remove(rule)
         let data = try JSONEncoder().encode([op])
         let text = String(decoding: data, as: UTF8.self)
-        // 抓包形态：id/num/isDesired/syncStatus 等运行时字段原样在场
+        // 回显形态：id/num 等运行时字段原样在场；v2.4.0 无同步字段
         #expect(text.contains(#""operation":"remove""#))
         #expect(text.contains(#""id":9"#))
         #expect(text.contains(#""num":"3""#))
-        #expect(text.contains(#""isDesired":true"#))
-        #expect(text.contains(#""syncStatus":"converged""#))
         #expect(text.contains(#""targetPort":"21""#))
+        #expect(!text.contains("isDesired"))
+        #expect(!text.contains("syncStatus"))
     }
 
     @Test("白名单 v2.3.1 数组形态：解码缺省 protocol，提交编码不含本地扩展字段")
@@ -270,7 +273,7 @@ struct FirewallV2CaptureRegressionTests {
         #expect(settings.panelPort == "17331")
     }
 
-    @Test("转发列表真实样本（iptables-forward，isActive=false 但 isInit=true）")
+    @Test("转发列表真实样本（v2.3.2 抓包；多余同步字段被宽松解码忽略）")
     func forwardCapturedSample() throws {
         let json = """
         {"total":3,"items":[
@@ -286,7 +289,6 @@ struct FirewallV2CaptureRegressionTests {
         #expect(page.items?.count == 2)
         #expect(page.items?[0].num == "1")
         #expect(page.items?[1].protocolField == "udp")
-        #expect(page.items?[1].syncStatus == "converged")
     }
 
     @Test("Docker 总览真实样本（平铺 endpoints：ipv4+ipv6 各一条，trafficPath=forward）")
@@ -321,11 +323,11 @@ struct FirewallV2CaptureRegressionTests {
         #expect(container?.portGroups?.isEmpty == true)
     }
 
-    @Test("规则清单真实样本摘录（protected 白名单规则 + markers/locator）")
+    @Test("规则清单真实样本摘录（v2.4.0 形态：isWhitelist 白名单保护 + locator）")
     func inventoryCapturedSample() throws {
         let json = """
         {"ipv4Range":{"min":1,"max":5},"ipv6Range":{"min":0,"max":0},
-         "total":5,"allTotal":17,"managedTotal":1,
+         "total":5,"allTotal":17,
          "items":[
           {"rule":{"scope":{"provider":"iptables","family":"ipv4","table":"filter",
               "chain":"1PANEL_BASIC","direction":"input"},"nativeKind":"rule",
@@ -334,68 +336,58 @@ struct FirewallV2CaptureRegressionTests {
               "scopeKey":"iptables:ipv4:filter:1PANEL_BASIC:input",
               "canonical":"-A 1PANEL_BASIC -p tcp -m tcp --dport 80 -j ACCEPT","position":1},
             "instanceKey":"sha256:3e93","marker":"1panel-rule:601917b0",
-            "parseStatus":"supported","raw":"-A 1PANEL_BASIC -p tcp -j ACCEPT","protected":true},
-           "desired":{"uuid":"601917b0","rule":{"uuid":"601917b0"},
-              "origin":"adopted","protected":true,"marker":"1panel-rule:601917b0"},
-           "state":"protected","match":"exact"}],
+            "parseStatus":"supported","raw":"-A 1PANEL_BASIC -p tcp -j ACCEPT","protected":true,
+            "persistence":"converged"},
+           "isWhitelist":true,"descriptionID":"dw-1"}],
          "notices":[]}
         """
         let resp = try JSONDecoder().decode(FirewallRuleInventoryResponse.self, from: Data(json.utf8))
-        #expect(resp.allTotal == 17 && resp.managedTotal == 1)
+        #expect(resp.allTotal == 17)
         let item = resp.items?.first
-        #expect(item?.state == "protected")
-        #expect(item?.manageableUUID == "601917b0")
+        #expect(item?.isProtected == true)
+        #expect(item?.operationTarget?.instanceKey == "sha256:3e93")
         #expect(item?.observed?.marker?.hasPrefix("1panel-rule:") == true)
         #expect(item?.observed?.locator?.position == 1)
+        #expect(item?.observed?.persistence == "converged")
     }
 }
 
-// MARK: - 同步/重置/策略编码回归（抓包 2026-09-17）
+// MARK: - 删除/重置/策略编码回归
 
-@Suite("防火墙同步与守护策略回归")
-struct FirewallSyncAndPolicyTests {
+@Suite("防火墙删除与守护策略回归")
+struct FirewallDeleteAndPolicyTests {
 
-    @Test("同步预览真实样本（system/iptables：ready 1 + existing 4）")
-    func syncPreviewCaptured() throws {
-        let json = """
-        {"subsystem":"system","targetProvider":"iptables",
-         "total":5,"ready":1,"existing":4,"removed":0,"blocked":0,
-         "items":[
-          {"sourceUUID":"86a2cdb8","rule":{"uuid":"86a2cdb8",
-             "scope":{"provider":"iptables","family":"ipv4","table":"filter","chain":"1PANEL_BASIC","direction":"input"},
-             "nativeKind":"rule","protocol":"tcp","destinationPort":"8443","action":"accept"},
-           "status":"ready","reason":"target rule differs from database policy"},
-          {"sourceUUID":"601917b0","rule":{"uuid":"601917b0","protocol":"tcp","destinationPort":"80","action":"accept"},
-           "status":"existing","reason":"rule already matches database policy"}]}
-        """
-        let p = try JSONDecoder().decode(FirewallRuleSyncPreview.self, from: Data(json.utf8))
-        #expect(p.ready == 1 && p.existing == 4)
-        #expect(p.items?.count == 2)
-        #expect(p.items?[0].status == "ready")
-        #expect(p.items?[0].displayToken == "8443")
+    @Test("删除请求编码（v2.4.0：targets[{scope,instanceKey,observed}] 回传）")
+    func deleteRequestEncode() throws {
+        let observed = FirewallObservedRule(
+            locator: FirewallLocator(provider: "iptables", scopeKey: "sk",
+                                     nativeId: nil, canonical: "-A INPUT -j X", position: 3),
+            instanceKey: "sha256:3e93", marker: "1panel-rule:601917b0",
+            parseStatus: "supported", protected: true, persistence: "converged")
+        let req = FirewallRuleDeleteRequest(targets: [
+            FirewallRuleDeleteItem(
+                scope: FirewallScope(provider: "iptables", family: "ipv4",
+                                     table: "filter", chain: "1PANEL_BASIC", direction: "input"),
+                instanceKey: "sha256:3e93", observed: observed)
+        ])
+        let data = try JSONEncoder().encode(req)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let target = (root?["targets"] as? [[String: Any]])?.first
+        #expect(target?["instanceKey"] as? String == "sha256:3e93")
+        #expect((target?["scope"] as? [String: Any])?["chain"] as? String == "1PANEL_BASIC")
+        // observed 原样回传：服务端按它匹配活规则
+        let obs = target?["observed"] as? [String: Any]
+        #expect(obs?["parseStatus"] as? String == "supported")
+        #expect((obs?["locator"] as? [String: Any])?["position"] as? Int == 3)
+        #expect(obs?["persistence"] as? String == "converged")
     }
 
-    @Test("转发同步预览（forwardRule 侧条目）")
-    func forwardSyncPreview() throws {
-        let json = """
-        {"subsystem":"forwarding","targetProvider":"iptables",
-         "total":3,"ready":1,"existing":2,"removed":0,"blocked":0,
-         "items":[
-          {"sourceUUID":"ipv4\\u0000tcp\\u00008080","forwardRule":{"port":"8080","protocol":"tcp",
-             "targetIP":"127.0.0.1","targetPort":"53"},"status":"ready","reasonCode":"missing_in_target"}]}
-        """
-        let p = try JSONDecoder().decode(FirewallRuleSyncPreview.self, from: Data(json.utf8))
-        #expect(p.subsystem == "forwarding")
-        #expect(p.items?.first?.forwardRule?.port == "8080")
-        #expect(p.items?.first?.displayToken == "8080")
-    }
-
-    @Test("Docker 策略编码（deny_sources + 来源列表，抓包提交形态）")
+    @Test("Docker 策略编码（deny_sources + 来源列表；v2.4.0 无 description）")
     func dockerPolicyEncode() throws {
         let policy = DockerGuardPolicy(
             family: "ipv4", hostIP: "0.0.0.0", hostPort: 3306,
             protocolField: "tcp", mode: "deny_sources",
-            sources: ["172.29.0.1", "172.29.0.2"], descriptionText: ""
+            sources: ["172.29.0.1", "172.29.0.2"]
         )
         let data = try JSONEncoder().encode(DockerGuardPolicyBatchRequest(policies: [policy]))
         // JSONEncoder 键序不稳定（字典哈希序），按结构断言而非子串匹配
@@ -406,43 +398,48 @@ struct FirewallSyncAndPolicyTests {
         #expect(item?["protocol"] as? String == "tcp")
         #expect(item?["mode"] as? String == "deny_sources")
         #expect((item?["sources"] as? [String]) == ["172.29.0.1", "172.29.0.2"])
-        #expect(item?["description"] as? String == "")
+        #expect(item?["description"] == nil)
     }
 
-    @Test("重置响应（{removed, disabled}）")
+    @Test("重置响应（v2.4.0：backupPath + removed/disabled）")
     func resetResponse() throws {
         let resp = try JSONDecoder().decode(FirewallRuleResetResponse.self,
-                                            from: Data(#"{"removed":5,"disabled":true}"#.utf8))
+                                            from: Data(#"{"backupPath":"/opt/1panel/firewall/bk-1.json","removed":5,"disabled":true}"#.utf8))
+        #expect(resp.backupPath?.hasSuffix("bk-1.json") == true)
         #expect(resp.removed == 5 && resp.disabled == true)
     }
 }
 
-// MARK: - 低频操作回归（纳管/排序/原文/导入导出）
+// MARK: - 低频操作回归（排序/原文/导入导出；v2.4.0 移除纳管）
 
 @Suite("防火墙低频操作回归")
 struct FirewallLowFreqTests {
 
-    @Test("纳管请求编码（scope + instanceKey）")
-    func adoptRequestEncode() throws {
-        let req = FirewallRuleAdoptRequest(
-            scope: FirewallScope(provider: "iptables", family: "ipv4", table: "filter",
-                                 chain: "INPUT", direction: "input"),
-            instanceKey: "sha256:abc")
+    @Test("排序请求编码（v2.4.0：scope + instanceKey + targetPosition）")
+    func reorderRequestEncode() throws {
+        let req = FirewallRuleReorderRequest(
+            scope: FirewallScope(provider: "iptables", family: "ipv4",
+                                 table: "filter", chain: "1PANEL_BASIC", direction: "input"),
+            instanceKey: "sha256:3e93", targetPosition: 3, priority: nil)
         let data = try JSONEncoder().encode(req)
         let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        #expect(obj?["instanceKey"] as? String == "sha256:abc")
-        let scope = obj?["scope"] as? [String: Any]
-        #expect(scope?["provider"] as? String == "iptables")
-        #expect(scope?["chain"] as? String == "INPUT")
+        #expect(obj?["instanceKey"] as? String == "sha256:3e93")
+        #expect(obj?["targetPosition"] as? Int == 3)
+        #expect((obj?["scope"] as? [String: Any])?["table"] as? String == "filter")
     }
 
-    @Test("排序请求编码（uuid + targetPosition）")
-    func reorderRequestEncode() throws {
-        let req = FirewallRuleReorderRequest(uuid: "u-1", targetPosition: 3, priority: nil)
+    @Test("更新请求编码（仅改优先级通道：顶层 orderIndex、rule 为 nil）")
+    func updateRequestEncode() throws {
+        let req = FirewallRuleUpdateRequest(
+            scope: FirewallScope(provider: "iptables", family: "ipv4",
+                                 table: "filter", chain: "1PANEL_BASIC", direction: "input"),
+            instanceKey: "sha256:3e93", rule: nil, descriptionText: nil, orderIndex: 5)
         let data = try JSONEncoder().encode(req)
         let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        #expect(obj?["uuid"] as? String == "u-1")
-        #expect(obj?["targetPosition"] as? Int == 3)
+        #expect(obj?["orderIndex"] as? Int == 5)
+        #expect(obj?["rule"] == nil)
+        #expect(obj?["uuid"] == nil)
+        #expect(obj?["instanceKey"] as? String == "sha256:3e93")
     }
 
     @Test("导入解析：导出文件往返（去 uuid 的规则数组可直接解码）")

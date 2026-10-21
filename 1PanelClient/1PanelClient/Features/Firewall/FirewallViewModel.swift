@@ -28,9 +28,7 @@ final class FirewallViewModel: ObservableObject {
     /// 链内优先级可设范围（搜索响应 ipv4Range/ipv6Range；编辑表单提示用）
     @Published var rulesIPv4Range: FirewallPositionRange?
     @Published var rulesIPv6Range: FirewallPositionRange?
-    @Published private(set) var rulesManagedTotal = 0
     @Published private(set) var isRulesLoadingMore = false
-    @Published var ruleStateFilter: String?      // nil = 全部状态
     @Published var ruleFamilyFilter: String?     // nil = 全部族
     @Published var ruleSearchText = ""
     private var rulesPage = 1
@@ -150,7 +148,6 @@ final class FirewallViewModel: ObservableObject {
         req.scopes = Self.scopeForSearch(backend: systemStatus?.backend)
         req.excludeChains = Self.excludeChainsForSearch(backend: systemStatus?.backend)
         req.info = ruleSearchText
-        req.states = ruleStateFilter.map { [$0] }
         req.families = ruleFamilyFilter.map { [$0] }
         do {
             let resp: FirewallRuleInventoryResponse = try await client.send(
@@ -158,12 +155,12 @@ final class FirewallViewModel: ObservableObject {
                 as: FirewallRuleInventoryResponse.self
             )
             guard generation == rulesGeneration else { return }
-            // 刚删除的规则在服务端运行时摘除完成前会短暂回显（drifted/external
-            // 残影），窗口期内本地过滤（见 deleteRule）
-            pruneExpiredDeletedRuleUUIDs()
+            // 刚删除的规则在服务端运行时摘除完成前会短暂回显（残影），
+            // 窗口期内本地过滤（见 deleteRule）
+            pruneExpiredDeletedRuleKeys()
             let filtered = (resp.items ?? []).filter { item in
-                guard let uuid = item.manageableUUID else { return true }
-                return recentlyDeletedRuleUUIDs[uuid] == nil
+                guard let key = item.operationTarget?.instanceKey else { return true }
+                return recentlyDeletedRuleKeys[key] == nil
             }
             if replacing {
                 inventory = filtered
@@ -173,7 +170,6 @@ final class FirewallViewModel: ObservableObject {
             rulesPage = req.page
             rulesAllTotal = resp.allTotal ?? resp.total ?? inventory.count
             rulesResultTotal = resp.total ?? resp.allTotal ?? inventory.count
-            rulesManagedTotal = resp.managedTotal ?? 0
             rulesIPv4Range = resp.ipv4Range
             rulesIPv6Range = resp.ipv6Range
             errorMessage = nil
@@ -184,22 +180,26 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// 建规则（v2.3.0 统一模型：端口/IP 规则都是 FirewallRule）
+    /// 建规则（统一模型：端口/IP 规则都是 FirewallRule）
     func createRule(_ rule: FirewallRule) async -> Bool {
         await submitRules(FirewallRuleCreateRequest(
-            items: [FirewallRuleCreateItem(rule: rule, sourceKind: "user", sourceID: nil)]))
+            items: [FirewallRuleCreateItem(rule: rule, sourceKind: "user")]))
     }
 
     /// 编辑规则：整规则替换（rule 内携带 orderIndex）与仅改优先级（顶层 orderIndex、
-    /// rule 为 nil）互斥——同传会被面板 excluded_with 校验拒绝（抓包 2026-09-17）
-    func updateRule(uuid: String, rule: FirewallRule?, orderIndex: Int64?) async -> Bool {
+    /// rule 为 nil）互斥——同传会被面板 excluded_with 校验拒绝。
+    /// v2.4.0 操作键 = (scope, instanceKey)
+    func updateRule(target: FirewallRuleOperationTarget, rule: FirewallRule?,
+                    orderIndex: Int64?) async -> Bool {
         isOperating = true
         defer { isOperating = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.firewallRulesUpdate.path,
-                body: FirewallRuleUpdateRequest(uuid: uuid, rule: rule, descriptionText: nil,
-                                                orderIndex: rule == nil ? orderIndex : nil),
+                body: FirewallRuleUpdateRequest(
+                    scope: target.scope, instanceKey: target.instanceKey,
+                    rule: rule, descriptionText: nil,
+                    orderIndex: rule == nil ? orderIndex : nil),
                 as: EmptyResponse.self
             )
             await loadRules(replacing: true)
@@ -235,21 +235,25 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
+    /// 删除规则（v2.4.0：targets[{scope,instanceKey,observed}]，observed 原样回传
+    /// 供服务端匹配活规则）
     func deleteRule(_ item: FirewallInventoryItem) async {
-        guard let uuid = item.manageableUUID else { return }
+        guard let target = item.operationTarget, let observed = item.observed else { return }
         isOperating = true
         defer { isOperating = false }
         do {
             let _: FirewallRuleDeleteResponse = try await client.send(
                 path: APIEndpoint.firewallRulesDelete.path,
-                body: FirewallRuleDeleteRequest(uuids: [uuid]),
+                body: FirewallRuleDeleteRequest(targets: [FirewallRuleDeleteItem(
+                    scope: target.scope, instanceKey: target.instanceKey, observed: observed)]),
                 as: FirewallRuleDeleteResponse.self
             )
             // rules/delete 的运行时摘除是异步任务：立即重拉会短暂回显残影
-            // （显示为「异常」，下拉刷新才消失）。先本地移除整行，再在窗口期
-            // 内把该 uuid 从后续搜索结果中滤掉，直到服务端状态收敛
-            recentlyDeletedRuleUUIDs[uuid] = Date().addingTimeInterval(Self.deletedRuleFilterWindow)
-            inventory.removeAll { $0.manageableUUID == uuid }
+            //（下拉刷新才消失）。先本地移除整行，再在窗口期内把该 instanceKey
+            // 从后续搜索结果中滤掉，直到服务端状态收敛
+            recentlyDeletedRuleKeys[target.instanceKey] =
+                Date().addingTimeInterval(Self.deletedRuleFilterWindow)
+            inventory.removeAll { $0.operationTarget?.instanceKey == target.instanceKey }
             await loadRules(replacing: true)
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -257,13 +261,13 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// 刚删除规则的 uuid → 过滤截止时间
-    private var recentlyDeletedRuleUUIDs: [String: Date] = [:]
+    /// 刚删除规则的 instanceKey → 过滤截止时间
+    private var recentlyDeletedRuleKeys: [String: Date] = [:]
     private static let deletedRuleFilterWindow: TimeInterval = 60
 
-    private func pruneExpiredDeletedRuleUUIDs() {
+    private func pruneExpiredDeletedRuleKeys() {
         let now = Date()
-        recentlyDeletedRuleUUIDs = recentlyDeletedRuleUUIDs.filter { $0.value > now }
+        recentlyDeletedRuleKeys = recentlyDeletedRuleKeys.filter { $0.value > now }
     }
 
     // MARK: 转发段
@@ -303,13 +307,14 @@ final class FirewallViewModel: ObservableObject {
 
     /// 编辑 = 同请求内先 remove 后 add（上游 forward/operate 仅支持 add/remove）。
     /// 响应为任务式 {taskID, queued}（抓包 2026-09-17），进进度页
-    func submitForward(_ operations: [FirewallForwardOperation], forceDelete: Bool = false) async -> Bool {
+    /// 转发批量操作（v2.4.0：forceDelete 已被 import 取代，普通删除不设标志）
+    func submitForward(_ operations: [FirewallForwardOperation], isImport: Bool = false) async -> Bool {
         isOperating = true
         defer { isOperating = false }
         do {
             let resp: FirewallTaskResponse = try await client.send(
                 path: APIEndpoint.firewallForwardOperate.path,
-                body: FirewallForwardOperateRequest(forceDelete: forceDelete, rules: operations),
+                body: FirewallForwardOperateRequest(isImport: isImport, rules: operations),
                 as: FirewallTaskResponse.self
             )
             if let taskID = resp.taskID, !taskID.isEmpty {
@@ -346,63 +351,7 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    // MARK: 规则同步 / 重置 / Docker 策略（抓包 2026-09-17）
-
-    /// 同步目标后端：转发/Docker 子系统有各自的后端，缺省回落系统后端
-    private func syncTargetProvider(_ subsystem: String) -> String {
-        switch subsystem {
-        case "forwarding":
-            return forwardStatus?.backend ?? systemStatus?.backend ?? "iptables"
-        case "docker":
-            return dockerGuard?.base?.backend ?? systemStatus?.backend ?? "iptables"
-        default:
-            return systemStatus?.backend ?? "iptables"
-        }
-    }
-
-    /// 同步预览：ready>0 才值得执行（existing=已一致，blocked=受阻）。
-    /// 子系统三档：system / forwarding / docker（面板 rules/sync 统一支持）
-    func syncPreview(subsystem: String) async -> FirewallRuleSyncPreview? {
-        do {
-            return try await client.send(
-                path: APIEndpoint.firewallRulesSyncPreview.path,
-                body: FirewallRuleSyncRequest(subsystem: subsystem,
-                                              targetProvider: syncTargetProvider(subsystem),
-                                              resetSource: false, taskID: nil),
-                as: FirewallRuleSyncPreview.self
-            )
-        } catch {
-            guard !APIError.isCancellation(error) else { return nil }
-            errorMessage = error.localizedDescription
-            return nil
-        }
-    }
-
-    /// 执行同步（任务式结果 → 进度页）
-    func executeSync(subsystem: String) async {
-        isOperating = true
-        defer { isOperating = false }
-        do {
-            let resp: FirewallRuleSyncResult = try await client.send(
-                path: APIEndpoint.firewallRulesSync.path,
-                body: FirewallRuleSyncRequest(subsystem: subsystem,
-                                              targetProvider: syncTargetProvider(subsystem),
-                                              resetSource: false, taskID: nil),
-                as: FirewallRuleSyncResult.self
-            )
-            if let taskID = resp.taskID, !taskID.isEmpty {
-                activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("同步防火墙规则"))
-            }
-            switch subsystem {
-            case "forwarding": await loadForwards(replacing: true)
-            case "docker": await loadDockerGuard()
-            default: await loadRules(replacing: true)
-            }
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            errorMessage = error.localizedDescription
-        }
-    }
+    // MARK: 规则重置 / Docker 策略（v2.4.0：上游移除 rules/sync 全家，不再提供同步）
 
     /// 重置运行时规则（R1：调用方需先经输入后端名确认）
     func resetRules() async {
@@ -471,39 +420,18 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    // MARK: 纳管 / 排序 / 原文 / 导入导出（低频操作）
+    // MARK: 排序 / 原文 / 导入导出（低频操作；v2.4.0 上游移除纳管端点）
 
-    /// 纳管 external/drifted 规则（进入面板管理，可编辑删除）
-    func adoptRule(_ item: FirewallInventoryItem) async {
-        guard let key = item.observed?.instanceKey ?? item.rule?.id,
-              let scope = item.rule?.scope else {
-            errorMessage = L10n.t("该规则缺少纳管所需的定位信息")
-            return
-        }
-        isOperating = true
-        defer { isOperating = false }
-        do {
-            let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.firewallRulesAdopt.path,
-                body: FirewallRuleAdoptRequest(scope: scope, instanceKey: key),
-                as: EmptyResponse.self
-            )
-            toastMessage = L10n.t("已纳管")
-            await loadRules(replacing: true)
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    /// 链内位置调整（上移/下移一位）
-    func reorderRule(uuid: String, to position: Int64) async {
+    /// 链内位置调整（上移/下移一位；v2.4.0 操作键 = scope+instanceKey）
+    func reorderRule(target: FirewallRuleOperationTarget, to position: Int64) async {
         isOperating = true
         defer { isOperating = false }
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.firewallRulesReorder.path,
-                body: FirewallRuleReorderRequest(uuid: uuid, targetPosition: position, priority: nil),
+                body: FirewallRuleReorderRequest(scope: target.scope,
+                                                 instanceKey: target.instanceKey,
+                                                 targetPosition: position, priority: nil),
                 as: EmptyResponse.self
             )
             await loadRules(replacing: true)
@@ -541,7 +469,7 @@ final class FirewallViewModel: ObservableObject {
             let resp: FirewallRuleCreateResponse = try await client.send(
                 path: APIEndpoint.firewallRulesCreate.path,
                 body: FirewallRuleCreateRequest(
-                    items: rules.map { FirewallRuleCreateItem(rule: $0, sourceKind: "imported", sourceID: nil) }),
+                    items: rules.map { FirewallRuleCreateItem(rule: $0, sourceKind: "imported") }),
                 as: FirewallRuleCreateResponse.self
             )
             if let taskID = resp.taskID, !taskID.isEmpty {
@@ -560,12 +488,12 @@ final class FirewallViewModel: ObservableObject {
     /// （无服务端端点），落盘 Documents/Exports
     func exportRules(for items: [FirewallInventoryItem]? = nil) -> LocalDownloads.Saved? {
         let exportable = items ?? inventory.filter { item in
-            guard item.manageableUUID != nil, item.state != "protected" else { return false }
+            guard item.operationTarget != nil, !item.isProtected else { return false }
             return true
         }
         guard !exportable.isEmpty else { return nil }
         let rules = exportable.compactMap { item -> FirewallRule? in
-            guard var rule = item.rule ?? item.desired?.rule else { return nil }
+            guard var rule = item.rule else { return nil }
             rule.uuid = nil
             return rule
         }
@@ -598,13 +526,12 @@ final class FirewallViewModel: ObservableObject {
                 protocolField: rule.protocolField, strategy: rule.strategy,
                 num: nil, targetIP: rule.targetIP, targetPort: rule.targetPort,
                 interface: rule.interface, usedStatus: nil,
-                descriptionText: rule.descriptionText, isDesired: nil,
-                isRuntime: nil, syncStatus: nil)
+                descriptionText: rule.descriptionText)
         }
         do {
             let resp: FirewallTaskResponse = try await client.send(
                 path: APIEndpoint.firewallForwardOperate.path,
-                body: FirewallForwardOperateRequest(forceDelete: false, rules: ops),
+                body: FirewallForwardOperateRequest(isImport: true, rules: ops),
                 as: FirewallTaskResponse.self)
             if let taskID = resp.taskID, !taskID.isEmpty {
                 activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("导入转发规则"))
@@ -682,8 +609,7 @@ final class FirewallViewModel: ObservableObject {
                 family: family, hostIP: hostIP, hostPort: hostPort,
                 protocolField: proto,
                 mode: ep.mode ?? "deny_all",
-                sources: ep.sources ?? [],
-                descriptionText: ep.descriptionText ?? "")
+                sources: ep.sources ?? [])
         }
     }
 

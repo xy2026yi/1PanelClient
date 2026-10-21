@@ -213,14 +213,11 @@ enum APIEndpoint {
     case firewallBase             // POST 子系统状态 {name: base|docker}（v2.2.5 契约已废弃）
     case firewallOperate          // POST 生命周期（start/stop/restart/disableBanPing/enableBanPing）
     case firewallFilterOperate    // POST 基础链操作（init-base/bind-base/unbind-base，幸存端点）
-    case firewallRulesSearch      // POST 统一规则清单（scope/families/states 筛选）
+    case firewallRulesSearch      // POST 统一规则清单（scope/families 筛选）
     case firewallRulesCreate      // POST 批量创建规则（items[{rule}]，任务式）
-    case firewallRulesUpdate      // POST 更新规则（uuid + rule/description 互斥）
-    case firewallRulesDelete      // POST 批量删除规则 {uuids}
-    case firewallRulesSyncPreview // POST 同步预览 {subsystem,targetProvider,resetSource}
-    case firewallRulesSync         // POST 执行同步（任务式）
+    case firewallRulesUpdate      // POST 更新规则（scope+instanceKey + rule/description 互斥）
+    case firewallRulesDelete      // POST 批量删除规则 {targets[{scope,instanceKey,observed}]}
     case firewallRulesReset        // POST 重置运行时规则（需输入后端名确认）
-    case firewallRulesAdopt        // POST 纳管 external/drifted 规则 {scope,instanceKey}
     case firewallRulesReorder      // POST 调整链内位置（Web 未用，保留能力）
     case firewallNativeDetail      // POST 原生对象配置原文（zone_service/ufw_application）
     case firewallForwardBase      // POST 转发子系统状态（无请求体）
@@ -879,10 +876,7 @@ enum APIEndpoint {
         case .firewallRulesCreate:   return "/api/v2/hosts/firewall/rules"
         case .firewallRulesUpdate:   return "/api/v2/hosts/firewall/rules/update"
         case .firewallRulesDelete:   return "/api/v2/hosts/firewall/rules/delete"
-        case .firewallRulesSyncPreview: return "/api/v2/hosts/firewall/rules/sync/preview"
-        case .firewallRulesSync:     return "/api/v2/hosts/firewall/rules/sync"
         case .firewallRulesReset:    return "/api/v2/hosts/firewall/rules/reset"
-        case .firewallRulesAdopt:    return "/api/v2/hosts/firewall/rules/adopt"
         case .firewallRulesReorder:  return "/api/v2/hosts/firewall/rules/reorder"
         case .firewallNativeDetail:  return "/api/v2/hosts/firewall/rules/native/detail"
         case .firewallForwardBase:   return "/api/v2/hosts/firewall/forward/base"
