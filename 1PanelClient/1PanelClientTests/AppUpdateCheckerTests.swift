@@ -78,6 +78,31 @@ struct AppUpdateCheckerTests {
         }
     }
 
+    @Test("适配声明：首行「适配面板版本：vX」解析入 panelBaseline；全角/半角冒号与空格均容")
+    func parsePanelBaselineFirstLine() throws {
+        let json = #"{"tag_name":"v0.3.0","html_url":"https://x/y","body":"适配面板版本：v2.3.1（面板版本不一致时，App 内总览页会有提示）\n## What's Changed\n* feat: x"}"#
+        let info = try AppUpdateChecker.parse(Data(json.utf8))
+        #expect(info.panelBaseline == "v2.3.1")
+        #expect(AppUpdateChecker.parsePanelBaseline("适配面板版本: v2.4.0") == "v2.4.0")
+        #expect(AppUpdateChecker.parsePanelBaseline("适配面板版本：  v2.3.10\n其他") == "v2.3.10")
+    }
+
+    @Test("适配声明：无 body / 无声明行 / 声明不在首行 / 无 v 前缀 → nil（历史 release 无此行）")
+    func parsePanelBaselineAbsent() {
+        #expect(AppUpdateChecker.parsePanelBaseline(nil) == nil)
+        #expect(AppUpdateChecker.parsePanelBaseline("* fix: x\n* feat: y") == nil)
+        #expect(AppUpdateChecker.parsePanelBaseline("## What's Changed\n适配面板版本：v2.3.1") == nil)
+        #expect(AppUpdateChecker.parsePanelBaseline("适配面板版本：2.3.1") == nil)
+    }
+
+    @Test("旧缓存无 panelBaseline 键仍可解码（Optional 走 decodeIfPresent，角标不丢）")
+    func decodeLegacyCache() throws {
+        let legacy = #"{"version":"0.2.3","publishedDate":"2026-10-20","notes":"n","releaseURL":"https://x/y"}"#
+        let info = try JSONDecoder().decode(AppUpdateInfo.self, from: Data(legacy.utf8))
+        #expect(info.panelBaseline == nil)
+        #expect(info.version == "0.2.3")
+    }
+
     // MARK: - 节流与缓存（注入 defaults + 时钟，不触网）
 
     @MainActor
@@ -117,14 +142,14 @@ struct AppUpdateCheckerTests {
         // 当前版本是定值（Bundle.main 注入值），分别用「更新/相同」两版本验证
         let current = AppUpdateChecker.currentVersion
         let newer = AppUpdateInfo(version: "\(current).1", publishedDate: nil,
-                                  notes: nil, releaseURL: "https://x/y")
+                                  notes: nil, panelBaseline: nil, releaseURL: "https://x/y")
         defaults.set(try JSONEncoder().encode(newer), forKey: AppUpdateChecker.cachedLatestKey)
         let checker = AppUpdateChecker(defaults: defaults)
         #expect(checker.updateAvailable)
         #expect(checker.state == .available(newer))
 
         let same = AppUpdateInfo(version: current, publishedDate: nil,
-                                 notes: nil, releaseURL: "https://x/y")
+                                 notes: nil, panelBaseline: nil, releaseURL: "https://x/y")
         defaults.set(try JSONEncoder().encode(same), forKey: AppUpdateChecker.cachedLatestKey)
         let fresh = AppUpdateChecker(defaults: defaults)
         #expect(!fresh.updateAvailable)
@@ -134,7 +159,8 @@ struct AppUpdateCheckerTests {
     // MARK: - 冷启动提醒判定（纯函数）
 
     private static let sampleInfo = AppUpdateInfo(
-        version: "9.9.9", publishedDate: "2026-10-20", notes: nil, releaseURL: "https://x/y")
+        version: "9.9.9", publishedDate: "2026-10-20", notes: nil,
+        panelBaseline: "v2.3.1", releaseURL: "https://x/y")
 
     @MainActor
     @Test("有新版 + 未上锁 + 本进程未提醒 → 返回待弹窗信息")

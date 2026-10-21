@@ -58,6 +58,10 @@ struct ContentView: View {
                 if let date = info.publishedDate {
                     Text(L10n.f("发布于 %@", date))
                 }
+                // 新版适配的面板版本（release 首行声明解析所得，旧版本无此行）
+                if let baseline = info.panelBaseline {
+                    Text(L10n.f("新版适配面板版本 %@", baseline))
+                }
             }
             .onChange(of: appLock.isLocked) { _, locked in
                 if locked {

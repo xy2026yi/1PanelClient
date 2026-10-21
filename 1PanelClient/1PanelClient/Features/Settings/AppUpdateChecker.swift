@@ -26,6 +26,11 @@ struct AppUpdateInfo: Codable, Equatable {
     let publishedDate: String?
     /// release body（GitHub 自动生成的更新说明）
     let notes: String?
+    /// 该新版适配的面板版本（如 "v2.3.1"）：release body 首行适配声明解析所得，
+    /// 发版流水线从源码基线常量注入（见 release.yml「读取适配面板基线」步骤）。
+    /// 旧缓存缺该键解码为 nil（synthesized Codable 对 Optional 用 decodeIfPresent），
+    /// 仅少一行展示，下次网络刷新即对齐
+    let panelBaseline: String?
     /// release 页地址（含 IPA 与 sha256，供「前往下载」跳转）
     let releaseURL: String
 }
@@ -178,7 +183,23 @@ final class AppUpdateChecker: ObservableObject {
             version: version,
             publishedDate: release.publishedAt.map { String($0.prefix(10)) },
             notes: (notes?.isEmpty == true) ? nil : notes,
+            panelBaseline: parsePanelBaseline(release.body),
             releaseURL: page)
+    }
+
+    /// release body 首行的适配声明解析（纯函数，单测直测）：发版流水线注入的
+    /// 「适配面板版本：v2.3.1」→ "v2.3.1"。只认首行（防正文里碰巧出现同款
+    /// 字样）；无声明或格式漂移返回 nil，仅少一行展示不报错——声明是发版
+    /// 流水线上线后的新约定，此前的历史 release 均无此行
+    static func parsePanelBaseline(_ body: String?) -> String? {
+        guard let first = body?.split(separator: "\n",
+                                       omittingEmptySubsequences: false).first.map(String.init)
+        else { return nil }
+        guard let match = try? NSRegularExpression(pattern: #"适配面板版本[：:]\s*(v[0-9.]+)"#)
+            .firstMatch(in: first, range: NSRange(first.startIndex..., in: first)),
+              let range = Range(match.range(at: 1), in: first)
+        else { return nil }
+        return String(first[range])
     }
 
     private func fetchLatest() async throws -> AppUpdateInfo {

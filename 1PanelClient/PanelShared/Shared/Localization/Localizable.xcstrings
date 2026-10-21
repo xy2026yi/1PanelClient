@@ -19645,6 +19645,17 @@
         }
       }
     },
+    "新版适配面板版本 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version targets panel %@"
+          }
+        }
+      }
+    },
     "新用户" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -551,6 +551,12 @@ private struct AboutDetailContent: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                // 新版适配的面板版本（release 首行声明解析所得，旧版本无此行）
+                if let baseline = info.panelBaseline {
+                    Text(L10n.f("新版适配面板版本 %@", baseline))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 if let notes = info.notes {
                     // release body 是 GitHub 自动生成的 markdown：内联解析保留换行，
                     // 解析失败回落纯文本
