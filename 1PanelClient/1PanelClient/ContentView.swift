@@ -17,6 +17,12 @@ struct ContentView: View {
 
     @StateObject private var appLock = AppLockManager()
     @StateObject private var safari = InAppSafariPresenter()
+    /// 冷启动「发现新版本」弹窗：每进程至多一次，判定见 AppUpdateChecker.launchPromptInfo。
+    /// 挂在这里而非 MainTabView：要避开锁屏（alert 浮在 overlay 之上）、不受
+    /// 语言切换 .id 重建影响，且欢迎页（无服务器）同样覆盖
+    @ObservedObject private var updater = AppUpdateChecker.shared
+    @State private var launchUpdatePrompt: AppUpdateInfo?
+    @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -38,8 +44,34 @@ struct ContentView: View {
             .sheet(item: $safari.target) { target in
                 InAppSafariSheet(target: target)
             }
+            .alert(
+                L10n.f("发现新版本 %@", launchUpdatePrompt?.version ?? ""),
+                isPresented: Binding(
+                    get: { launchUpdatePrompt != nil },
+                    set: { if !$0 { launchUpdatePrompt = nil } }
+                ),
+                presenting: launchUpdatePrompt
+            ) { info in
+                Button(L10n.t("下载")) { openReleasePage(info) }
+                Button(L10n.t("取消"), role: .cancel) {}
+            } message: { info in
+                if let date = info.publishedDate {
+                    Text(L10n.f("发布于 %@", date))
+                }
+            }
             .onChange(of: appLock.isLocked) { _, locked in
-                if locked { safari.close() }
+                if locked {
+                    safari.close()
+                    // 更新弹窗同样浮在锁屏之上：上锁即收，解锁后按需再弹
+                    launchUpdatePrompt = nil
+                } else {
+                    presentLaunchPromptIfNeeded()
+                }
+            }
+            // 冷启动由缓存恢复的 .available 经 initial 立即命中；无缓存时网络检查
+            // 晚到的 .available 由状态变更命中
+            .onChange(of: updater.state, initial: true) { _, _ in
+                presentLaunchPromptIfNeeded()
             }
             // environmentObject 必须包在 overlay 之外：overlay 内容不在内侧修饰器的
             // 环境作用域内，放 overlay 前会导致 LockScreenView 取不到 AppLockManager 而崩溃
@@ -64,6 +96,23 @@ struct ContentView: View {
                     WidgetCenter.shared.reloadAllTimelines()
                 }
             }
+    }
+
+    private func presentLaunchPromptIfNeeded() {
+        guard let info = AppUpdateChecker.launchPromptInfo(
+            state: updater.state, isLocked: appLock.isLocked,
+            alreadyShown: updater.launchPromptShown) else { return }
+        updater.markLaunchPromptShown()
+        launchUpdatePrompt = info
+    }
+
+    /// 「下载」与关于页「前往下载」同一出口：系统 Safari（IPA 下载与 AltStore 接力
+    /// 依赖真实 Safari，见 InAppSafari 文件头）。releaseURL 来自远端响应，只放行 http/https
+    private func openReleasePage(_ info: AppUpdateInfo) {
+        guard let url = URL(string: info.releaseURL),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https"
+        else { return }
+        openURL(url)
     }
 }
 

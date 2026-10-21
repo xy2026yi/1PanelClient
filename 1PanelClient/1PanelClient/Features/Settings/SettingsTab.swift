@@ -523,6 +523,12 @@ private struct AboutDetailContent: View {
                         options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
                         ?? AttributedString(notes))
                         .font(.footnote)
+                        // 正文里的链接（Full Changelog 等）走应用内浏览器；只作用于本段，
+                        // 下方「前往下载」仍直跳 Safari（IPA 下载依赖真实 Safari，见 InAppSafari）
+                        .environment(\.openURL, OpenURLAction { url in
+                            safari.open(url)
+                            return .handled
+                        })
                 }
             }
             .padding(.vertical, 2)

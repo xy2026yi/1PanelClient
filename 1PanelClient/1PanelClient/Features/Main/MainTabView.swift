@@ -24,6 +24,8 @@ extension Notification.Name {
 
 struct MainTabView: View {
     @StateObject private var manager = ServerManager.shared
+    /// 设置 Tab 图标红点（有新版本）：三形态（底部栏/侧栏/图标栏）共用一个判定
+    @ObservedObject private var updater = AppUpdateChecker.shared
     @State private var selectedTab: AppTab = .overview
     /// OverviewTab 卡片点击待跳转的 ManageItem；ManageTab 监听此值并自动 push
     @State private var pendingManageItem: ManageItem?
@@ -101,7 +103,8 @@ struct MainTabView: View {
                 tabContent
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         if !sidebarVisible && showTabBar {
-                            BottomTabBar(selectedTab: $selectedTab)
+                            BottomTabBar(selectedTab: $selectedTab,
+                                         settingsBadge: updater.updateAvailable)
                                 .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
                         }
                     }
@@ -203,7 +206,8 @@ struct MainTabView: View {
 
             sidebarRow(.overview, title: L10n.t("首页"), icon: "house")
             sidebarRow(.manage, title: L10n.t("管理"), icon: "list.bullet.rectangle.portrait")
-            sidebarRow(.settings, title: L10n.t("设置"), icon: "gearshape")
+            sidebarRow(.settings, title: L10n.t("设置"), icon: "gearshape",
+                       badge: updater.updateAvailable)
 
             Spacer()
 
@@ -235,7 +239,8 @@ struct MainTabView: View {
     }
 
     /// 侧栏平铺行：图标 + 标题，选中态整行轻着色（无容器包裹、无分隔线）
-    private func sidebarRow(_ tab: AppTab, title: String, icon: String) -> some View {
+    private func sidebarRow(_ tab: AppTab, title: String, icon: String,
+                            badge: Bool = false) -> some View {
         let isSelected = selectedTab == tab
         return Button {
             Haptic.selection()
@@ -245,6 +250,7 @@ struct MainTabView: View {
                 Image(systemName: icon)
                     .font(.system(.callout))
                     .symbolRenderingMode(.hierarchical)
+                    .tabBadgeDot(badge)
                     .frame(width: 24)
                 Text(title)
                     .font(.body)
@@ -263,6 +269,7 @@ struct MainTabView: View {
         }
         .buttonStyle(.plain)
         .hoverEffect(.highlight)
+        .accessibilityValue(badge ? L10n.t("新版本") : "")
         .padding(.horizontal, 8)
     }
 
@@ -271,7 +278,8 @@ struct MainTabView: View {
         VStack(spacing: 4) {
             railButton(.overview, title: L10n.t("首页"), icon: "house")
             railButton(.manage, title: L10n.t("管理"), icon: "list.bullet.rectangle.portrait")
-            railButton(.settings, title: L10n.t("设置"), icon: "gearshape")
+            railButton(.settings, title: L10n.t("设置"), icon: "gearshape",
+                       badge: updater.updateAvailable)
 
             Spacer()
 
@@ -303,7 +311,8 @@ struct MainTabView: View {
         }
     }
 
-    private func railButton(_ tab: AppTab, title: String, icon: String) -> some View {
+    private func railButton(_ tab: AppTab, title: String, icon: String,
+                            badge: Bool = false) -> some View {
         let isSelected = selectedTab == tab
         return Button {
             Haptic.selection()
@@ -312,6 +321,7 @@ struct MainTabView: View {
             Image(systemName: icon)
                 .font(.system(.body))
                 .symbolRenderingMode(.hierarchical)
+                .tabBadgeDot(badge)
                 .foregroundStyle(isSelected ? Color.accentColor : .secondary)
                 .frame(width: 40, height: 40)
                 .background {
@@ -325,6 +335,7 @@ struct MainTabView: View {
         .buttonStyle(.plain)
         .hoverEffect(.highlight)
         .accessibilityLabel(title)
+        .accessibilityValue(badge ? L10n.t("新版本") : "")
         .padding(.vertical, 2)
     }
 
@@ -341,12 +352,14 @@ struct MainTabView: View {
 
 private struct BottomTabBar: View {
     @Binding var selectedTab: AppTab
+    /// 设置 Tab 图标红点（有新版本）
+    var settingsBadge: Bool = false
 
     var body: some View {
         HStack(spacing: 0) {
             tabItem(.overview, title: L10n.t("首页"), icon: "house")
             tabItem(.manage, title: L10n.t("管理"), icon: "list.bullet.rectangle.portrait")
-            tabItem(.settings, title: L10n.t("设置"), icon: "gearshape")
+            tabItem(.settings, title: L10n.t("设置"), icon: "gearshape", badge: settingsBadge)
         }
         .padding(.top, 6)
         .padding(.bottom, 2)
@@ -359,7 +372,8 @@ private struct BottomTabBar: View {
     }
 
     @ViewBuilder
-    private func tabItem(_ tab: AppTab, title: String, icon: String) -> some View {
+    private func tabItem(_ tab: AppTab, title: String, icon: String,
+                         badge: Bool = false) -> some View {
         let isSelected = selectedTab == tab
         Button {
             Haptic.selection()
@@ -371,6 +385,7 @@ private struct BottomTabBar: View {
                 Image(systemName: icon)
                     .font(.system(.title3))
                     .symbolRenderingMode(.hierarchical)
+                    .tabBadgeDot(badge)
                 Text(title)
                     .font(.system(.caption2))
             }
@@ -381,6 +396,24 @@ private struct BottomTabBar: View {
         }
         .buttonStyle(.plain)
         .hoverEffect(.highlight)
+        .accessibilityValue(badge ? L10n.t("新版本") : "")
+    }
+}
+
+// MARK: - Tab 图标红点
+
+private extension View {
+    /// 图标右上角 8pt 红点（设置 Tab 有新版本时显示）。只负责视觉，无障碍播报由
+    /// 调用方在 Button 层用 accessibilityValue 补——Button 合并子元素时会丢弃内层 value
+    func tabBadgeDot(_ show: Bool) -> some View {
+        overlay(alignment: .topTrailing) {
+            if show {
+                Circle()
+                    .fill(.red)
+                    .frame(width: 8, height: 8)
+                    .offset(x: 3, y: -3)
+            }
+        }
     }
 }
 

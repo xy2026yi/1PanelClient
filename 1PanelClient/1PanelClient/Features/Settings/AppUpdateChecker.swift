@@ -58,6 +58,24 @@ final class AppUpdateChecker: ObservableObject {
         return false
     }
 
+    // MARK: - 冷启动提醒
+
+    /// 本进程是否已弹过「发现新版本」弹窗：单例上的进程级标记——视图树重建
+    /// （语言切换 .id 重建等）不丢，换进程（冷启动）自然归零，即"每次冷启动至多一次"
+    private(set) var launchPromptShown = false
+
+    func markLaunchPromptShown() {
+        launchPromptShown = true
+    }
+
+    /// 冷启动提醒判定（纯函数，单测直测）：有新版 && 未上锁 && 本进程未提醒过。
+    /// 上锁期间不弹——alert 悬浮在锁屏 overlay 之上，解锁后由调用方再判一次
+    static func launchPromptInfo(state: AppUpdateState, isLocked: Bool,
+                                 alreadyShown: Bool) -> AppUpdateInfo? {
+        guard !isLocked, !alreadyShown, case .available(let info) = state else { return nil }
+        return info
+    }
+
     private let url: URL
     private let session: URLSession
     private let defaults: UserDefaults

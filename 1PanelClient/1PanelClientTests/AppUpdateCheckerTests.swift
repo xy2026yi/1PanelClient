@@ -130,4 +130,54 @@ struct AppUpdateCheckerTests {
         #expect(!fresh.updateAvailable)
         #expect(fresh.state == .idle)
     }
+
+    // MARK: - 冷启动提醒判定（纯函数）
+
+    private static let sampleInfo = AppUpdateInfo(
+        version: "9.9.9", publishedDate: "2026-10-20", notes: nil, releaseURL: "https://x/y")
+
+    @MainActor
+    @Test("有新版 + 未上锁 + 本进程未提醒 → 返回待弹窗信息")
+    func launchPromptWhenEligible() {
+        let info = AppUpdateChecker.launchPromptInfo(
+            state: .available(Self.sampleInfo), isLocked: false, alreadyShown: false)
+        #expect(info == Self.sampleInfo)
+    }
+
+    @MainActor
+    @Test("上锁期间不弹（alert 浮在锁屏之上），解锁后再判")
+    func launchPromptBlockedWhileLocked() {
+        #expect(AppUpdateChecker.launchPromptInfo(
+            state: .available(Self.sampleInfo), isLocked: true, alreadyShown: false) == nil)
+    }
+
+    @MainActor
+    @Test("本进程已提醒过 → 不再弹（取消后同一次启动内不复弹）")
+    func launchPromptOncePerProcess() {
+        #expect(AppUpdateChecker.launchPromptInfo(
+            state: .available(Self.sampleInfo), isLocked: false, alreadyShown: true) == nil)
+    }
+
+    @MainActor
+    @Test("非 available 状态一律不弹", arguments: [
+        AppUpdateState.idle, .checking, .latest, .failed,
+    ])
+    func launchPromptRequiresAvailable(state: AppUpdateState) {
+        #expect(AppUpdateChecker.launchPromptInfo(
+            state: state, isLocked: false, alreadyShown: false) == nil)
+    }
+
+    @MainActor
+    @Test("进程级标记：新实例默认未提醒，标记后为已提醒")
+    func launchPromptShownFlag() {
+        let suiteName = "AppUpdateCheckerTests.launchPrompt"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let checker = AppUpdateChecker(defaults: defaults)
+        #expect(!checker.launchPromptShown)
+        checker.markLaunchPromptShown()
+        #expect(checker.launchPromptShown)
+    }
 }
