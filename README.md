@@ -19,7 +19,8 @@ Unofficial third-party iOS client for [1Panel](https://1panel.cn) — the open-s
 |---|---|---|
 | v0.1.x | v2.2.5 | |
 | v0.2.0 – v0.2.1 | v2.3.1 | |
-| v0.2.2 – v0.2.3 | v2.3.2 | 现行 |
+| v0.2.2 – v0.2.3 | v2.3.2 | |
+| v0.2.4 | v2.3.2 | 现行；面板 v2.3.2 系列最后一版 |
 
 This client is currently aligned with 1Panel **v2.3.2** (the firewall module targets the v2.3.0 rebuilt API; older panels are prompted to upgrade).
 Requests and UI are aligned against this version via packet captures; if the panel version is newer or older, API field shapes may differ, causing display issues or unavailable features. Each release's notes (and the AltStore update prompt) state the panel version it targets.
