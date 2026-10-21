@@ -400,7 +400,7 @@ private struct AboutDetailContent: View {
         Section {
             VStack(spacing: 10) {
                 appIcon
-                Text(L10n.t("服务器运维管理面板 1Panel 的移动端 App"))
+                Text(L10n.t("1Panel 的第三方移动端客户端（非官方）"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -441,7 +441,8 @@ private struct AboutDetailContent: View {
         return nil
     }
 
-    // MARK: 功能组（无标题）：问题反馈 / 官网 / 隐私政策（在线）/ 使用条款 / 开源许可 / 诊断数据 / 检查更新
+    // MARK: 功能组（无标题）：问题反馈 / 隐私政策（在线）/ 使用条款 / 开源许可 / 诊断数据 / 检查更新
+    //（组脚注为非关联声明：本 App 仅用 1Panel 开放 API，与其官方无关联，防误会）
 
     private var actionSection: some View {
         Section {
@@ -451,13 +452,6 @@ private struct AboutDetailContent: View {
                 }
             } label: {
                 Label(L10n.t("问题反馈"), systemImage: "ladybug")
-            }
-            Button {
-                if let url = URL(string: "https://1panel.cn") {
-                    safari.open(url)
-                }
-            } label: {
-                Label(L10n.t("1Panel 官网"), systemImage: "safari")
             }
             // 隐私政策默认在线版（源头 docs/privacy-policy.md）：探测可达即跳
             // Safari；离线/网络阻断（如 GitHub 不可达）回退 App 内本地页兜底
@@ -497,6 +491,8 @@ private struct AboutDetailContent: View {
                 }
             }
             checkUpdateRow
+        } footer: {
+            Text(L10n.t("本 App 为独立开发的第三方客户端，仅通过 1Panel 开放 API 与你自己的面板通信；与 1Panel 项目及其开发商无关联，亦未获其背书"))
         }
     }
 

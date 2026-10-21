@@ -20,6 +20,13 @@ basis, **without warranties of any kind**, express or implied, including
 merchantability, fitness for a particular purpose, accuracy, or non-interruption
 (see Sections 15–16 of the GPLv3).
 
+## Relationship with 1Panel
+
+This app is an independently developed third-party client that communicates only
+with panels you deploy yourself, via the 1Panel Open API. It is **not affiliated
+with, endorsed by, or otherwise related to** the 1Panel project, its developer, or
+their affiliates. The "1Panel" name and marks belong to their respective owner.
+
 ## Server Operation Risks
 
 This app manages servers that **you own or are authorized to manage**, and can

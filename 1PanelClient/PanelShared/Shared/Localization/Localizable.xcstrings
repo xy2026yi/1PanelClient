@@ -678,13 +678,13 @@
         }
       }
     },
-    "1Panel 官网" : {
+    "1Panel 的第三方移动端客户端（非官方）" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1Panel Website"
+            "value" : "Unofficial third-party mobile client for 1Panel"
           }
         }
       }
@@ -21933,17 +21933,6 @@
         }
       }
     },
-    "服务器运维管理面板 1Panel 的移动端 App" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mobile app for the 1Panel server operations & maintenance panel"
-          }
-        }
-      }
-    },
     "服务器返回了无法解析的响应" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22534,6 +22523,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unverified"
+          }
+        }
+      }
+    },
+    "本 App 为独立开发的第三方客户端，仅通过 1Panel 开放 API 与你自己的面板通信；与 1Panel 项目及其开发商无关联，亦未获其背书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app is an independently developed third-party client that talks only to your own panel via the 1Panel Open API. It is not affiliated with or endorsed by the 1Panel project or its developer."
           }
         }
       }

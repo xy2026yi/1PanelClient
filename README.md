@@ -1,7 +1,9 @@
 # 1PanelClient
 
-iOS client for [1Panel](https://1panel.cn) — the open-source Linux server management panel.
-（[1Panel](https://1panel.cn) 的 iOS 客户端 — 开源 Linux 服务器运维管理面板。）
+Unofficial third-party iOS client for [1Panel](https://1panel.cn) — the open-source Linux server management panel.
+（[1Panel](https://1panel.cn) 的非官方第三方 iOS 客户端 — 开源 Linux 服务器运维管理面板。）
+
+> 本项目为独立开发的第三方客户端，仅通过 1Panel 开放 API 与用户自行部署的面板通信，与 1Panel 项目及其开发商无关联，亦未获其背书。
 
 原生 Swift + SwiftUI 构建，通过 1Panel v2 OpenAPI 远程管理服务器：多服务器 / 多节点管理、应用商店、网站与 SSL 证书、数据库、Docker 容器与终端、计划任务、防火墙 / WAF、监控告警等 19 个管理模块，并附带桌面小组件与应用锁。
 
