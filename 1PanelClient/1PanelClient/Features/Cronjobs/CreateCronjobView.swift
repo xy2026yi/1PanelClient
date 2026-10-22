@@ -35,8 +35,9 @@ struct CreateCronjobView: View {
     @State private var scriptID = 0
     /// path 模式：脚本文件绝对路径（文件浏览器选定，可手动修改）
     @State private var scriptPath = ""
-    /// 脚本库选项（首次进入 library 模式时轻量拉取）
+    /// 脚本库选项（首次进入 library 模式时轻量拉取；失败可重试）
     @State private var libraryScripts: [ScriptItem] = []
+    @State private var libraryScriptsError: String?
     /// path 模式的文件浏览器（不限扩展名，须选定到文件）
     @State private var showScriptFilePicker = false
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
@@ -362,7 +363,7 @@ struct CreateCronjobView: View {
                 scriptPath = path
             }
         }
-        // 进入脚本库模式时轻量拉取脚本清单（失败静默，picker 显示空态）
+        // 进入脚本库模式时轻量拉取脚本清单（失败显示错误态可重试）
         .task(id: scriptMode) {
             if scriptMode == "library", libraryScripts.isEmpty {
                 await loadLibraryScripts()
@@ -416,10 +417,24 @@ struct CreateCronjobView: View {
         )
     }
 
-    /// library 模式：脚本库选择（形态 3，"0" = 请选择占位；空库显示空态行）
+    /// library 模式：脚本库选择（形态 3，"0" = 请选择占位；空库/加载失败各显状态）
     @ViewBuilder
     private var libraryPickerRow: some View {
-        if libraryScripts.isEmpty {
+        if let err = libraryScriptsError {
+            HStack {
+                Text(err)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                Spacer()
+                Button(L10n.t("重试")) {
+                    Task { await loadLibraryScripts() }
+                }
+                .font(.footnote.weight(.semibold))
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        } else if libraryScripts.isEmpty {
             HStack {
                 Text(L10n.t("脚本库"))
                 Spacer()
@@ -458,8 +473,9 @@ struct CreateCronjobView: View {
         )
     }
 
-    /// 脚本库清单（脚本库页同款请求；失败静默保留空态）
+    /// 脚本库清单（脚本库页同款请求；失败显示错误态可重试）
     private func loadLibraryScripts() async {
+        libraryScriptsError = nil
         let client = APIClient.shared(for: server)
         do {
             let resp: PageResponse<ScriptItem> = try await client.send(
@@ -470,6 +486,8 @@ struct CreateCronjobView: View {
             libraryScripts = resp.items ?? []
         } catch {
             guard !APIError.isCancellation(error) else { return }
+            libraryScripts = []
+            libraryScriptsError = L10n.f("脚本库加载失败：%@", error.localizedDescription)
         }
     }
 
@@ -1141,6 +1159,7 @@ struct CreateCronjobView: View {
         case .shell:
             // 提交形状按抓包 2026-10-22：library 只携 scriptID（script 置空）；
             // select 携脚本路径于 script（scriptID 置空）；input 携脚本内容
+            // 且 scriptID 显式为 0（列表返回 input 任务 scriptID=0）
             req.scriptMode = scriptMode
             req.user = user
             switch scriptMode {
@@ -1150,6 +1169,7 @@ struct CreateCronjobView: View {
             case "select":
                 req.script = scriptPath.trimmingCharacters(in: .whitespaces)
             default:
+                req.scriptID = 0
                 req.script = script
             }
         case .app:

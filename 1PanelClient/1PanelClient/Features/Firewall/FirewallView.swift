@@ -290,7 +290,7 @@ struct FirewallView: View {
             // 容器行点击进入端口规则页（编程式推入；host_firewall 提示与删除确认
             // 在该页内呈现——挂在宿主页的弹窗在推入页可见期间不显示）
             .navigationDestination(item: $pushedContainer) { container in
-                DockerGuardEndpointsView(container: container) { endpoint in
+                DockerGuardEndpointsView(vm: vm, container: container) { endpoint in
                     editingPolicy = endpoint
                 } onDeletePolicy: { endpoint in
                     Task { await vm.deleteDockerPolicy(endpoint) }
@@ -1195,7 +1195,13 @@ struct FirewallView: View {
                         showInitMenu = true
                     }
                 } else if base.bound == false {
-                    // 解绑态：守护链已摘除，容器列表不展示（绑定入口在操作行）
+                    // 解绑态：守护链已摘除，容器列表不展示（全局绑定入口在操作行）；
+                    // 族级绑定待办与规则段解绑态同款暴露（family/operate subsystem=docker）
+                    if !dockerFamilyAttentions.isEmpty {
+                        Section {
+                            familyAttentionRows(dockerFamilyAttentions, subsystem: "docker")
+                        }
+                    }
                     unboundPlaceholder
                 } else {
                     // 族待办（v2.4.0 family/operate，subsystem=docker）：对齐 Web 端

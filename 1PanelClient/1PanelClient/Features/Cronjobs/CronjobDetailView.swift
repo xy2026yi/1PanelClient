@@ -245,7 +245,20 @@ struct CronjobDetailView: View {
             }
         }
         .toastOverlay(message: $vm.toastMessage)
-        .navigationDestination(isPresented: $showEditView) {
+        .navigationDestination(isPresented: Binding(
+            get: { showEditView },
+            set: { showing in
+                showEditView = showing
+                // 编辑返回后作废已加载的详情缓存并重拉：update 只刷新列表，
+                // 告警方式明细/快照规则等 info 侧数据不重取会保持旧值
+                if !showing {
+                    editingInfo = nil
+                    detailInfo = nil
+                    snapshotInfo = nil
+                    Task { await reloadInfoForCurrentType() }
+                }
+            }
+        )) {
             if let info = editingInfo {
                 CreateCronjobView(vm: vm, server: server, editingJob: info)
             }
@@ -254,18 +267,26 @@ struct CronjobDetailView: View {
         // 与已装应用列表并行加载（排除应用按 id 解析应用名）；
         // 备份网站/切割网站日志：拉网站简表解析 id → primaryDomain；
         // 备份数据库：按任务类型拉实例列表解析 id → 库名
-        .task(id: currentJob.id) {
-            switch currentJob.jobType {
-            case .snapshot:
-                guard snapshotInfo == nil else { return }
-                await loadSnapshotInfo()
-            case .website, .cutWebsiteLog:
-                await vm.loadWebsiteOptions()
-            case .database:
-                await vm.loadDBItems(dbType: currentJob.dbType ?? "mysql")
-            default:
-                // 通用详情（告警设置展示所需；与告警方式名称表并行加载）
-                guard detailInfo == nil else { return }
+        .task(id: currentJob.id) { await reloadInfoForCurrentType() }
+    }
+
+    /// 按类型补拉 info：快照详情（镜像/排除应用）、Shell 脚本来源模式与告警
+    /// 明细。其余类型仅在有告警信号（列表 alertCount>0）时拉 info，无信号跳过
+    /// 省一次请求（网站/数据库类型只拉名称解析表）
+    private func reloadInfoForCurrentType() async {
+        switch currentJob.jobType {
+        case .snapshot:
+            guard snapshotInfo == nil else { return }
+            await loadSnapshotInfo()
+        case .website, .cutWebsiteLog:
+            await vm.loadWebsiteOptions()
+        case .database:
+            await vm.loadDBItems(dbType: currentJob.dbType ?? "mysql")
+        case .shell:
+            guard detailInfo == nil else { return }
+            await loadDetailInfo()
+        default:
+            if currentJob.hasAlertConfigured, detailInfo == nil {
                 await loadDetailInfo()
             }
         }

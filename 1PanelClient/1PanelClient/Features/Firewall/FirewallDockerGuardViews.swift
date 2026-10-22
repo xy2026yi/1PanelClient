@@ -68,6 +68,9 @@ struct DockerGuardContainerSection: View {
 /// docker/policies/delete/batch {uuids}，已设策略才有，抓包 2026-10-22）。
 /// 删除确认与提示弹窗都在本页内呈现：挂在宿主页的弹窗在推入页可见期间不显示
 struct DockerGuardEndpointsView: View {
+    /// 宿主 VM：容器数据按 id 实时查找（删除策略等操作完成刷新后本页立即
+    /// 跟随，不残留旧行——传入的 container 仅作初值与 id 锚点）
+    @ObservedObject var vm: FirewallViewModel
     let container: DockerGuardContainer
     var onEditPolicy: (DockerGuardEndpoint) -> Void = { _ in }
     /// 删除确认后的执行回调（确认弹窗在本页，宿主只负责调 VM）
@@ -78,10 +81,15 @@ struct DockerGuardEndpointsView: View {
     /// host_firewall 端点点按提示（2 秒自动消失的轻提示，无需确认）
     @State private var hostFirewallHint: String?
 
+    /// 实时容器（刷新后从 VM 取最新；容器不在列表时回落传入快照）
+    private var liveContainer: DockerGuardContainer {
+        vm.dockerGuard?.containers?.first(where: { $0.id == container.id }) ?? container
+    }
+
     private var endpoints: [DockerGuardEndpoint] {
-        let groupEndpoints = (container.portGroups ?? []).compactMap { $0.endpoint }
+        let groupEndpoints = (liveContainer.portGroups ?? []).compactMap { $0.endpoint }
         var seen = Set<String>()
-        return ((container.endpoints ?? []) + groupEndpoints).filter { seen.insert($0.id).inserted }
+        return ((liveContainer.endpoints ?? []) + groupEndpoints).filter { seen.insert($0.id).inserted }
     }
 
     var body: some View {
@@ -107,7 +115,7 @@ struct DockerGuardEndpointsView: View {
                 }
             }
         }
-        .navigationTitle(container.name ?? "—")
+        .navigationTitle(liveContainer.name ?? "—")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: Binding(
             get: { actionEndpoint != nil },

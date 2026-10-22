@@ -29666,6 +29666,17 @@
         }
       }
     },
+    "脚本库加载失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load script library: %@"
+          }
+        }
+      }
+    },
     "脚本路径" : {
       "extractionState" : "manual",
       "localizations" : {
