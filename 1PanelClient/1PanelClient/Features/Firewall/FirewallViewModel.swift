@@ -105,6 +105,33 @@ final class FirewallViewModel: ObservableObject {
         _ = await (listening, nets)
     }
 
+    /// 各段上次重拉时间（切段节流键：段序号 → 时间戳）
+    private var segmentRefreshedAt: [Int: Date] = [:]
+
+    /// 切段时重拉该段数据（与展示内容同口径：规则段含状态卡依赖的 systemStatus
+    /// 与行内使用方进程名；转发段含子系统状态；Docker/设置各拉自己的清单）。
+    /// 5 秒节流防往返闪刷；进页/前台/下拉的整页刷新不受影响
+    func refreshSegment(_ index: Int) async {
+        let now = Date.now
+        if let last = segmentRefreshedAt[index], now.timeIntervalSince(last) < 5 { return }
+        segmentRefreshedAt[index] = now
+        switch index {
+        case 0:
+            await loadSystemStatus()
+            await loadRules(replacing: true)
+            await loadListening()
+        case 1:
+            await loadForwardStatus()
+            await loadForwards(replacing: true)
+        case 2:
+            await loadDockerGuard()
+        case 3:
+            await loadSettings()
+        default:
+            break
+        }
+    }
+
     func loadSystemStatus() async {
         struct BaseReq: Encodable { let name: String }
         do {

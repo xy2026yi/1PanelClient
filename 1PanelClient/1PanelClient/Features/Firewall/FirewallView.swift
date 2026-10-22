@@ -18,6 +18,10 @@ struct FirewallView: View {
     @StateObject private var vm: FirewallViewModel
     let server: ServerConfig
 
+    /// 切回前台时整页重拉：状态可能在 App 外被改写（网页端解绑/绑定等），
+    /// autoRefresh 仅进页时执行一次，前台切换不重触发（与 MonitorView 同款监听）
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var statusExpanded = false
     /// 内容段：0=规则 1=转发 2=容器端口防护 3=设置（与 Web 端四页一一对应）
     @State private var segment = 0
@@ -117,6 +121,10 @@ struct FirewallView: View {
                 .pickerStyle(.segmented)
                 .segmentedPickerRow()
                 .listRowBackground(Color.clear)
+                .onChange(of: segment) { _, new in
+                    // 切段重拉该段（VM 内 5 秒节流防往返闪刷）
+                    Task { await vm.refreshSegment(new) }
+                }
 
                 switch segment {
                 case 0: rulesSection
@@ -196,6 +204,13 @@ struct FirewallView: View {
                 Text(vm.errorMessage ?? "")
             }
             .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refresh() } }
+            .onChange(of: scenePhase) { _, phase in
+                // 前台切换整页校准（网页端解绑/绑定等外部改写；refresh 自带
+                // isLoading 防重入， unsupportedPanel 时也会短路）
+                if phase == .active, !vm.unsupportedPanel {
+                    Task { await vm.refresh() }
+                }
+            }
     }
 
     /// 导航层：规则/转发/容器的推入目标 + 任务进度页 + 删除/生命周期确认
@@ -904,6 +919,13 @@ struct FirewallView: View {
                     showInitMenu = true
                 }
             } else if isRulesUnbound {
+                // 解绑态同样暴露族级绑定（family/operate 传 ipv4/ipv6，与 Web 端
+                // 「单独对指定链绑定」一致；全局绑定按钮仍在状态卡操作行）
+                if !familyAttentions.isEmpty {
+                    Section {
+                        familyAttentionRows(familyAttentions, subsystem: "system")
+                    }
+                }
                 unboundPlaceholder
             } else {
                 // 地址族待办（v2.4.0 family/operate）：对齐 Web 端仅在规则列表区

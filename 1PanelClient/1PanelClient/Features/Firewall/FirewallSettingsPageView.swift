@@ -143,33 +143,42 @@ struct FirewallSettingsContent: View {
             Text(L10n.t("禁 Ping 后服务器不再响应 ICMP 探测；端口白名单外的高校验规则见任务日志。"))
         }
 
-        backendPickerSection(title: L10n.t("系统防火墙"), subsystem: "system",
-                             group: vm.settings?.system)
-        backendPickerSection(title: L10n.t("端口转发"), subsystem: "forwarding",
-                             group: vm.settings?.forwarding)
-        backendPickerSection(title: L10n.t("容器端口防护"), subsystem: "docker",
-                             group: vm.settings?.docker)
+        firewallBackendSection
     }
 
-    /// 单组防护后端：形态 3 描边菜单（未安装 / 不支持的选项不展示，
-    /// 当前选中不在可选列表时兜底保留，避免无效 selection）
-    private func backendPickerSection(title: String, subsystem: String,
-                                      group: FirewallBackendGroup?) -> some View {
+    /// 防火墙后端组：三组子系统后端（系统防火墙/端口转发/容器端口防护）合并为
+    /// 一组展示（组名「防火墙」），各自的选择、切换确认与拦截逻辑不变
+    private var firewallBackendSection: some View {
         Section {
-            OutlinedPicker(label: title,
-                           options: backendOptionKeys(group: group),
-                           selection: backendBinding(subsystem: subsystem, group: group),
-                           optionLabels: backendOptionLabels(group: group))
-                .disabled(vm.isOperating)
+            backendPickerRow(title: L10n.t("系统防火墙"), subsystem: "system",
+                             group: vm.settings?.system)
+            backendPickerRow(title: L10n.t("端口转发"), subsystem: "forwarding",
+                             group: vm.settings?.forwarding)
+            backendPickerRow(title: L10n.t("容器端口防护"), subsystem: "docker",
+                             group: vm.settings?.docker)
         } header: {
-            SectionLabel(title: title, systemImage: "server.rack")
+            SectionLabel(title: L10n.t("防火墙"), systemImage: "server.rack")
         } footer: {
-            if let reason = unusableReason(group: group) {
-                Text(reason)
-            } else {
+            // 各组当前后端不可用的原因合并展示（如「未安装 / 由发行版管控」）
+            let reasons = [vm.settings?.system, vm.settings?.forwarding, vm.settings?.docker]
+                .compactMap { unusableReason(group: $0) }
+            if reasons.isEmpty {
                 Text(L10n.t("切换防护后端将重建对应规则链，期间服务可能短暂中断"))
+            } else {
+                Text(reasons.joined(separator: "\n"))
             }
         }
+    }
+
+    /// 单个子系统的后端选择（形态 3 描边菜单；未安装 / 不支持的选项不展示，
+    /// 当前选中不在可选列表时兜底保留，避免无效 selection）
+    private func backendPickerRow(title: String, subsystem: String,
+                                  group: FirewallBackendGroup?) -> some View {
+        OutlinedPicker(label: title,
+                       options: backendOptionKeys(group: group),
+                       selection: backendBinding(subsystem: subsystem, group: group),
+                       optionLabels: backendOptionLabels(group: group))
+            .disabled(vm.isOperating)
     }
 
     /// 可选后端键：可用选项 + 当前选中兜底（去重）
