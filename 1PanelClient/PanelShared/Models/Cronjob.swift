@@ -160,6 +160,19 @@ nonisolated struct Cronjob: Codable, Identifiable, Hashable {
     let retryTimes: Int?
     let timeout: Int?
     let timeoutUnit: String?
+    /// 告警次数（v2.4.0 列表返回；关闭告警时 Web 端提交 0 → >0 即已设置告警）
+    let alertCount: Int?
+    /// 通知条件（v2.4.0 列表返回）：failed / success / both
+    let alertTriggerMode: String?
+
+    /// 通知条件归一（与 CronjobInfo.alertTriggerModeValue 同口径：
+    /// 合法三选一原样，缺失/未知回落 failed）
+    var alertTriggerModeValue: String {
+        (alertTriggerMode == "success" || alertTriggerMode == "both") ? alertTriggerMode! : "failed"
+    }
+
+    /// 是否设置了告警（alertCount > 0；依据：告警关闭时 Web 端提交 alertCount=0）
+    var hasAlertConfigured: Bool { (alertCount ?? 0) > 0 }
 
     /// 任务类型枚举
     var jobType: CronjobType {
@@ -252,6 +265,8 @@ nonisolated struct Cronjob: Codable, Identifiable, Hashable {
         case retryTimes
         case timeout
         case timeoutUnit
+        case alertCount
+        case alertTriggerMode
     }
 
     init(from decoder: Decoder) throws {
@@ -283,6 +298,8 @@ nonisolated struct Cronjob: Codable, Identifiable, Hashable {
         retryTimes = try c.decodeIfPresent(Int.self, forKey: .retryTimes)
         timeout = try c.decodeIfPresent(Int.self, forKey: .timeout)
         timeoutUnit = try c.decodeIfPresent(String.self, forKey: .timeoutUnit)
+        alertCount = try c.decodeIfPresent(Int.self, forKey: .alertCount)
+        alertTriggerMode = try c.decodeIfPresent(String.self, forKey: .alertTriggerMode)
     }
 }
 

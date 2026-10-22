@@ -4740,17 +4740,6 @@
         }
       }
     },
-    "从脚本库选择" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose from Library"
-          }
-        }
-      }
-    },
     "仓库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5037,6 +5026,17 @@
         }
       }
     },
+    "任务名称选项随任务类型查询；触发通知条件后将按告警次数发送" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task name options are queried by task type; when the notification condition is met, alerts are sent up to the alert count"
+          }
+        }
+      }
+    },
     "任务已接收，处理中..." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5044,6 +5044,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Task received, processing..."
+          }
+        }
+      }
+    },
+    "任务执行结果满足通知条件时告警，达到告警次数后按方式发送" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alerts when task results meet the notification condition; sent via the selected methods once the alert count is reached"
           }
         }
       }
@@ -20410,7 +20421,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No Tasks"
+            "value" : "No tasks"
           }
         }
       }
@@ -29655,6 +29666,17 @@
         }
       }
     },
+    "脚本路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script Path"
+          }
+        }
+      }
+    },
     "腾讯" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30707,6 +30729,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cronjob - %@ \"%@\" failure alert"
+          }
+        }
+      }
+    },
+    "计划任务-%@「%@」执行告警" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cronjob-%@ \"%@\" Execution Alert"
+          }
+        }
+      }
+    },
+    "计划任务执行异常" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cronjob Execution Error"
           }
         }
       }
@@ -33033,6 +33077,17 @@
       }
     },
     "路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path"
+          }
+        }
+      }
+    },
+    "路径选择" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

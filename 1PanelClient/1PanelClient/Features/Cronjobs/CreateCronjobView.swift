@@ -25,9 +25,21 @@ struct CreateCronjobView: View {
     // 初值 = Shell 类型的网页端默认周期 每月 3 日 01:30，切换类型时跟随）
     @State private var schedules: [ScheduleItem] = [CreateCronjobView.defaultSchedule(for: .shell)]
     // Shell
-    @State private var script = "#!/bin/bash\n"
+    /// 脚本内容（input 模式的编辑原文 / library 模式带出的所选脚本内容）
+    @State private var script = ""
+    /// 脚本来源三选（形态 3）：input 编辑 / library 脚本库 / select 路径选择。
+    /// 提交形状按抓包 2026-10-22：library 携 scriptID 且 script 置空；
+    /// select 携脚本路径于 script、scriptID 置空
+    @State private var scriptMode = "input"
+    /// library 模式选中的脚本 id（0 = 未选）
+    @State private var scriptID = 0
+    /// path 模式：脚本文件绝对路径（文件浏览器选定，可手动修改）
+    @State private var scriptPath = ""
+    /// 脚本库选项（首次进入 library 模式时轻量拉取）
+    @State private var libraryScripts: [ScriptItem] = []
+    /// path 模式的文件浏览器（不限扩展名，须选定到文件）
+    @State private var showScriptFilePicker = false
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
-    @State private var showScriptPicker = false
     // 备份
     @State private var retainCopies = 7
     /// 备份账号（有序多选；提交 sourceAccountIDs 逗号串 + sourceAccountItems 数组）
@@ -344,21 +356,19 @@ struct CreateCronjobView: View {
                   schedules[0].cronSpec == Self.defaultSchedule(for: oldType).cronSpec else { return }
             schedules = [Self.defaultSchedule(for: newType)]
         }
-        .sheet(isPresented: $showScriptPicker) {
-        NavigationStack {
-            ScriptLibraryView(server: server) { picked in
-                if let code = picked.script, !code.isEmpty {
-                    script = code
-                }
-                showScriptPicker = false
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { showScriptPicker = false }
-                }
+        // path 模式：文件浏览器（不限扩展名；点击文件即选定回填路径）
+        .sheet(isPresented: $showScriptFilePicker) {
+            DirectoryPickerSheet(client: vm.client, fileExtensions: []) { path in
+                scriptPath = path
             }
         }
-    }    }
+        // 进入脚本库模式时轻量拉取脚本清单（失败静默，picker 显示空态）
+        .task(id: scriptMode) {
+            if scriptMode == "library", libraryScripts.isEmpty {
+                await loadLibraryScripts()
+            }
+        }
+    }
 
     // MARK: - 向导分页成员（自单页表单拆出）
 
@@ -406,6 +416,63 @@ struct CreateCronjobView: View {
         )
     }
 
+    /// library 模式：脚本库选择（形态 3，"0" = 请选择占位；空库显示空态行）
+    @ViewBuilder
+    private var libraryPickerRow: some View {
+        if libraryScripts.isEmpty {
+            HStack {
+                Text(L10n.t("脚本库"))
+                Spacer()
+                Text(L10n.t("暂无脚本"))
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            OutlinedPicker(label: L10n.t("脚本库"),
+                           options: libraryScriptKeys, selection: scriptIDText,
+                           optionLabels: libraryScriptLabels)
+        }
+    }
+
+    private var libraryScriptKeys: [String] {
+        ["0"] + libraryScripts.map { String($0.id) }
+    }
+
+    private var libraryScriptLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for item in libraryScripts { labels[String(item.id)] = item.name }
+        return labels
+    }
+
+    /// 选中脚本 id ↔ picker 键（"0" = 未选；抓包 2026-10-22：library 只携
+    /// scriptID，script 置空——选库不回填内容到 script）
+    private var scriptIDText: Binding<String> {
+        Binding<String>(
+            get: {
+                libraryScripts.contains(where: { $0.id == scriptID })
+                    ? String(scriptID) : "0"
+            },
+            set: { newValue in
+                guard let id = Int(newValue), id != 0 else { return }
+                scriptID = id
+            }
+        )
+    }
+
+    /// 脚本库清单（脚本库页同款请求；失败静默保留空态）
+    private func loadLibraryScripts() async {
+        let client = APIClient.shared(for: server)
+        do {
+            let resp: PageResponse<ScriptItem> = try await client.send(
+                path: APIEndpoint.scriptSearch.path,
+                body: ScriptSearchRequest(info: "", groupID: 0, page: 1, pageSize: 100),
+                as: PageResponse<ScriptItem>.self
+            )
+            libraryScripts = resp.items ?? []
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+        }
+    }
+
     /// 执行周期：入口行（N 个周期）→ 子编辑页（形态 8，与创建容器端口/挂载同模式）
     private var scheduleSection: some View {
         Section {
@@ -429,17 +496,30 @@ struct CreateCronjobView: View {
         switch type {
         case .shell:
             Section {
-                Button {
-                    showScriptPicker = true
-                } label: {
-                    Label(L10n.t("从脚本库选择"), systemImage: "books.vertical")
-                        .foregroundStyle(Color.accentColor)
+                // 脚本来源三选（形态 3）：编辑 / 脚本库 / 路径选择
+                // （枚举值按抓包 2026-10-22：input / library / select）
+                OutlinedPicker(label: L10n.t("脚本内容"),
+                               options: ["input", "library", "select"],
+                               selection: $scriptMode,
+                               optionLabels: [
+                                "input": L10n.t("编辑"),
+                                "library": L10n.t("脚本库"),
+                                "select": L10n.t("路径选择"),
+                               ])
+                switch scriptMode {
+                case "library":
+                    libraryPickerRow
+                case "select":
+                    OutlinedTextField(label: L10n.t("脚本路径"),
+                                      text: $scriptPath,
+                                      browseAction: { showScriptFilePicker = true })
+                default:
+                    OutlinedMultiLineField(label: L10n.t("脚本内容"),
+                                           prompt: "#!/bin/bash",
+                                           lines: 8, fixedLines: 8,
+                                           zoomable: true, monospaced: true,
+                                           text: $script)
                 }
-                OutlinedMultiLineField(label: L10n.t("脚本内容"),
-                                       prompt: "#!/bin/bash",
-                                       lines: 8, fixedLines: 8,
-                                       zoomable: true, monospaced: true,
-                                       text: $script)
             } header: { Text(L10n.t("脚本内容")) }
 
             Section {
@@ -668,9 +748,18 @@ struct CreateCronjobView: View {
             .filter { !$0.isEmpty }
     }
 
-    /// 内容页必填校验（目录范围 / URL 地址；开启告警须至少选一种方式）
+    /// 内容页必填校验（Shell 脚本按来源模式 / 目录范围 / URL 地址；开启告警须至少选一种方式）
     private var contentValid: Bool {
         switch type {
+        case .shell:
+            switch scriptMode {
+            case "library":
+                guard scriptID != 0 else { return false }
+            case "select":
+                guard !scriptPath.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+            default:
+                guard !script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+            }
         case .directory:
             guard dirScopeKey == "dir"
                 ? !nonEmptyLines(dirSourceText).isEmpty
@@ -1050,8 +1139,19 @@ struct CreateCronjobView: View {
 
         switch type {
         case .shell:
-            req.script = script
+            // 提交形状按抓包 2026-10-22：library 只携 scriptID（script 置空）；
+            // select 携脚本路径于 script（scriptID 置空）；input 携脚本内容
+            req.scriptMode = scriptMode
             req.user = user
+            switch scriptMode {
+            case "library":
+                req.scriptID = scriptID
+                req.script = ""
+            case "select":
+                req.script = scriptPath.trimmingCharacters(in: .whitespaces)
+            default:
+                req.script = script
+            }
         case .app:
             req.appID = appSelections.joined(separator: ",")
             req.appIdList = appSelections
@@ -1166,9 +1266,18 @@ struct CreateCronjobView: View {
             schedules = parseSchedules(spec)
         }
 
-        // Shell
+        // Shell：脚本来源三模式回填（input/library/select；未知值回落 input）
+        switch info.scriptMode {
+        case "library", "select": scriptMode = info.scriptMode!
+        default: scriptMode = "input"
+        }
+        scriptID = info.scriptID ?? 0
         if let s = info.script, !s.isEmpty {
-            script = s
+            if scriptMode == "select" {
+                scriptPath = s
+            } else {
+                script = s
+            }
         }
         user = info.user ?? ""
 

@@ -605,7 +605,8 @@ private struct DiskMountFormSheet: View {
 struct DirectoryPickerSheet: View {
     /// 选定路径回调（绝对路径，以 / 开头；目录模式=目录路径，文件模式=文件路径）
     let onPick: (String) -> Void
-    /// 文件扩展名过滤：nil = 目录选择模式；非 nil = 文件选择模式（如编排 yml）
+    /// 文件扩展名过滤：nil = 目录选择模式；[] = 文件选择模式（不限扩展名）；
+    /// 非空 = 文件选择模式（仅列出匹配扩展名，如编排 yml）
     var fileExtensions: [String]? = nil
 
     @Environment(\.dismiss) private var dismiss
@@ -755,8 +756,9 @@ struct DirectoryPickerSheet: View {
             files = isFileMode
                 ? items.filter { item in
                     guard !item.isDir else { return false }
+                    // 空数组 = 不限扩展名（任意文件可选定）
                     let ext = (item.name as NSString).pathExtension.lowercased()
-                    return fileExtensions!.contains { $0.lowercased() == ext }
+                    return fileExtensions!.isEmpty || fileExtensions!.contains { $0.lowercased() == ext }
                 }
                 : []
             errorMessage = nil
