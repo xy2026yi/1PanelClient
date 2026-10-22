@@ -82,7 +82,7 @@ nonisolated struct FirewallTaskResponse: Decodable, Sendable {
 /// 按地址族初始化/修复/绑定（仅 iptables/nftables 有 1PANEL_BASIC 双栈链概念；
 /// 抓包 2026-10-21 覆盖 system+ipv6 的 initialize/bind，repair 来自 swagger 枚举）
 nonisolated struct FirewallFamilyOperateRequest: Encodable, Sendable {
-    /// system / forwarding / docker（本端仅 system 主机防火墙）
+    /// system / docker（docker 为容器端口防护的族级操作，抓包 2026-10-22）
     let subsystem: String
     /// iptables / nftables
     let backend: String
@@ -258,8 +258,6 @@ nonisolated struct FirewallRuleSearchRequest: Encodable, Sendable {
     var info: String = ""
     var families: [String]?
     var actions: [String]?
-    /// iptables/nftables 排除守护链本身（BEFORE/AFTER 只作定位不作展示）
-    var excludeChains: [String]?
     var all: Bool?
 }
 
@@ -322,9 +320,13 @@ nonisolated struct FirewallRuleDeleteRequest: Encodable, Sendable {
 /// 抓包 2026-10-21：{"backup":true,"provider":"iptables","withDockerRestart":false}；
 /// backup=true 时响应带 backupFile 保存路径（弹窗提醒）
 nonisolated struct FirewallRuleResetRequest: Encodable, Sendable {
+    /// system（缺省，请求省略）/ docker / forwarding（抓包 2026-10-22：
+    /// {"subsystem":"docker"|"forwarding","provider":"iptables","backup":true|false}，
+    /// 子系统请求不携带 withDockerRestart）
+    var subsystem: String?
     var backup: Bool = true
     var provider: String?
-    var withDockerRestart: Bool
+    var withDockerRestart: Bool?
 }
 
 nonisolated struct FirewallRuleResetResponse: Decodable, Sendable {
@@ -649,6 +651,8 @@ nonisolated struct DockerGuardFamilyStatus: Decodable, Sendable {
     let initialized: Bool?
     let bound: Bool?
     let effective: Bool?
+    /// 族链状态不完整（如 jump_missing 修复入口；抓包 2026-10-22）
+    let partial: Bool?
 }
 
 nonisolated struct DockerGuardBase: Decodable, Sendable {
@@ -659,6 +663,8 @@ nonisolated struct DockerGuardBase: Decodable, Sendable {
     let bound: Bool?
     let ipv4: DockerGuardFamilyStatus?
     let ipv6: DockerGuardFamilyStatus?
+    /// IPv6 支持开关（false 时无 IPv6 族待办；抓包 2026-10-22）
+    let ipv6Enabled: Bool?
     let backend: String?
     let message: String?
 }
@@ -722,10 +728,21 @@ nonisolated struct DockerGuardList: Decodable, Sendable {
     let orphanPolicies: [DockerGuardEndpoint]?
 }
 
-/// POST /firewall/docker/operate：operation = initialize / bind / unbind
+/// POST /firewall/docker/operate：operation = initialize / bind / unbind。
+/// initialize 两种形态（抓包 2026-10-22）：仅初始化 {"operation":"initialize",
+/// "taskID":客户端生成 UUID}；初始化并恢复 {"operation":"initialize","backupFile":…}
+/// （不携带 taskID）
 nonisolated struct DockerGuardOperateRequest: Encodable, Sendable {
     let operation: String
     var taskID: String?
+    var backupFile: String?
+}
+
+/// POST /firewall/forward/enable（任务式；抓包 2026-10-22）：
+/// 仅初始化 {"taskID":客户端生成 UUID}；初始化并恢复 {"backupFile":…}
+nonisolated struct FirewallForwardEnableRequest: Encodable, Sendable {
+    var taskID: String?
+    var backupFile: String?
 }
 
 /// Docker 守护策略（v2.4.0 上游移除 description 字段；mode 另有

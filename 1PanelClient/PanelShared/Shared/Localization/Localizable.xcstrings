@@ -1498,17 +1498,6 @@
         }
       }
     },
-    "Docker 端口守护" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Docker Port Guard"
-          }
-        }
-      }
-    },
     "Docker配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8722,6 +8711,17 @@
         }
       }
     },
+    "删除防护策略" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Protection Policy"
+          }
+        }
+      }
+    },
     "删除频道" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13848,6 +13848,17 @@
         }
       }
     },
+    "将删除 %@ 中的 1Panel Docker 端口防护运行时规则：删除全部相关规则及规则链，仅保留数据库数据；重置前将自动备份当前规则并显示保存路径。请输入后端名「%@」以确认。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes 1Panel Docker port guard runtime rules in %@: all related rules and chains are removed, database data is kept; the current rules will be backed up first and the save path shown. Type the backend name \"%@\" to confirm."
+          }
+        }
+      }
+    },
     "将删除 %@ 中的 1Panel 端口转发运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13855,6 +13866,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This will delete 1Panel forwarding runtime rules in %@: all related rules and chains are removed while database data is kept. Type the backend name \"%@\" to confirm."
+          }
+        }
+      }
+    },
+    "将删除 %@ 中的 1Panel 端口转发运行时规则：删除全部相关规则及规则链，仅保留数据库数据；重置前将自动备份当前规则并显示保存路径。请输入后端名「%@」以确认。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes 1Panel port forwarding runtime rules in %@: all related rules and chains are removed, database data is kept; the current rules will be backed up first and the save path shown. Type the backend name \"%@\" to confirm."
           }
         }
       }
@@ -27279,13 +27301,24 @@
         }
       }
     },
-    "禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部来源（0.0.0.0/0 与 ::/0）。" : {
+    "禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部来源。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Block listed sources: intercept the listed ones; Allow listed sources only: permit only the listed ones; Block all: intercept all sources (0.0.0.0/0 and ::/0)."
+            "value" : "Deny specified sources: block the listed sources; allow only specified sources: permit only the listed sources; deny all access: block every source."
+          }
+        }
+      }
+    },
+    "禁止来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denied sources"
           }
         }
       }
@@ -30920,6 +30953,17 @@
         }
       }
     },
+    "设置防护模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Protection Mode"
+          }
+        }
+      }
+    },
     "访客" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31477,6 +31521,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This model has not been pulled yet"
+          }
+        }
+      }
+    },
+    "该端口需要通过主机防火墙设置访问规则，请前往主机防火墙进行配置。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access rules for this port are managed by the host firewall. Please configure them in the host firewall."
           }
         }
       }
@@ -35415,28 +35470,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Protection Mode"
-          }
-        }
-      }
-    },
-    "防护目标" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protection Target"
-          }
-        }
-      }
-    },
-    "防护策略" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protection Policy"
           }
         }
       }

@@ -691,21 +691,14 @@ struct DockerPolicyFormView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    OutlinedShape(label: L10n.t("端点"), isFocused: false,
-                                  hasValue: true, trailing: { EmptyView() }) {
-                        Text("\(endpoint.hostIP ?? ""):\(endpoint.hostPort.map(String.init) ?? "")/\(endpoint.protocolField?.uppercased() ?? "")")
+                // 标题放不下（超长 IPv6 等）时正文首行补显端点串，否则标题即端点串
+                if !endpointLineFitsAsTitle {
+                    Section {
+                        Text(endpointLine)
                             .font(.dataMonospacedBody)
                             .lineLimit(1)
+                            .truncationMode(.middle)
                     }
-                    OutlinedShape(label: L10n.t("容器"), isFocused: false,
-                                  hasValue: !(endpoint.containerName ?? "").isEmpty,
-                                  trailing: { EmptyView() }) {
-                        Text(endpoint.containerName ?? "—")
-                            .lineLimit(1)
-                    }
-                } header: {
-                    SectionLabel(title: L10n.t("防护目标"), systemImage: "shippingbox")
                 }
 
                 Section {
@@ -714,15 +707,19 @@ struct DockerPolicyFormView: View {
                                    selection: $mode,
                                    optionLabels: Dictionary(uniqueKeysWithValues:
                                        modeOptions.map { ($0.0, $0.1) }))
-                    OutlinedMultiLineField(label: L10n.t("来源"), prompt: "172.29.0.0/24",
-                                           lines: 1, text: $sourcesText)
-                } header: {
-                    SectionLabel(title: L10n.t("防护策略"), systemImage: "shield.lefthalf.filled")
+                    // deny_all 拦截全部来源，无来源输入（抓包 2026-10-22：
+                    // {"mode":"deny_all","sources":[]}，传全量网段会被服务端拒绝）
+                    if mode != "deny_all" {
+                        OutlinedMultiLineField(
+                            label: mode == "allow_sources" ? L10n.t("允许来源") : L10n.t("禁止来源"),
+                            prompt: "172.29.0.0/24",
+                            lines: 1, text: $sourcesText)
+                    }
                 } footer: {
-                    Text(L10n.t("禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部来源（0.0.0.0/0 与 ::/0）。"))
+                    Text(L10n.t("禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部来源。"))
                 }
             }
-            .navigationTitle(L10n.t("设置端口防护"))
+            .navigationTitle(endpointLineFitsAsTitle ? endpointLine : L10n.t("设置端口防护"))
             .navigationBarTitleDisplayMode(.inline)
             .formWidthLimit()
             .toolbar {
@@ -751,6 +748,24 @@ struct DockerPolicyFormView: View {
         mode == "deny_all" || !sourceLines.isEmpty
     }
 
+    /// 端点串（标题/首行共用）：hostIP:hostPort -> containerPort/protocol，
+    /// 如 "0.0.0.0:3002 -> 3002/tcp"（IPv6 经 hostLabel 加方括号）
+    private var endpointLine: String {
+        let target: String
+        if let port = endpoint.containerPort, let proto = endpoint.protocolField {
+            target = "\(port)/\(proto)"
+        } else if let port = endpoint.containerPort {
+            target = String(port)
+        } else {
+            target = "—"
+        }
+        return "\(endpoint.hostLabel) -> \(target)"
+    }
+
+    /// 内联导航标题的宽度评估：常规 IPv4 端点串（最长约 33 字符）可容纳；
+    /// 超长 IPv6 完整地址（>30 字符）放不下，回落原标题并在正文首行补显
+    private var endpointLineFitsAsTitle: Bool { endpointLine.count <= 30 }
+
     /// 来源多行原文 → 非空行数组
     private var sourceLines: [String] {
         sourcesText.split(whereSeparator: \.isNewline)
@@ -758,31 +773,20 @@ struct DockerPolicyFormView: View {
             .filter { !$0.isEmpty }
     }
 
-    /// 禁止所有访问的固定来源（v4/v6 全量；服务端按此存储，回显同值）
-    private static let denyAllSourcesText = "0.0.0.0/0\n::/0"
-
     private func fill() {
         if let m = endpoint.mode, !m.isEmpty {
             mode = m
         }
-        let stored = (endpoint.sources ?? []).filter { !$0.isEmpty }
-        if stored.isEmpty && (endpoint.mode ?? "deny_all") == "deny_all" {
-            sourcesText = Self.denyAllSourcesText
-        } else {
-            sourcesText = stored.joined(separator: "\n")
-        }
+        // deny_all 服务端存空 sources（抓包 2026-10-22），回显不预填全量网段
+        sourcesText = (endpoint.sources ?? []).filter { !$0.isEmpty }.joined(separator: "\n")
     }
 
     private func submit() async {
         isSubmitting = true
         defer { isSubmitting = false }
-        // deny_all 且未改动时按固定来源提交（与 Web 端一致），避免落库空数组
-        let sources: [String]
-        if mode == "deny_all" && sourceLines.isEmpty {
-            sources = ["0.0.0.0/0", "::/0"]
-        } else {
-            sources = sourceLines
-        }
+        // deny_all 无来源输入，按抓包形态提交空数组（传 0.0.0.0/0 等全量
+        // 网段会被服务端拒绝）；其余模式提交输入行
+        let sources: [String] = mode == "deny_all" ? [] : sourceLines
         let policy = DockerGuardPolicy(
             family: endpoint.family ?? "ipv4",
             hostIP: endpoint.hostIP ?? "0.0.0.0",

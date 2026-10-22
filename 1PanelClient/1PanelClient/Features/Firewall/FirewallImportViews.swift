@@ -137,11 +137,15 @@ private enum FirewallImportPreview {
 
 // MARK: - 初始化并恢复规则（rules/backups 选择 + POST rules initialize）
 
-/// 「初始化并恢复规则」：列出服务器上的规则备份（rules/backups?subsystem=system），
-/// 点选一条 → 确认 → POST rules {"initialize":true,"backupFile":…,"items":[]}（任务进度页）。
-/// 抓包 2026-10-21
+/// 「初始化并恢复规则」：列出服务器上的规则备份（rules/backups?subsystem=…），
+/// 点选一条 → 确认 → 任务式恢复，进进度页。三段共用：
+/// system → POST rules {"initialize":true,"backupFile":…,"items":[]}（抓包 2026-10-21）；
+/// docker → POST docker/operate {"operation":"initialize","backupFile":…}；
+/// forwarding → POST forward/enable {"backupFile":…}（均抓包 2026-10-22）
 struct FirewallRestoreBackupView: View {
     @ObservedObject var vm: FirewallViewModel
+    /// system / docker / forwarding（备份目录与恢复端点随段区分）
+    let subsystem: String
 
     @Environment(\.dismiss) private var dismiss
     /// 待确认恢复的备份
@@ -155,7 +159,7 @@ struct FirewallRestoreBackupView: View {
             Group {
                 if let err = vm.ruleBackupsError {
                     LoadErrorStateView(message: err) {
-                        Task { await vm.loadRuleBackups() }
+                        Task { await vm.loadRuleBackups(subsystem: subsystem) }
                     }
                 } else if vm.isLoadingBackups && vm.ruleBackups == nil {
                     LoadingStateView()
@@ -178,13 +182,11 @@ struct FirewallRestoreBackupView: View {
                 }
             }
             .interactiveDismissDisabled(isRestoring)
-            .refreshable { await vm.loadRuleBackups() }
+            .refreshable { await vm.loadRuleBackups(subsystem: subsystem) }
         }
-        .task {
-            if vm.ruleBackups == nil && vm.ruleBackupsError == nil {
-                await vm.loadRuleBackups()
-            }
-        }
+        // 每次呈现都重拉：备份文件会在本页之外产生（重置时生成/网页端操作），
+        // 首开加载后不刷新会拿陈旧列表选恢复源（刷新期间旧列表保持展示不闪空）
+        .task { await vm.loadRuleBackups(subsystem: subsystem) }
         .alert(L10n.t("确认恢复规则"), isPresented: Binding(
             get: { pendingRestore != nil },
             set: { if !$0 { pendingRestore = nil } }
@@ -197,7 +199,16 @@ struct FirewallRestoreBackupView: View {
                 isRestoring = true
                 Task {
                     // 成功即 dismiss：activeTask 已携带任务号，进度页随外层导航推出
-                    if await vm.initializeWithRestore(backupFile: name) {
+                    let ok: Bool
+                    switch subsystem {
+                    case "docker":
+                        ok = await vm.dockerOperate("initialize", backupFile: name)
+                    case "forwarding":
+                        ok = await vm.enableForwarding(backupFile: name)
+                    default:
+                        ok = await vm.initializeWithRestore(backupFile: name)
+                    }
+                    if ok {
                         dismiss()
                     } else {
                         isRestoring = false

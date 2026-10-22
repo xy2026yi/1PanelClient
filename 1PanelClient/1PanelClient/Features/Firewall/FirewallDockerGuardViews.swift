@@ -62,18 +62,21 @@ struct DockerGuardContainerSection: View {
 
 // MARK: - 容器端口规则展示页（入口行进入）
 
-/// 容器端口规则只读展示（形态 8「行即 Section」对应式，不提供添加/删除）：
-/// 每条规则 = 来源（形态 1）+ 目标（形态 1）+ 防护模式（标签为模式名，内容为
-/// sources，形态 7.1）；点击规则进入防护策略编辑
+/// 容器端口规则展示页（入口行进入）：每条规则一行「来源 → 目标」（形态与
+/// 孤立策略行一致）；点击行进入防护策略表单（host_firewall 托管的 IPv6 端点
+/// 点击弹提示），长按弹菜单（设置防护模式 / 删除——删除走
+/// docker/policies/delete/batch {uuids}，已设策略才有，抓包 2026-10-22）。
+/// 删除确认与提示弹窗都在本页内呈现：挂在宿主页的弹窗在推入页可见期间不显示
 struct DockerGuardEndpointsView: View {
     let container: DockerGuardContainer
     var onEditPolicy: (DockerGuardEndpoint) -> Void = { _ in }
+    /// 删除确认后的执行回调（确认弹窗在本页，宿主只负责调 VM）
+    var onDeletePolicy: (DockerGuardEndpoint) -> Void = { _ in }
 
-    private let modeLabels = [
-        "deny_sources": L10n.t("禁止指定来源"),
-        "allow_sources": L10n.t("仅允许指定来源"),
-        "deny_all": L10n.t("禁止所有访问"),
-    ]
+    @State private var actionEndpoint: DockerGuardEndpoint?
+    @State private var pendingDelete: DockerGuardEndpoint?
+    /// host_firewall 端点点按提示（2 秒自动消失的轻提示，无需确认）
+    @State private var hostFirewallHint: String?
 
     private var endpoints: [DockerGuardEndpoint] {
         let groupEndpoints = (container.portGroups ?? []).compactMap { $0.endpoint }
@@ -90,93 +93,119 @@ struct DockerGuardEndpointsView: View {
                         .listRowBackground(Color.clear)
                 }
             } else {
-                ForEach(endpoints) { endpoint in
-                    endpointSection(endpoint)
+                Section {
+                    ForEach(endpoints) { endpoint in
+                        DockerGuardEndpointRow(endpoint: endpoint)
+                            .contentShape(Rectangle())
+                            .rowTapAndLongPress(onTap: { openPolicy(endpoint) },
+                                                onLongPress: { actionEndpoint = endpoint })
+                            // VoiceOver 无长按手势：以自定义操作暴露同一菜单
+                            .accessibilityAction(named: L10n.t("更多操作")) {
+                                actionEndpoint = endpoint
+                            }
+                    }
                 }
             }
         }
         .navigationTitle(container.name ?? "—")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func endpointSection(_ endpoint: DockerGuardEndpoint) -> some View {
-        Section {
-            OutlinedShape(label: L10n.t("来源"), isFocused: false,
-                          hasValue: sourceText(endpoint) != L10n.t("未设置"),
-                          trailing: { EmptyView() }) {
-                Text(sourceText(endpoint))
-                    .font(.dataMonospacedBody)
-                    .lineLimit(1)
+        .sheet(isPresented: Binding(
+            get: { actionEndpoint != nil },
+            set: { if !$0 { actionEndpoint = nil } }
+        )) {
+            if let endpoint = actionEndpoint {
+                ActionBottomSheet(
+                    title: endpoint.hostLabel,
+                    items: actionItems(endpoint),
+                    onDismiss: { actionEndpoint = nil }
+                )
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(endpoint).count))])
+                .presentationDragIndicator(.visible)
             }
-            OutlinedShape(label: L10n.t("目标"), isFocused: false,
-                          hasValue: targetText(endpoint) != L10n.t("未设置"),
-                          trailing: { EmptyView() }) {
-                Text(targetText(endpoint))
-                    .font(.dataMonospacedBody)
-                    .lineLimit(1)
+        }
+        .alert(L10n.t("删除防护策略"), isPresented: Binding(
+            get: { pendingDelete != nil },
+            set: { if !$0 { pendingDelete = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                if let endpoint = pendingDelete {
+                    pendingDelete = nil
+                    onDeletePolicy(endpoint)
+                }
             }
-            OutlinedMultiLineField(
-                label: endpoint.mode.flatMap { modeLabels[$0] } ?? L10n.t("防护模式"),
-                text: .constant(sourcesText(endpoint)))
-                .disabled(true)
+        } message: {
+            Text(L10n.t("确定删除该端口的防护策略吗？删除后不可恢复。"))
         }
-        .contentShape(Rectangle())
-        .onTapGesture { onEditPolicy(endpoint) }
+        // host_firewall 托管端点的点按提示：自动消失（弹窗式需手动确认，太重）
+        .toastOverlay(message: $hostFirewallHint,
+                      systemImage: "exclamationmark.triangle.fill",
+                      iconColor: .orange)
     }
 
-    /// 来源 = 主机 IP + 端口；缺任一显示未设置
-    private func sourceText(_ endpoint: DockerGuardEndpoint) -> String {
-        if let ip = endpoint.hostIP, let port = endpoint.hostPort {
-            return "\(ip):\(port)"
+    /// host_firewall 托管（IPv6 输入链）端点不归守护策略管：点击弹提示而非表单
+    private func openPolicy(_ endpoint: DockerGuardEndpoint) {
+        if endpoint.managementTarget == "host_firewall" {
+            hostFirewallHint = L10n.t("该端口需要通过主机防火墙设置访问规则，请前往主机防火墙进行配置。")
+        } else {
+            onEditPolicy(endpoint)
         }
-        return L10n.t("未设置")
     }
 
-    /// 目标 = 容器端口 + 协议；缺任一显示未设置
-    private func targetText(_ endpoint: DockerGuardEndpoint) -> String {
-        if let port = endpoint.containerPort, let proto = endpoint.protocolField {
-            return "\(port)/\(proto.uppercased())"
+    /// 长按菜单项：设置防护模式恒有；已设策略（policyUUID）且非主机防火墙
+    /// 托管的端点才可删除（未设策略无可删，host_firewall 归规则段管）
+    private func actionItems(_ endpoint: DockerGuardEndpoint) -> [ActionMenuItem] {
+        var items = [ActionMenuItem(title: L10n.t("设置防护模式"), icon: "slider.horizontal.3",
+                                     color: .blue) {
+            openPolicy(endpoint)
+        }]
+        if let uuid = endpoint.policyUUID, !uuid.isEmpty,
+           endpoint.managementTarget != "host_firewall" {
+            items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                        color: .red, role: .destructive) {
+                Haptic.warning()
+                pendingDelete = endpoint
+            })
         }
-        return L10n.t("未设置")
-    }
-
-    /// 防护模式内容 = sources（每行一条）；deny_all 无存储来源时显示固定全量
-    /// 来源（0.0.0.0/0 与 ::/0），与策略表单同口径
-    private func sourcesText(_ endpoint: DockerGuardEndpoint) -> String {
-        let list = (endpoint.sources ?? []).filter { !$0.isEmpty }
-        if list.isEmpty {
-            return endpoint.mode == "deny_all"
-                ? "0.0.0.0/0\n::/0"
-                : L10n.t("未设置")
-        }
-        return list.joined(separator: "\n")
+        return items
     }
 }
 
-/// 主机 IP:端口 展示（行首与孤立策略菜单标题共用）
+/// 主机 IP:端口 展示（行首、孤立策略菜单标题与防护表单共用）。
+/// IPv6 地址含冒号，与端口拼接时加方括号（如 [::]:3002），与 Web 端一致
 extension DockerGuardEndpoint {
     var hostLabel: String {
         let ip = hostIP ?? ""
         let port = hostPort.map(String.init) ?? ""
-        return ip.isEmpty ? port : "\(ip):\(port)"
+        guard !ip.isEmpty else { return port }
+        let host = ip.contains(":") ? "[\(ip)]" : ip
+        return port.isEmpty ? host : "\(host):\(port)"
     }
 }
 
 struct DockerGuardEndpointRow: View {
     let endpoint: DockerGuardEndpoint
 
+    /// 已设置防护策略（有锁）：mode 由服务端随策略回填
+    private var isConfigured: Bool { endpoint.mode != nil }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 8) {
+                // 已设置/未设置以锁图标区分（行首；无策略不占位）
+                if isConfigured {
+                    Image(systemName: "lock.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Text(endpoint.hostLabel)
                     .font(.dataMonospacedBody.bold())
-                if let proto = endpoint.protocolField {
-                    StatusBadge(text: proto.uppercased(), color: .blue)
-                }
                 Image(systemName: "arrow.right")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(endpoint.containerName ?? "—")
+                // 目标 = 容器端口 + 协议（如 "9000 tcp"）；
+                // 孤立策略无容器端口，回落容器名/占位
+                Text(targetLabel)
                     .lineLimit(1)
                 Spacer()
                 modeBadge
@@ -191,6 +220,17 @@ struct DockerGuardEndpointRow: View {
         .padding(.vertical, 2)
     }
 
+    private var targetLabel: String {
+        if let port = endpoint.containerPort, let proto = endpoint.protocolField {
+            return "\(port) \(proto)"
+        }
+        if let port = endpoint.containerPort {
+            return String(port)
+        }
+        return (endpoint.containerName?.isEmpty == false) ? endpoint.containerName! : "—"
+    }
+
+    /// 模式徽标仅已设置的策略显示（设置与否由行首锁图标表达）
     @ViewBuilder
     private var modeBadge: some View {
         switch endpoint.mode {
@@ -201,7 +241,7 @@ struct DockerGuardEndpointRow: View {
         case "deny_sources":
             StatusBadge(text: L10n.t("黑名单"), color: .semanticWarning)
         default:
-            StatusBadge(text: L10n.t("未设置"), color: .secondary)
+            EmptyView()
         }
     }
 }

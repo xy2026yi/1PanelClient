@@ -209,15 +209,27 @@ struct FirewallV2CaptureRegressionTests {
         #expect(ipt.count == 6)
         #expect(ipt.allSatisfy { $0.table == "filter" && $0.direction == "input" })
         #expect(Set(ipt.compactMap(\.chain)) == ["1PANEL_BASIC_BEFORE", "1PANEL_BASIC", "1PANEL_BASIC_AFTER"])
-        #expect(FirewallViewModel.excludeChainsForSearch(backend: "iptables") == ["1PANEL_BASIC_BEFORE", "1PANEL_BASIC_AFTER"])
 
         let ufw = FirewallViewModel.scopeForSearch(backend: "ufw") ?? []
         #expect(ufw.count == 1)
         #expect(ufw[0].family == "inet" && ufw[0].chain == "incoming")
-        #expect(FirewallViewModel.excludeChainsForSearch(backend: "ufw") == [])
 
         let nft = FirewallViewModel.scopeForSearch(backend: "nftables") ?? []
         #expect(nft.count == 6 && nft[0].provider == "nftables")
+    }
+
+    /// 抓包 2026-10-22（v2.4.0）：Web 端搜索请求不再携带 excludeChains，
+    /// BEFORE/AFTER 守护链的白名单规则（面板端口/SSH 放行）并入统一清单——
+    /// 排除会导致「共 N 条」计数与实际行数不一致（allTotal 不受 excludeChains 影响）
+    @Test("搜索请求编码：v2.4.0 形态不携带 excludeChains（白名单链规则并入清单）")
+    func searchRequestOmitsExcludeChains() throws {
+        var req = FirewallRuleSearchRequest(page: 1, pageSize: 20)
+        req.scopes = FirewallViewModel.scopeForSearch(backend: "iptables")
+        req.info = ""
+        let text = String(decoding: try JSONEncoder().encode(req), as: UTF8.self)
+        #expect(text.contains(#""scopes":["#) && text.contains("1PANEL_BASIC_BEFORE"))
+        #expect(text.contains(#""page":1"#) && text.contains(#""pageSize":20"#))
+        #expect(!text.contains("excludeChains"))
     }
 
     @Test("转发 remove 整行回显（编辑/删除回传原始行 + operation）")
@@ -429,6 +441,22 @@ struct FirewallDeleteAndPolicyTests {
         #expect(item?["description"] == nil)
     }
 
+    /// 抓包 2026-10-22：deny_all 按空 sources 提交（{"mode":"deny_all","sources":[]}）；
+    /// 传 0.0.0.0/0 与 ::/0 全量网段会被服务端拒绝（此前版本的错误形态）
+    @Test("Docker 策略编码（deny_all 空 sources；抓包 2026-10-22）")
+    func dockerPolicyDenyAllEncode() throws {
+        let policy = DockerGuardPolicy(
+            family: "ipv4", hostIP: "0.0.0.0", hostPort: 3002,
+            protocolField: "tcp", mode: "deny_all",
+            sources: []
+        )
+        let data = try JSONEncoder().encode(DockerGuardPolicyBatchRequest(policies: [policy]))
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let item = (root?["policies"] as? [[String: Any]])?.first
+        #expect(item?["mode"] as? String == "deny_all")
+        #expect((item?["sources"] as? [String])?.isEmpty == true)
+    }
+
     @Test("重置响应（v2.4.0：backupPath + removed/disabled；抓包 2026-10-21 真实样本）")
     func resetResponse() throws {
         let resp = try JSONDecoder().decode(FirewallRuleResetResponse.self,
@@ -450,6 +478,56 @@ struct FirewallDeleteAndPolicyTests {
             FirewallRuleResetRequest(provider: "iptables", withDockerRestart: false))
         let dobj = try JSONSerialization.jsonObject(with: defaulted) as? [String: Any]
         #expect(dobj?["backup"] as? Bool == true)
+    }
+
+    /// 抓包 2026-10-22：docker/forwarding 重置走同一 rules/reset，显式携带
+    /// subsystem 且不带 withDockerRestart（system 请求省略 subsystem，维持
+    /// 2026-10-21 已验证形态）
+    @Test("重置请求编码（subsystem=docker/forwarding；抓包 2026-10-22）")
+    func subsystemResetRequestEncode() throws {
+        for (subsystem, backup) in [("docker", true), ("forwarding", false)] {
+            let data = try JSONEncoder().encode(
+                FirewallRuleResetRequest(subsystem: subsystem, backup: backup,
+                                         provider: "iptables"))
+            let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            #expect(obj?["subsystem"] as? String == subsystem)
+            #expect(obj?["backup"] as? Bool == backup)
+            #expect(obj?["provider"] as? String == "iptables")
+            #expect(obj?["withDockerRestart"] == nil)
+        }
+    }
+
+    /// 抓包 2026-10-22：docker/operate initialize 两种形态——仅初始化带客户端
+    /// 生成的 taskID，初始化并恢复带 backupFile 不带 taskID
+    @Test("Docker 初始化请求编码（仅初始化 taskID / 恢复 backupFile；抓包 2026-10-22）")
+    func dockerInitializeRequestEncode() throws {
+        let initOnly = try JSONSerialization.jsonObject(with: JSONEncoder().encode(
+            DockerGuardOperateRequest(operation: "initialize",
+                                      taskID: "e115f613-33d4-4362-877a-763a2d8297db"))) as? [String: Any]
+        #expect(initOnly?["operation"] as? String == "initialize")
+        #expect(initOnly?["taskID"] as? String == "e115f613-33d4-4362-877a-763a2d8297db")
+
+        let restore = try JSONSerialization.jsonObject(with: JSONEncoder().encode(
+            DockerGuardOperateRequest(operation: "initialize",
+                                      backupFile: "docker-iptables-20261022-091325-dcd6818d-701d-4c8d-a486-3155036f8648.json"))) as? [String: Any]
+        #expect(restore?["operation"] as? String == "initialize")
+        #expect(restore?["backupFile"] as? String == "docker-iptables-20261022-091325-dcd6818d-701d-4c8d-a486-3155036f8648.json")
+        #expect(restore?["taskID"] == nil)
+    }
+
+    /// 抓包 2026-10-22：forward/enable 两种形态——仅初始化 {"taskID":…}
+    /// （无 operation 字段），初始化并恢复 {"backupFile":…}
+    @Test("转发启用请求编码（仅初始化 taskID / 恢复 backupFile；抓包 2026-10-22）")
+    func forwardEnableRequestEncode() throws {
+        let initOnly = try JSONSerialization.jsonObject(with: JSONEncoder().encode(
+            FirewallForwardEnableRequest(taskID: "93786710-383e-4d0e-bdde-554251630618"))) as? [String: Any]
+        #expect(initOnly?["taskID"] as? String == "93786710-383e-4d0e-bdde-554251630618")
+        #expect(initOnly?["backupFile"] == nil)
+
+        let restore = try JSONSerialization.jsonObject(with: JSONEncoder().encode(
+            FirewallForwardEnableRequest(backupFile: "forwarding-iptables-20261022-092048-b6c6bab2-b8a6-400b-811d-1acef0825d97.json"))) as? [String: Any]
+        #expect(restore?["backupFile"] as? String == "forwarding-iptables-20261022-092048-b6c6bab2-b8a6-400b-811d-1acef0825d97.json")
+        #expect(restore?["taskID"] == nil)
     }
 }
 
@@ -599,6 +677,90 @@ struct FirewallInitBackupTests {
          "ipv6":{"available":false,"initialized":false,"bound":false,"reason":"no ipv6"}}
         """)
         #expect(FirewallViewModel.familyAttention(unavailable).isEmpty)
+    }
+
+    /// 抓包 2026-10-22（Docker 页）：docker/ports 的 base 含 ipv6Enabled/partial/
+    /// state/reason（族状态无 available 字段）；ipv6 已初始化未绑定（jump_missing）
+    /// → Web 端「IPv6 容器端口防护尚未绑定」同款 bind 待办
+    @Test("Docker 段族待办派生（含 base 新字段解码；抓包 2026-10-22）")
+    func dockerFamilyAttentionDerivation() throws {
+        func base(_ json: String) throws -> DockerGuardBase {
+            try JSONDecoder().decode(DockerGuardBase.self, from: Data(json.utf8))
+        }
+        // 抓包场景：ipv4 健康（effective），ipv6 initialized 未绑定 not_effective
+        let captured = try base("""
+        {"ipv6Enabled":true,"name":"iptables-docker","version":"1.8.11",
+         "isExist":true,"initialized":true,"bound":true,
+         "ipv4":{"partial":false,"state":"effective","initialized":true,"bound":true,"effective":true},
+         "ipv6":{"partial":false,"state":"not_effective","reason":"jump_missing",
+                 "initialized":true,"bound":false,"effective":false},
+         "backend":"iptables"}
+        """)
+        #expect(captured.ipv6Enabled == true)
+        #expect(captured.ipv6?.partial == false && captured.ipv6?.reason == "jump_missing")
+        #expect(FirewallViewModel.dockerFamilyAttention(captured)
+                == [FirewallFamilyAttention(family: "ipv6", operation: "bind")])
+
+        // partial 优先（修复入口）
+        let partial = try base("""
+        {"isExist":true,"initialized":true,"ipv6Enabled":true,"backend":"iptables",
+         "ipv4":{"partial":true,"initialized":true,"bound":true},
+         "ipv6":{"initialized":true,"bound":true}}
+        """)
+        #expect(FirewallViewModel.dockerFamilyAttention(partial)
+                == [FirewallFamilyAttention(family: "ipv4", operation: "repair")])
+
+        // 门禁：IPv6 支持停用 / 整体未初始化 / 守护不存在 → 无待办
+        let ipv6Off = try base("""
+        {"isExist":true,"initialized":true,"ipv6Enabled":false,"backend":"iptables",
+         "ipv4":{"initialized":true,"bound":true},
+         "ipv6":{"initialized":true,"bound":false}}
+        """)
+        #expect(FirewallViewModel.dockerFamilyAttention(ipv6Off).isEmpty)
+        let notInit = try base("""
+        {"isExist":true,"initialized":false,"ipv6Enabled":true,"backend":"iptables",
+         "ipv4":{"initialized":false,"bound":false}}
+        """)
+        #expect(FirewallViewModel.dockerFamilyAttention(notInit).isEmpty)
+        #expect(FirewallViewModel.dockerFamilyAttention(nil).isEmpty)
+
+        // 健康态（双族 bound+effective）→ 无待办
+        let healthy = try base("""
+        {"isExist":true,"initialized":true,"bound":true,"ipv6Enabled":true,"backend":"nftables",
+         "ipv4":{"initialized":true,"bound":true,"effective":true},
+         "ipv6":{"initialized":true,"bound":true,"effective":true}}
+        """)
+        #expect(FirewallViewModel.dockerFamilyAttention(healthy).isEmpty)
+    }
+
+    /// 抓包 2026-10-22（转发页）：forward/base 与 system 同构（FirewallSubsystemStatus），
+    /// ipv6 available 但未初始化（reason=ipv6_forwarding_not_enabled）→ 初始化待办；
+    /// family/operate {"subsystem":"forwarding",…,"operation":"initialize"}
+    @Test("转发段族待办派生（forward/base 同构复用 familyAttention；抓包 2026-10-22）")
+    func forwardFamilyAttentionDerivation() throws {
+        let status = try JSONDecoder().decode(FirewallSubsystemStatus.self, from: Data("""
+        {"ipv6Enabled":true,"name":"iptables-forward","backend":"iptables",
+         "isExist":true,"isActive":false,"isInit":true,"isBind":true,"version":"1.8.11",
+         "pingStatus":"Disable",
+         "ipv4":{"partial":false,"available":true,"initialized":true,"bound":true},
+         "ipv6":{"partial":false,"available":true,"initialized":false,"bound":false,
+                 "reason":"ipv6_forwarding_not_enabled"}}
+        """.utf8))
+        #expect(FirewallViewModel.familyAttention(status)
+                == [FirewallFamilyAttention(family: "ipv6", operation: "initialize")])
+    }
+
+    /// 抓包 2026-10-22：Docker 段族绑定走同一 family/operate 端点，subsystem=docker
+    @Test("单地址族操作请求编码（subsystem=docker 族绑定；抓包 2026-10-22）")
+    func dockerFamilyOperateEncode() throws {
+        let data = try JSONEncoder().encode(FirewallFamilyOperateRequest(
+            subsystem: "docker", backend: "iptables",
+            family: "ipv6", operation: "bind"))
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["subsystem"] as? String == "docker")
+        #expect(obj?["backend"] as? String == "iptables")
+        #expect(obj?["family"] as? String == "ipv6")
+        #expect(obj?["operation"] as? String == "bind")
     }
 }
 

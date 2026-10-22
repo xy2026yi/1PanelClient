@@ -38,11 +38,12 @@ struct FirewallView: View {
     @State private var editingForward: FirewallForwardRule?
     @State private var pendingDeleteForward: FirewallForwardRule?
     // 重置 / Docker 策略
-    @State private var showRulesReset = false
+    /// 重置目标段：system / docker / forwarding（菜单与确认弹窗随动）
+    @State private var resetSubsystem = "system"
     /// 重置方式（确认弹窗文案随动）：true = 备份规则后重置，false = 仅重置
     @State private var resetWithBackup = true
-    @State private var showDockerReset = false
-    @State private var showForwardReset = false
+    /// 重置输入后端名确认 sheet（三段共用，随 resetSubsystem 区分文案与目标）
+    @State private var showResetConfirm = false
     @State private var editingPolicy: DockerGuardEndpoint?
     /// 点击容器行编程式推入的端口规则页目标
     @State private var pushedContainer: DockerGuardContainer?
@@ -53,6 +54,8 @@ struct FirewallView: View {
     @State private var showDockerImport = false
     /// 长按弹出的规则操作目标
     @State private var actionItem: FirewallInventoryItem?
+    /// 初始化方式菜单所属段（未初始化占位卡入口）：system / docker / forwarding
+    @State private var initSubsystem = "system"
     /// 初始化方式菜单（未初始化占位卡入口：仅初始化 / 初始化并恢复规则）
     @State private var showInitMenu = false
     /// 初始化并恢复规则的备份选择 sheet
@@ -269,14 +272,13 @@ struct FirewallView: View {
                 Text(L10n.f("将对防火墙执行「%@」，操作期间服务可能短暂中断，是否继续？",
                             pendingLifeOp.flatMap(Self.lifeOpName) ?? ""))
             }
-            // 容器行点击进入端口规则页（编程式推入）
+            // 容器行点击进入端口规则页（编程式推入；host_firewall 提示与删除确认
+            // 在该页内呈现——挂在宿主页的弹窗在推入页可见期间不显示）
             .navigationDestination(item: $pushedContainer) { container in
                 DockerGuardEndpointsView(container: container) { endpoint in
-                    if endpoint.managementTarget == "host_firewall" {
-                        vm.toastMessage = L10n.t("该端点由主机防火墙规则管理，请在规则段调整")
-                    } else {
-                        editingPolicy = endpoint
-                    }
+                    editingPolicy = endpoint
+                } onDeletePolicy: { endpoint in
+                    Task { await vm.deleteDockerPolicy(endpoint) }
                 }
             }
             // 任务式操作进度页（初始化/启用转发/白名单/Docker 操作/IPv6 开关）
@@ -413,54 +415,40 @@ struct FirewallView: View {
             } message: {
                 Text(L10n.t("确定删除该端口的防护策略吗？删除后不可恢复。"))
             }
-            // 规则重置（先选方式：备份规则后重置 / 仅重置；R1 均需输入后端名确认，
-            // 对齐 Web 端「请手动输入 iptables」；抓包 2026-10-21）
-            .sheet(isPresented: $showRulesReset) {
+            // 重置输入后端名确认（三段共用；先经菜单二选一：备份规则后重置 / 仅重置，
+            // 对齐 Web 端「请手动输入 iptables」；system 抓包 2026-10-21、
+            // docker/forwarding 走 rules/reset 显式 subsystem 抓包 2026-10-22）
+            .sheet(isPresented: $showResetConfirm) {
                 TextInputConfirmSheet(
-                    title: L10n.t("重置防火墙规则"),
+                    title: resetTitle,
                     message: resetConfirmMessage,
-                    expectedText: vm.systemStatus?.backend ?? "",
+                    expectedText: resetProvider ?? "",
                     fieldLabel: L10n.t("确认输入"),
-                    fieldPlaceholder: vm.systemStatus?.backend,
+                    fieldPlaceholder: resetProvider,
                     confirmTitle: L10n.t("重置")
                 ) {
-                    Task { await vm.resetRules(backup: resetWithBackup) }
+                    Task { await vm.resetRules(subsystem: resetSubsystem, backup: resetWithBackup) }
                 }
             }
-            // Docker 守护重置（R1：同款输入后端名确认；settings/operate cleanup）
-            .sheet(isPresented: $showDockerReset) {
-                TextInputConfirmSheet(
-                    title: L10n.t("重置 Docker 端口防护"),
-                    message: L10n.f("将删除 %@ 中的 1Panel Docker 端口防护运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。", vm.dockerGuard?.base?.backend ?? "", vm.dockerGuard?.base?.backend ?? ""),
-                    expectedText: vm.dockerGuard?.base?.backend ?? "",
-                    fieldLabel: L10n.t("确认输入"),
-                    fieldPlaceholder: vm.dockerGuard?.base?.backend,
-                    confirmTitle: L10n.t("重置")
-                ) {
-                    Task { await vm.resetDockerGuard() }
-                }
-            }
-            // 转发运行时规则重置（R1：同款输入后端名确认；settings/operate cleanup）
-            .sheet(isPresented: $showForwardReset) {
-                TextInputConfirmSheet(
-                    title: L10n.t("重置端口转发规则"),
-                    message: L10n.f("将删除 %@ 中的 1Panel 端口转发运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。", vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? "", vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? ""),
-                    expectedText: vm.forwardStatus?.backend ?? vm.systemStatus?.backend ?? "",
-                    fieldLabel: L10n.t("确认输入"),
-                    fieldPlaceholder: vm.forwardStatus?.backend ?? vm.systemStatus?.backend,
-                    confirmTitle: L10n.t("重置")
-                ) {
-                    Task { await vm.resetForwarding() }
-                }
-            }
-            // 初始化方式菜单（未初始化占位卡入口；对齐 Web 端下拉二选一）
+            // 初始化方式菜单（未初始化占位卡入口；对齐 Web 端下拉二选一，
+            // 三段共用：仅初始化的端点随段区分——system filter/operate init-base、
+            // docker docker/operate、forwarding forward/enable，抓包 2026-10-22）
             .sheet(isPresented: $showInitMenu) {
                 ActionBottomSheet(
                     title: L10n.t("初始化"),
                     items: [
                         ActionMenuItem(title: L10n.t("仅初始化"), icon: "wand.and.stars",
                                        color: .blue) {
-                            Task { await vm.operateFilterChain("init-base") }
+                            Task {
+                                switch initSubsystem {
+                                case "docker":
+                                    await vm.dockerOperate("initialize")
+                                case "forwarding":
+                                    await vm.enableForwarding()
+                                default:
+                                    await vm.operateFilterChain("init-base")
+                                }
+                            }
                         },
                         ActionMenuItem(title: L10n.t("初始化并恢复规则"),
                                        icon: "arrow.counterclockwise.circle",
@@ -473,25 +461,26 @@ struct FirewallView: View {
                 .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
                 .presentationDragIndicator(.visible)
             }
-            // 初始化并恢复规则：备份选择（rules/backups → POST rules initialize）
+            // 初始化并恢复规则：备份选择（rules/backups?subsystem=… → 段对应的
+            // 初始化端点携带 backupFile）
             .sheet(isPresented: $showRestorePicker) {
-                FirewallRestoreBackupView(vm: vm)
+                FirewallRestoreBackupView(vm: vm, subsystem: initSubsystem)
             }
             // 重置方式菜单（备份规则后重置 / 仅重置，随后进输入后端名确认）
             .sheet(isPresented: $showResetMenu) {
                 ActionBottomSheet(
-                    title: L10n.t("重置防火墙规则"),
+                    title: resetTitle,
                     items: [
                         ActionMenuItem(title: L10n.t("备份规则后重置"),
                                        icon: "externaldrive.badge.timemachine",
                                        color: .orange) {
                             resetWithBackup = true
-                            showRulesReset = true
+                            showResetConfirm = true
                         },
                         ActionMenuItem(title: L10n.t("仅重置"), icon: "trash",
                                        color: .statusError, role: .destructive) {
                             resetWithBackup = false
-                            showRulesReset = true
+                            showResetConfirm = true
                         },
                     ],
                     onDismiss: { showResetMenu = false }
@@ -513,13 +502,43 @@ struct FirewallView: View {
             }
     }
 
-    /// 重置确认弹窗文案（随方式变化；v2.4.0 上游已移除同步，提示只提重新初始化）
-    private var resetConfirmMessage: String {
-        let backend = vm.systemStatus?.backend ?? ""
-        if resetWithBackup {
-            return L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置前将自动备份当前规则并显示保存路径。请输入后端名「%@」以确认。", backend, backend)
+    /// 重置确认弹窗标题与目标后端（随 resetSubsystem）
+    private var resetTitle: String {
+        switch resetSubsystem {
+        case "docker": return L10n.t("重置 Docker 端口防护")
+        case "forwarding": return L10n.t("重置端口转发规则")
+        default: return L10n.t("重置防火墙规则")
         }
-        return L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略，且不生成备份。请输入后端名「%@」以确认。", backend, backend)
+    }
+
+    private var resetProvider: String? {
+        switch resetSubsystem {
+        case "docker": return vm.dockerGuard?.base?.backend
+        case "forwarding": return vm.forwardStatus?.backend ?? vm.systemStatus?.backend
+        default: return vm.systemStatus?.backend
+        }
+    }
+
+    /// 重置确认弹窗文案（随段与方式变化；均需输入后端名确认）
+    private var resetConfirmMessage: String {
+        let backend = resetProvider ?? ""
+        switch resetSubsystem {
+        case "docker":
+            if resetWithBackup {
+                return L10n.f("将删除 %@ 中的 1Panel Docker 端口防护运行时规则：删除全部相关规则及规则链，仅保留数据库数据；重置前将自动备份当前规则并显示保存路径。请输入后端名「%@」以确认。", backend, backend)
+            }
+            return L10n.f("将删除 %@ 中的 1Panel Docker 端口防护运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。", backend, backend)
+        case "forwarding":
+            if resetWithBackup {
+                return L10n.f("将删除 %@ 中的 1Panel 端口转发运行时规则：删除全部相关规则及规则链，仅保留数据库数据；重置前将自动备份当前规则并显示保存路径。请输入后端名「%@」以确认。", backend, backend)
+            }
+            return L10n.f("将删除 %@ 中的 1Panel 端口转发运行时规则：删除全部相关规则及规则链，仅保留数据库数据。请输入后端名「%@」以确认。", backend, backend)
+        default:
+            if resetWithBackup {
+                return L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略；重置前将自动备份当前规则并显示保存路径。请输入后端名「%@」以确认。", backend, backend)
+            }
+            return L10n.f("将删除 %@ 中的全部 1Panel 运行时规则及规则链，仅保留数据库策略，且不生成备份。请输入后端名「%@」以确认。", backend, backend)
+        }
     }
 
     private func deleteForward() {
@@ -648,11 +667,6 @@ struct FirewallView: View {
                     if let conflict = vm.systemStatus?.conflictBackend, !conflict.isEmpty {
                         StatusBadge(text: L10n.t("后端冲突"), color: .semanticWarning)
                     }
-                    // 收起态摘要提示族待办（展开区有逐族入口；v2.4.0 family/operate）
-                    if !statusExpanded, let first = familyAttentions.first {
-                        StatusBadge(text: "\(first.family.uppercased()) · \(familyStateText(first.operation))",
-                                    color: .semanticWarning)
-                    }
                     Image(systemName: statusExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
@@ -669,11 +683,8 @@ struct FirewallView: View {
                         .font(.caption)
                         .foregroundStyle(Color.semanticWarning)
                 }
-                // 地址族待办（v2.4.0 family/operate）：如「IPv6 · 1PANEL_BASIC 链 · 未初始化」
-                if !familyAttentions.isEmpty {
-                    familyAttentionRows
-                        .padding(.top, 4)
-                }
+                // 地址族待办（v2.4.0 family/operate）不在状态卡展示：
+                // 待办针对的是规则清单的族级链，对齐 Web 端仅在规则段列表区暴露
                 operationsRow
                     .padding(.top, 4)
             }
@@ -707,23 +718,46 @@ struct FirewallView: View {
         FirewallViewModel.familyAttention(vm.systemStatus)
     }
 
-    /// 待办行：族名 · 1PANEL_BASIC 链 · 状态文案 + 右侧动作按钮（任务式，进进度页）
-    private var familyAttentionRows: some View {
-        VStack(spacing: 8) {
-            ForEach(familyAttentions.indices, id: \.self) { idx in
-                let item = familyAttentions[idx]
+    /// Docker 段族待办（派生逻辑在 VM.dockerFamilyAttention）：
+    /// 守护存在且整体已初始化时，逐族派生 修复/初始化/绑定
+    private var dockerFamilyAttentions: [FirewallFamilyAttention] {
+        FirewallViewModel.dockerFamilyAttention(vm.dockerGuard?.base)
+    }
+
+    /// 转发段族待办：转发子系统状态与 system 同构（FirewallSubsystemStatus），
+    /// 直接复用 familyAttention 派生（如 ipv6 未初始化 reason=
+    /// ipv6_forwarding_not_enabled → 初始化；抓包 2026-10-22）
+    private var forwardFamilyAttentions: [FirewallFamilyAttention] {
+        FirewallViewModel.familyAttention(vm.forwardStatus)
+    }
+
+    /// 待办行：族名 · 作用域标签 · 状态文案 + 右侧动作按钮（任务式，进进度页）。
+    /// subsystem 决定作用域标签与操作目标（system=1PANEL_BASIC 链 /
+    /// docker=容器端口防护 / forwarding=端口转发）
+    private func familyAttentionRows(_ items: [FirewallFamilyAttention],
+                                     subsystem: String) -> some View {
+        let scopeLabel: String
+        switch subsystem {
+        case "docker": scopeLabel = L10n.t("容器端口防护")
+        case "forwarding": scopeLabel = L10n.t("端口转发")
+        default: scopeLabel = L10n.t("1PANEL_BASIC 链")
+        }
+        return VStack(spacing: 8) {
+            ForEach(items.indices, id: \.self) { idx in
+                let item = items[idx]
                 HStack(spacing: 10) {
                     if item.operation == "repair" {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption)
                             .foregroundStyle(Color.semanticWarning)
                     }
-                    Text("\(item.family.uppercased()) · \(L10n.t("1PANEL_BASIC 链")) · \(familyStateText(item.operation))")
+                    Text("\(item.family.uppercased()) · \(scopeLabel) · \(familyStateText(item.operation))")
                         .font(.footnote)
                         .foregroundStyle(item.operation == "repair" ? Color.semanticWarning : .primary)
                     Spacer()
                     Button {
-                        Task { await vm.operateFamily(item.family, operation: item.operation) }
+                        Task { await vm.operateFamily(item.family, operation: item.operation,
+                                                      subsystem: subsystem) }
                     } label: {
                         Text(FirewallViewModel.familyActionName(item.operation))
                             .font(.footnote.weight(.semibold))
@@ -781,6 +815,7 @@ struct FirewallView: View {
                     filterChainBindButton
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
                                      color: .statusError, busy: vm.isOperating) {
+                        resetSubsystem = "system"
                         showResetMenu = true
                     }
                     CardActionButton(title: L10n.t("导入"), icon: "square.and.arrow.down",
@@ -796,7 +831,8 @@ struct FirewallView: View {
                 HStack(spacing: 8) {
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
                                      color: .statusError, busy: vm.isOperating) {
-                        showForwardReset = true
+                        resetSubsystem = "forwarding"
+                        showResetMenu = true
                     }
                     CardActionButton(title: L10n.t("导入"), icon: "square.and.arrow.down",
                                      color: .teal, busy: false) {
@@ -820,7 +856,8 @@ struct FirewallView: View {
                     }
                     CardActionButton(title: L10n.t("重置"), icon: "trash",
                                      color: .statusError, busy: vm.isOperating) {
-                        showDockerReset = true
+                        resetSubsystem = "docker"
+                        showResetMenu = true
                     }
                     CardActionButton(title: L10n.t("导入"), icon: "square.and.arrow.down",
                                      color: .teal, busy: false,
@@ -863,11 +900,19 @@ struct FirewallView: View {
                     buttonTitle: L10n.t("初始化")
                 ) {
                     // 初始化方式（仅初始化 / 初始化并恢复规则）经菜单二选一
+                    initSubsystem = "system"
                     showInitMenu = true
                 }
             } else if isRulesUnbound {
                 unboundPlaceholder
             } else {
+                // 地址族待办（v2.4.0 family/operate）：对齐 Web 端仅在规则列表区
+                // 暴露（如「IPv6 · 1PANEL_BASIC 链 · 未初始化」），其他段与状态卡不展示
+                if !familyAttentions.isEmpty {
+                    Section {
+                        familyAttentionRows(familyAttentions, subsystem: "system")
+                    }
+                }
                 rulesListContent
             }
         }
@@ -1061,9 +1106,18 @@ struct FirewallView: View {
                     message: L10n.t("启用端口转发子系统后将创建转发规则链；完成前不可创建转发。"),
                     buttonTitle: L10n.t("初始化")
                 ) {
-                    Task { await vm.enableForwarding() }
+                    // 初始化方式（仅初始化 / 初始化并恢复规则）经菜单二选一
+                    initSubsystem = "forwarding"
+                    showInitMenu = true
                 }
             } else {
+                // 族待办（v2.4.0 family/operate，subsystem=forwarding）：对齐 Web 端
+                // 转发页「IPv6 转发尚未启用」入口，仅转发段展示
+                if !forwardFamilyAttentions.isEmpty {
+                    Section {
+                        familyAttentionRows(forwardFamilyAttentions, subsystem: "forwarding")
+                    }
+                }
                 forwardListContent
             }
         }
@@ -1114,12 +1168,21 @@ struct FirewallView: View {
                         message: L10n.t("初始化容器端口防护后将接管已发布端口的访问控制；完成前不可配置策略。"),
                         buttonTitle: L10n.t("初始化")
                     ) {
-                        Task { await vm.dockerOperate("initialize") }
+                        // 初始化方式（仅初始化 / 初始化并恢复规则）经菜单二选一
+                        initSubsystem = "docker"
+                        showInitMenu = true
                     }
                 } else if base.bound == false {
                     // 解绑态：守护链已摘除，容器列表不展示（绑定入口在操作行）
                     unboundPlaceholder
                 } else {
+                    // 族待办（v2.4.0 family/operate，subsystem=docker）：对齐 Web 端
+                    // Docker 页「IPv6 容器端口防护尚未绑定」入口，仅 Docker 段展示
+                    if !dockerFamilyAttentions.isEmpty {
+                        Section {
+                            familyAttentionRows(dockerFamilyAttentions, subsystem: "docker")
+                        }
+                    }
                     dockerListContent(guard_, base)
                 }
             } else {

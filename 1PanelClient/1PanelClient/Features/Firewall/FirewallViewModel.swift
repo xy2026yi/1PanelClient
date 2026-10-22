@@ -58,11 +58,16 @@ final class FirewallViewModel: ObservableObject {
     @Published var toastMessage: String?
     /// 任务式操作的进度页目标（init-base / 初始化恢复 / forward enable / 白名单 / Docker 初始化）
     @Published var activeTask: FirewallTaskTarget?
-    /// 规则备份列表（rules/backups；「初始化并恢复规则」流程按需加载）
+    /// 规则备份列表（rules/backups；「初始化并恢复规则」流程按需加载，
+    /// 三段共享一份缓存——换段立即作废，防闪显他段备份文件）
     @Published var ruleBackups: FirewallRuleBackupsResponse?
     @Published var isLoadingBackups = false
     /// 备份列表加载失败（恢复 sheet 内展示 + 重试；不占用整页 errorMessage）
     @Published var ruleBackupsError: String?
+    /// 缓存/在途加载所属段（system / docker / forwarding）
+    private var ruleBackupsSubsystem: String?
+    /// 备份加载代际（丢弃换段后乱序到达的过期响应）
+    private var backupsGeneration = 0
     /// 备份后重置的结果（含服务器保存路径；弹窗提醒后清除）
     @Published var lastResetResult: FirewallRuleResetResponse?
     /// 端口+协议 → 监听进程名（键 "端口|tcp" / "端口|udp"；process/listening 裸数组）
@@ -153,7 +158,6 @@ final class FirewallViewModel: ObservableObject {
         var req = FirewallRuleSearchRequest(page: replacing ? 1 : rulesPage + 1,
                                             pageSize: Self.rulesPageSize)
         req.scopes = Self.scopeForSearch(backend: systemStatus?.backend)
-        req.excludeChains = Self.excludeChainsForSearch(backend: systemStatus?.backend)
         req.info = ruleSearchText
         req.families = ruleFamilyFilter.map { [$0] }
         do {
@@ -337,43 +341,58 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// 启用转发子系统（forward/enable，任务式）
-    func enableForwarding() async {
+    /// 启用转发子系统（forward/enable，任务式；抓包 2026-10-22：仅初始化由客户端
+    /// 生成 taskID 携带，初始化并恢复规则携带 backupFile 不带 taskID）。
+    /// 返回是否成功（恢复选择的 sheet 据此 dismiss）
+    @discardableResult
+    func enableForwarding(backupFile: String? = nil) async -> Bool {
         isOperating = true
         defer { isOperating = false }
         do {
             let resp: FirewallTaskResponse = try await client.send(
                 path: APIEndpoint.firewallForwardEnable.path,
-                body: EmptyRequest(),
+                body: FirewallForwardEnableRequest(
+                    taskID: backupFile == nil ? UUID().uuidString.lowercased() : nil,
+                    backupFile: backupFile),
                 as: FirewallTaskResponse.self
             )
             if let taskID = resp.taskID, !taskID.isEmpty {
-                // 启用任务在服务端异步建链，完成返回时整页刷新校准
+                // 启用/恢复任务在服务端异步建链，完成返回时整页刷新校准
                 activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("启用端口转发"),
                                                 refreshAfterDone: true)
             }
             await loadForwardStatus()
             await loadForwards(replacing: true)
+            return true
         } catch {
-            guard !APIError.isCancellation(error) else { return }
+            guard !APIError.isCancellation(error) else { return false }
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
     // MARK: 规则重置 / 备份 / Docker 策略（v2.4.0：上游移除 rules/sync 全家，不再提供同步）
 
-    /// 重置运行时规则（R1：调用方需先经输入后端名确认）。
-    /// backup=true 时服务端先落备份文件，成功后经 lastResetResult 弹窗展示保存路径
-    /// （抓包 2026-10-21：响应 {backupPath, removed, disabled}）
-    func resetRules(backup: Bool) async {
+    /// 重置运行时规则（rules/reset，三段统一；R1：调用方需先经输入后端名确认）。
+    /// backup=true 时服务端先落备份文件，成功后经 lastResetResult 弹窗展示保存路径。
+    /// 抓包 2026-10-21（system）+ 2026-10-22（docker/forwarding 显式携带 subsystem，
+    /// 响应 {backupPath, removed, disabled}，重置后子系统回到未初始化态）
+    func resetRules(subsystem: String = "system", backup: Bool) async {
         isOperating = true
         defer { isOperating = false }
+        let provider: String?
+        switch subsystem {
+        case "docker": provider = dockerGuard?.base?.backend
+        case "forwarding": provider = forwardStatus?.backend ?? systemStatus?.backend
+        default: provider = systemStatus?.backend
+        }
         do {
             let resp: FirewallRuleResetResponse = try await client.send(
                 path: APIEndpoint.firewallRulesReset.path,
-                body: FirewallRuleResetRequest(backup: backup,
-                                               provider: systemStatus?.backend,
-                                               withDockerRestart: false),
+                body: FirewallRuleResetRequest(
+                    subsystem: subsystem == "system" ? nil : subsystem,
+                    backup: backup, provider: provider,
+                    withDockerRestart: subsystem == "system" ? false : nil),
                 as: FirewallRuleResetResponse.self
             )
             if backup, let path = resp.backupPath, !path.isEmpty {
@@ -381,8 +400,16 @@ final class FirewallViewModel: ObservableObject {
             } else {
                 toastMessage = L10n.f("已重置：移除 %ld 条规则", resp.removed ?? 0)
             }
-            await loadSystemStatus()
-            await loadRules(replacing: true)
+            switch subsystem {
+            case "docker":
+                await loadDockerGuard()
+            case "forwarding":
+                await loadForwardStatus()
+                await loadForwards(replacing: true)
+            default:
+                await loadSystemStatus()
+                await loadRules(replacing: true)
+            }
             // 重置会改变 settings 各组当前后端的 initialized，同步刷新供切换预检
             await loadSettings()
         } catch {
@@ -391,20 +418,32 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// 规则备份列表（rules/backups?subsystem=system；初始化并恢复规则的选择来源）
-    func loadRuleBackups() async {
-        guard !isLoadingBackups else { return }
+    /// 规则备份列表（rules/backups?subsystem=…；各段「初始化并恢复规则」的选择来源。
+    /// 抓包 2026-10-22：docker/forwarding 各自目录独立，subsystem 取
+    /// system/docker/forwarding）。
+    /// 三段共用一份缓存：换段立即作废旧缓存并作废在途响应（代际）——否则
+    /// 他段旧文件会闪显甚至长期滞留（在途加载互相挡掉时不被替换）
+    func loadRuleBackups(subsystem: String = "system") async {
+        if ruleBackupsSubsystem != subsystem {
+            ruleBackupsSubsystem = subsystem
+            ruleBackups = nil
+            ruleBackupsError = nil
+        }
+        backupsGeneration += 1
+        let generation = backupsGeneration
         isLoadingBackups = true
-        ruleBackupsError = nil
         defer { isLoadingBackups = false }
         do {
-            ruleBackups = try await client.send(
+            let resp: FirewallRuleBackupsResponse = try await client.send(
                 path: APIEndpoint.firewallRulesBackups.path, method: "GET",
-                queryItems: [URLQueryItem(name: "subsystem", value: "system")],
+                queryItems: [URLQueryItem(name: "subsystem", value: subsystem)],
                 as: FirewallRuleBackupsResponse.self
             )
+            guard generation == backupsGeneration else { return }
+            ruleBackups = resp
         } catch {
             guard !APIError.isCancellation(error) else { return }
+            guard generation == backupsGeneration else { return }
             ruleBackupsError = error.localizedDescription
         }
     }
@@ -436,28 +475,6 @@ final class FirewallViewModel: ObservableObject {
     }
 
     /// Docker 端口守护重置（settings/operate cleanup；R1：调用方需先经输入后端名确认）
-    func resetDockerGuard() async {
-        isOperating = true
-        defer { isOperating = false }
-        await operateBackend(subsystem: "docker",
-                             backend: dockerGuard?.base?.backend ?? systemStatus?.backend ?? "iptables",
-                             operation: "cleanup")
-        await loadDockerGuard()
-        await loadSettings()
-    }
-
-    /// 转发运行时规则重置（settings/operate cleanup，抓包 2026-09-19 logs/iptables.md；
-    /// R1：调用方需先经输入后端名确认）
-    func resetForwarding() async {
-        isOperating = true
-        defer { isOperating = false }
-        await operateBackend(subsystem: "forwarding",
-                             backend: forwardStatus?.backend ?? systemStatus?.backend ?? "iptables",
-                             operation: "cleanup")
-        await loadForwards(replacing: true)
-        await loadSettings()
-    }
-
     /// 设置 Docker 端点防护策略（任务式）
     func upsertDockerPolicy(_ policy: DockerGuardPolicy) async -> Bool {
         isOperating = true
@@ -748,25 +765,47 @@ final class FirewallViewModel: ObservableObject {
 
     /// 单地址族操作（family/operate，任务式；抓包 2026-10-21：
     /// {"subsystem":"system","backend":"iptables","family":"ipv6",
-    ///  "operation":"initialize"|"bind"}，进度走通用任务页）
-    func operateFamily(_ family: String, operation: String) async {
-        guard let backend = systemStatus?.backend else { return }
+    ///  "operation":"initialize"|"bind"}，进度走通用任务页。
+    ///  抓包 2026-10-22：Docker 段 {"subsystem":"docker",…,"operation":"bind"}
+    ///  （任务日志「容器端口防护」）与转发段 {"subsystem":"forwarding",…,
+    ///  "operation":"initialize"}（Web 端「IPv6 转发尚未启用」入口））
+    func operateFamily(_ family: String, operation: String, subsystem: String = "system") async {
+        let backend: String?
+        switch subsystem {
+        case "docker": backend = dockerGuard?.base?.backend
+        case "forwarding": backend = forwardStatus?.backend ?? systemStatus?.backend
+        default: backend = systemStatus?.backend
+        }
+        guard let backend else { return }
         isOperating = true
         defer { isOperating = false }
         do {
             let resp: FirewallTaskResponse = try await client.send(
                 path: APIEndpoint.firewallFamilyOperate.path,
-                body: FirewallFamilyOperateRequest(subsystem: "system", backend: backend,
+                body: FirewallFamilyOperateRequest(subsystem: subsystem, backend: backend,
                                                    family: family, operation: operation),
                 as: FirewallTaskResponse.self
             )
             if let taskID = resp.taskID, !taskID.isEmpty {
+                let prefix: String
+                switch subsystem {
+                case "docker": prefix = L10n.t("容器端口防护")
+                case "forwarding": prefix = L10n.t("端口转发")
+                default: prefix = L10n.t("1PANEL_BASIC 链")
+                }
                 activeTask = FirewallTaskTarget(
                     taskID: taskID,
-                    title: "\(family.uppercased()) · \(Self.familyActionName(operation))",
+                    title: "\(family.uppercased()) · \(prefix) · \(Self.familyActionName(operation))",
                     refreshAfterDone: true)
             }
-            await loadSystemStatus()
+            switch subsystem {
+            case "docker":
+                await loadDockerGuard()
+            case "forwarding":
+                await loadForwardStatus()
+            default:
+                await loadSystemStatus()
+            }
         } catch {
             guard !APIError.isCancellation(error) else { return }
             errorMessage = error.localizedDescription
@@ -783,9 +822,10 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// 状态卡的地址族待办派生（Web 端「IPv6 · 1PANEL_BASIC 链 · 未初始化」同款入口；
-    /// 抓包 2026-10-21）：available 且 partial → repair；available 未初始化 → initialize；
-    /// 已初始化未绑定 → bind；健康/不可用不展示。仅 iptables/nftables、整体已初始化
+    /// 规则段的地址族待办派生（Web 端在规则列表区暴露「IPv6 · 1PANEL_BASIC 链 ·
+    /// 未初始化」同款入口，仅规则段展示；抓包 2026-10-21）：available 且 partial →
+    /// repair；available 未初始化 → initialize；已初始化未绑定 → bind；
+    /// 健康/不可用不展示。仅 iptables/nftables、整体已初始化
     /// （整体未初始化走全局初始化流程）、IPv6 支持开启（ipv6Enabled）时才有族级行
     nonisolated static func familyAttention(
         _ status: FirewallSubsystemStatus?
@@ -798,6 +838,33 @@ final class FirewallViewModel: ObservableObject {
             guard let fs = family == "ipv4" ? s.ipv4 : s.ipv6 else { continue }
             if family == "ipv6", s.ipv6Enabled == false { continue }
             guard fs.available == true else { continue }
+            if fs.partial == true {
+                result.append(FirewallFamilyAttention(family: family, operation: "repair"))
+            } else if fs.initialized != true {
+                result.append(FirewallFamilyAttention(family: family, operation: "initialize"))
+            } else if fs.bound != true {
+                result.append(FirewallFamilyAttention(family: family, operation: "bind"))
+            }
+        }
+        return result
+    }
+
+    /// Docker 段的地址族待办派生（Web 端 Docker 页「IPv6 容器端口防护尚未绑定，
+    /// 因此当前不生效，请重新绑定」同款入口，仅 Docker 段展示；抓包 2026-10-22）：
+    /// 派生顺序与 system 一致（partial → repair / 未初始化 → initialize /
+    /// 已初始化未绑定 → bind，健康不展示）。门禁：守护存在且整体已初始化
+    /// （未初始化走段内全局初始化流程）、iptables/nftables、IPv6 支持开启；
+    /// Docker 族状态无 available 字段（有 state/reason/effective），不作该项门禁
+    nonisolated static func dockerFamilyAttention(
+        _ base: DockerGuardBase?
+    ) -> [FirewallFamilyAttention] {
+        guard let b = base,
+              b.isExist == true, b.initialized == true,
+              b.backend == "iptables" || b.backend == "nftables" else { return [] }
+        var result: [FirewallFamilyAttention] = []
+        for family in ["ipv4", "ipv6"] {
+            if family == "ipv6", b.ipv6Enabled == false { continue }
+            guard let fs = family == "ipv4" ? b.ipv4 : b.ipv6 else { continue }
             if fs.partial == true {
                 result.append(FirewallFamilyAttention(family: family, operation: "repair"))
             } else if fs.initialized != true {
@@ -824,20 +891,27 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    func dockerOperate(_ operation: String) async {
+    /// Docker 守护操作。initialize 两种形态（抓包 2026-10-22）：仅初始化由客户端
+    /// 生成 taskID 随请求携带（对齐 Web 行为），初始化并恢复规则携带 backupFile
+    /// 而不带 taskID；bind/unbind 返回 null（抓包 2026-09-17）。
+    /// 返回是否成功（恢复选择的 sheet 据此 dismiss）
+    @discardableResult
+    func dockerOperate(_ operation: String, backupFile: String? = nil) async -> Bool {
         isOperating = true
         defer { isOperating = false }
         do {
-            // 抓包 2026-09-17：initialize 返回 {taskID,queued}，bind/unbind 返回 null
             if operation == "initialize" {
                 let resp: FirewallTaskResponse = try await client.send(
                     path: APIEndpoint.firewallDockerOperate.path,
-                    body: DockerGuardOperateRequest(operation: operation, taskID: nil),
+                    body: DockerGuardOperateRequest(
+                        operation: operation,
+                        taskID: backupFile == nil ? UUID().uuidString.lowercased() : nil,
+                        backupFile: backupFile),
                     as: FirewallTaskResponse.self
                 )
                 if let taskID = resp.taskID, !taskID.isEmpty {
-                    // 初始化任务在服务端异步接管端口，完成返回时整页刷新校准
-                    activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("Docker 端口守护"),
+                    // 初始化/恢复任务在服务端异步接管端口，完成返回时整页刷新校准
+                    activeTask = FirewallTaskTarget(taskID: taskID, title: L10n.t("容器端口防护"),
                                                     refreshAfterDone: true)
                 }
             } else {
@@ -849,9 +923,11 @@ final class FirewallViewModel: ObservableObject {
                 toastMessage = L10n.t("操作已提交")
             }
             await loadDockerGuard()
+            return true
         } catch {
-            guard !APIError.isCancellation(error) else { return }
+            guard !APIError.isCancellation(error) else { return false }
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
@@ -860,11 +936,18 @@ final class FirewallViewModel: ObservableObject {
         isOperating = true
         defer { isOperating = false }
         do {
-            let _: FirewallTaskResponse = try await client.send(
+            // 抓包 2026-10-22：{"uuids":[…]} → {taskID,queued}；删除在服务端
+            // 异步生效，进进度页、完成返回整页刷新校准（防立即重拉的残影）
+            let resp: FirewallTaskResponse = try await client.send(
                 path: APIEndpoint.firewallDockerPolicyDelete.path,
                 body: DockerGuardPolicyDeleteRequest(uuids: [uuid]),
                 as: FirewallTaskResponse.self
             )
+            if let taskID = resp.taskID, !taskID.isEmpty {
+                activeTask = FirewallTaskTarget(taskID: taskID,
+                                                title: L10n.t("删除防护策略"),
+                                                refreshAfterDone: true)
+            }
             await loadDockerGuard()
         } catch {
             guard !APIError.isCancellation(error) else { return }
@@ -1100,15 +1183,8 @@ final class FirewallViewModel: ObservableObject {
         }
     }
 
-    /// iptables/nftables 排除守护定位链（只展示 1PANEL_BASIC 主链规则）
-    nonisolated static func excludeChainsForSearch(backend: String?) -> [String]? {
-        switch backend {
-        case "iptables", "nftables":
-            return ["1PANEL_BASIC_BEFORE", "1PANEL_BASIC_AFTER"]
-        default:
-            return []
-        }
-    }
+    /// v2.4.0 起不再发送 excludeChains（抓包 2026-10-22）：BEFORE/AFTER 守护链的
+    /// 白名单规则已并入统一清单展示（Web 端同口径），排除会漏行且与 allTotal 计数不一致
 
     /// 规则表单的 scope 构造（对齐 Web 端 buildRule：按后端补 table/zone/chain）
     static func scopeForCreate(backend: String?, family: String) -> FirewallScope {
@@ -1134,7 +1210,7 @@ struct FirewallTaskTarget: Identifiable, Hashable {
     var id: String { taskID }
 }
 
-/// 状态卡的地址族待办（VM.familyAttention 派生结果；family = ipv4/ipv6，
+/// 规则段的地址族待办（VM.familyAttention 派生结果；family = ipv4/ipv6，
 /// operation = initialize/repair/bind）
 struct FirewallFamilyAttention: Equatable {
     let family: String
