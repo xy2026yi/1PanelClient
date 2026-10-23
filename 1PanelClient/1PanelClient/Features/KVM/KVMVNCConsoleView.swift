@@ -110,13 +110,15 @@ nonisolated struct RFBServerInit: Equatable {
 
     /// 解析 ServerInit 报文（w×h + 16 字节像素格式 + u32 名称长度 + 名称）
     static func parse(_ data: Data) -> RFBServerInit? {
+        // 全部按 startIndex 相对寻址：Data 切片（prefix/suffix）保留原下标，
+        // 绝对位置 subdata 会取错字节（真机卡「连接中」的根因之一）
+        let base = data.startIndex
         guard data.count >= 24,
-              let nameLength = RFBBytes.u32(data.subdata(in: 20..<24)),
+              let nameLength = RFBBytes.u32(data.subdata(in: (base + 20)..<(base + 24))),
               nameLength <= 4096, data.count >= 24 + Int(nameLength) else { return nil }
-        let i = data.startIndex
-        let width = Int(data[i]) << 8 | Int(data[i + 1])
-        let height = Int(data[i + 2]) << 8 | Int(data[i + 3])
-        let nameData = data.subdata(in: 24..<(24 + Int(nameLength)))
+        let width = Int(data[base]) << 8 | Int(data[base + 1])
+        let height = Int(data[base + 2]) << 8 | Int(data[base + 3])
+        let nameData = data.subdata(in: (base + 24)..<(base + 24 + Int(nameLength)))
         return RFBServerInit(width: width, height: height,
                              name: String(data: nameData, encoding: .utf8) ?? "")
     }
@@ -406,7 +408,7 @@ final class KVMVNCSession: ObservableObject {
     private var framebuffer: RFBFramebuffer?
     private let assembler = RFBMessageAssembler()
     /// 握手阶段字节缓存（版本 → 安全类型 → 结果 → ServerInit）
-    private var handshakeBuffer = Data()
+    private var handshakeBuffer = [UInt8]()
     private enum HandshakePhase { case version, securityTypes, securityResult, serverInit, normal }
     private var handshakePhase: HandshakePhase = .version
     private var generation = 0
@@ -435,7 +437,7 @@ final class KVMVNCSession: ObservableObject {
         guard state != .connecting, state != .connected else { return }
         state = .connecting
         handshakePhase = .version
-        handshakeBuffer = Data()
+        handshakeBuffer = []
         assembler.reset()
         framebuffer = nil
         framebufferImage = nil
@@ -543,15 +545,17 @@ final class KVMVNCSession: ObservableObject {
 
     // MARK: 握手与消息分发
 
+    /// 握手用 [UInt8] 而非 Data：Data.removeFirst 不重置 startIndex，
+    /// 逐段消费后绝对位置 subdata 会取错字节（真机卡「连接中」根因）
     private func ingest(_ data: Data) {
         receivedBytes += data.count
         switch handshakePhase {
         case .version:
-            handshakeBuffer.append(data)
+            handshakeBuffer.append(contentsOf: data)
             guard handshakeBuffer.count >= 12 else { return }
-            let version = handshakeBuffer.prefix(12)
+            let version = [UInt8](handshakeBuffer.prefix(12))
             handshakeBuffer.removeFirst(12)
-            guard version.starts(with: Data("RFB ".utf8)) else {
+            guard version.starts(with: Array("RFB ".utf8)) else {
                 fail(L10n.f("非 RFB 协议：%@", String(decoding: version, as: UTF8.self)))
                 return
             }
@@ -560,15 +564,13 @@ final class KVMVNCSession: ObservableObject {
             continueHandshake()
 
         case .securityTypes:
-            handshakeBuffer.append(data)
+            handshakeBuffer.append(contentsOf: data)
             guard let typeCount = handshakeBuffer.first else { return }
             if typeCount == 0 {
                 // 0 = 失败：u32 原因长度 + 文本
-                guard handshakeBuffer.count >= 5,
-                      let length = RFBBytes.u32(handshakeBuffer.subdata(in: 1..<5)) else { return }
+                guard let length = u32(at: 1) else { return }
                 guard handshakeBuffer.count >= 5 + Int(length) else { return }
-                let reason = String(data: handshakeBuffer.subdata(in: 5..<(5 + Int(length))),
-                                    encoding: .utf8) ?? ""
+                let reason = String(decoding: handshakeBuffer[5..<(5 + Int(length))], as: UTF8.self)
                 fail(L10n.f("服务端拒绝连接：%@", reason))
                 return
             }
@@ -580,9 +582,8 @@ final class KVMVNCSession: ObservableObject {
             continueHandshake()
 
         case .securityResult:
-            handshakeBuffer.append(data)
-            guard handshakeBuffer.count >= 4,
-                  let result = RFBBytes.u32(handshakeBuffer.prefix(4)) else { return }
+            handshakeBuffer.append(contentsOf: data)
+            guard let result = u32(at: 0) else { return }
             handshakeBuffer.removeFirst(4)
             guard result == 0 else {
                 fail(L10n.t("VNC 安全握手失败"))
@@ -593,14 +594,13 @@ final class KVMVNCSession: ObservableObject {
             continueHandshake()
 
         case .serverInit:
-            handshakeBuffer.append(data)
-            guard handshakeBuffer.count >= 24,
-                  let nameLength = RFBBytes.u32(handshakeBuffer.subdata(in: 20..<24)) else { return }
+            handshakeBuffer.append(contentsOf: data)
+            guard handshakeBuffer.count >= 24, let nameLength = u32(at: 20) else { return }
             let total = 24 + Int(nameLength)
             guard handshakeBuffer.count >= total else { return }
-            let payload = handshakeBuffer.prefix(total)
+            let payload = Data(handshakeBuffer.prefix(total))
             handshakeBuffer.removeFirst(total)
-            guard let serverInit = RFBServerInit.parse(Data(payload)) else {
+            guard let serverInit = RFBServerInit.parse(payload) else {
                 fail(L10n.t("ServerInit 解析失败"))
                 return
             }
@@ -624,6 +624,14 @@ final class KVMVNCSession: ObservableObject {
         case .normal:
             assembler.feed(data)
         }
+    }
+
+    /// 缓冲内偏移处的大端 u32（不足 4 字节返回 nil）
+    private func u32(at offset: Int) -> UInt32? {
+        guard handshakeBuffer.count >= offset + 4 else { return nil }
+        let b = handshakeBuffer
+        return UInt32(b[offset]) << 24 | UInt32(b[offset + 1]) << 16
+            | UInt32(b[offset + 2]) << 8 | UInt32(b[offset + 3])
     }
 
     /// 握手各阶段缓冲里可能已带后续报文，原地继续消费

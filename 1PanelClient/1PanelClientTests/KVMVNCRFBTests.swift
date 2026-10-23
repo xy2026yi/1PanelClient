@@ -62,6 +62,14 @@ struct KVMVNCRFBTests {
         #expect(serverInit.height == 768)
         #expect(serverInit.name == "QEMU (teat1)")
         #expect(RFBServerInit.parse(capture.prefix(30)) == nil)
+
+        // 回归（真机卡「连接中」根因）：Data 切片保留原下标，
+        // parse 必须按 startIndex 相对寻址——用偏移切片模拟 removeFirst 后的缓冲
+        var padded = Data([0xaa]) + capture + Data([0xbb])
+        padded.removeFirst(1)                       // startIndex = 1
+        let sliced = padded.prefix(capture.count)   // 仍是 startIndex=1 的切片
+        let fromSlice = try #require(RFBServerInit.parse(sliced))
+        #expect(fromSlice == serverInit)
     }
 
     // MARK: 流式拼装（WS 帧 ≠ 消息边界，乱块喂入）
