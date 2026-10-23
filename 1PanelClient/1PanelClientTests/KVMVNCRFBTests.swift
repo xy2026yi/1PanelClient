@@ -48,12 +48,15 @@ struct KVMVNCRFBTests {
         #expect(pf.hasPrefix("00000000"))          // 类型 + 填充
         #expect(pf.contains("2018000100ff00ff00ff000810"))  // 32/24/LE/真彩/255³/0-8-16（网页端同款）
 
-        // hextile 优先（qemu 从客户端集合选）+ 伪编码（-258/-261 为面板要求，dump 实证）
+        // 网页端 24 项编码集逐字节复刻（dump_1 帧 9 原样字节）
         let encodings = hex(RFBClientEncoder.setEncodings())
-        #expect(encodings == "020000" + "0008"
-            + "00000005" + "00000000" + "00000001"      // hextile / raw / copyrect
-            + "ffffff21" + "ffffff20"                    // desktopsize / lastrect
-            + "ffffff11" + "fffffefe" + "fffffefb")     // cursor / qemu ext key / led
+        #expect(encodings == "020000" + "0018"
+            + "00000001" + "00000007" + "fffffefc" + "00000010" + "00000015"
+            + "00000005" + "00000002" + "00000006" + "00000000"
+            + "ffffffe6" + "ffffff02" + "ffffff21" + "ffffff20"
+            + "fffffefe" + "fffffefb" + "fffffecc" + "fffffecb"
+            + "fffffec8" + "fffffec7" + "fffffecd" + "c0a1e5ce"
+            + "fffffec4" + "574d5664" + "ffffff11")
     }
 
     // MARK: ServerInit（抓包帧 7）

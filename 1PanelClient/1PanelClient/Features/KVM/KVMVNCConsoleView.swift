@@ -65,17 +65,21 @@ nonisolated enum RFBClientEncoder {
               0x00, 0x00, 0x00])                  // 3 字节填充
     }
 
-    /// SetEncodings：hextile(5) + RAW(0) + CopyRect(1)（qemu 从客户端集合选，倾向 hextile）
-    /// + 伪编码 DesktopSize(-223) / LastRect(-224) / Cursor(-239，仅消费不绘制) /
-    /// QEMU 扩展键(-258) / LED(-261)。dump_1 实证网页端宣告全套扩展且 qemu 会回发
-    /// -258/-261 宣告矩形；最小集 [0,1,-223] 会被面板断线（dump_3/4/5）。
-    /// 不宣告 Tight/ZRLE（无法解码）、不宣告 -308（载荷结构存疑）
+    /// SetEncodings：逐字节复刻网页端（dump_1 帧 9 的 24 项全集）。
+    /// 自有可解集（hextile/raw/copyrect）与最小集均被断线（dump_3~6），唯网页端
+    /// 原样字节未试——若服务端按列表严格校验则只有复刻能过；由此服务端可能回发
+    /// Tight(7) 画面，届时解析器会以「未宣告的编码 7」失败给出明确证据再行实现
     static func setEncodings() -> Data {
-        let encodings: [Int32] = [5, 0, 1, -223, -224, -239, -258, -261]
+        let webEncodings: [UInt32] = [
+            0x00000001, 0x00000007, 0xfffffefc, 0x00000010, 0x00000015, 0x00000005,
+            0x00000002, 0x00000006, 0x00000000, 0xffffffe6, 0xffffff02, 0xffffff21,
+            0xffffff20, 0xfffffefe, 0xfffffefb, 0xfffffecc, 0xfffffecb, 0xfffffec8,
+            0xfffffec7, 0xfffffecd, 0xc0a1e5ce, 0xfffffec4, 0x574d5664, 0xffffff11,
+        ]
         var data = Data([0x02, 0x00, 0x00])
-        data.append(contentsOf: RFBBytes.be16(UInt16(encodings.count)))
-        for encoding in encodings {
-            data.append(contentsOf: RFBBytes.be32(UInt32(bitPattern: encoding)))
+        data.append(contentsOf: RFBBytes.be16(UInt16(webEncodings.count)))
+        for encoding in webEncodings {
+            data.append(contentsOf: RFBBytes.be32(encoding))
         }
         return data
     }
@@ -600,6 +604,10 @@ final class KVMVNCSession: ObservableObject {
         for (k, v) in authHeaders() {
             request.setValue(v, forHTTPHeaderField: k)
         }
+        // 浏览器身份头（网页端 WS 升级携带 Origin；代理可能校验）
+        request.setValue(server.normalizedBaseURL, forHTTPHeaderField: "Origin")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) "
+                         + "AppleWebKit/605.1.15 (KHTML, like Gecko)", forHTTPHeaderField: "User-Agent")
 
         let gen = generation
         let ws = urlSession.webSocketTask(with: request)
@@ -792,6 +800,10 @@ final class KVMVNCSession: ObservableObject {
             framebuffer?.applyCopyRect(x: x, y: y, width: width, height: height,
                                        sourceX: sx, sourceY: sy)
         case .desktopSize(let width, let height):
+            // 同尺寸（-308 能力宣告矩形）不重建帧缓冲，避免闪屏
+            guard width != Int(framebufferSize.width) || height != Int(framebufferSize.height) else {
+                return
+            }
             framebuffer?.resize(width: width, height: height)
             framebufferSize = CGSize(width: width, height: height)
             send(RFBClientEncoder.framebufferUpdateRequest(
