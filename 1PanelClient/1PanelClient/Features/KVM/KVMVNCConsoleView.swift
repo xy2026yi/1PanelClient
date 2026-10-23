@@ -621,7 +621,10 @@ final class KVMVNCSession: ObservableObject {
             handshakePhase = .normal
             state = .connected
             if !handshakeBuffer.isEmpty {
-                assembler.feed(Data(handshakeBuffer))
+                // ServerInit 之后可能紧跟首批更新，直接进入正常阶段消费
+                for message in assembler.feed(Data(handshakeBuffer)) {
+                    handle(message)
+                }
                 handshakeBuffer.removeAll()
             }
 
