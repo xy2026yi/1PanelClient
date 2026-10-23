@@ -65,21 +65,19 @@ nonisolated enum RFBClientEncoder {
               0x00, 0x00, 0x00])                  // 3 字节填充
     }
 
-    /// SetEncodings：逐字节复刻网页端（dump_1 帧 9 的 24 项全集）。
-    /// 自有可解集（hextile/raw/copyrect）与最小集均被断线（dump_3~6），唯网页端
-    /// 原样字节未试——若服务端按列表严格校验则只有复刻能过；由此服务端可能回发
-    /// Tight(7) 画面，届时解析器会以「未宣告的编码 7」失败给出明确证据再行实现
+    /// SetEncodings：hextile(5) + RAW(0) + CopyRect(1) + 伪编码（DesktopSize/LastRect/
+    /// Cursor/QEMU 扩展键/LED）。qemu 从客户端集合选，无 Tight/ZRLE 时选 hextile。
+    ///
+    /// ⚠️ 填充 1 字节（RFB 3.3 线上布局），不是 RFC 6143 的 2 字节——dump_1 帧 9
+    /// 实证网页端按 1 字节填充发送，1Panel agent 同布局解析；按 6143 发 2 字节
+    /// 填充会被读成 0 个编码并使后续字节错位、连接被静默掐断（vnc_probe2 分段
+    /// 实验定位：发完 SetPixelFormat 存活、发完 SetEncodings 即死）
     static func setEncodings() -> Data {
-        let webEncodings: [UInt32] = [
-            0x00000001, 0x00000007, 0xfffffefc, 0x00000010, 0x00000015, 0x00000005,
-            0x00000002, 0x00000006, 0x00000000, 0xffffffe6, 0xffffff02, 0xffffff21,
-            0xffffff20, 0xfffffefe, 0xfffffefb, 0xfffffecc, 0xfffffecb, 0xfffffec8,
-            0xfffffec7, 0xfffffecd, 0xc0a1e5ce, 0xfffffec4, 0x574d5664, 0xffffff11,
-        ]
-        var data = Data([0x02, 0x00, 0x00])
-        data.append(contentsOf: RFBBytes.be16(UInt16(webEncodings.count)))
-        for encoding in webEncodings {
-            data.append(contentsOf: RFBBytes.be32(encoding))
+        let encodings: [Int32] = [5, 0, 1, -223, -224, -239, -258, -261]
+        var data = Data([0x02, 0x00])                     // 类型 + 1 字节填充（3.3 布局）
+        data.append(contentsOf: RFBBytes.be16(UInt16(encodings.count)))
+        for encoding in encodings {
+            data.append(contentsOf: RFBBytes.be32(UInt32(bitPattern: encoding)))
         }
         return data
     }

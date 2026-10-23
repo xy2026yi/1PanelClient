@@ -48,15 +48,12 @@ struct KVMVNCRFBTests {
         #expect(pf.hasPrefix("00000000"))          // 类型 + 填充
         #expect(pf.contains("2018000100ff00ff00ff000810"))  // 32/24/LE/真彩/255³/0-8-16（网页端同款）
 
-        // 网页端 24 项编码集逐字节复刻（dump_1 帧 9 原样字节）
+        // SetEncodings 为 RFB 3.3 线上布局：类型 + 1 字节填充 + 数量（dump_1 帧 9
+        // 实证；2 字节填充的 6143 布局会被 1Panel agent 解析成 0 编码并断线）
         let encodings = hex(RFBClientEncoder.setEncodings())
-        #expect(encodings == "020000" + "0018"
-            + "00000001" + "00000007" + "fffffefc" + "00000010" + "00000015"
-            + "00000005" + "00000002" + "00000006" + "00000000"
-            + "ffffffe6" + "ffffff02" + "ffffff21" + "ffffff20"
-            + "fffffefe" + "fffffefb" + "fffffecc" + "fffffecb"
-            + "fffffec8" + "fffffec7" + "fffffecd" + "c0a1e5ce"
-            + "fffffec4" + "574d5664" + "ffffff11")
+        #expect(encodings == "0200" + "0008"
+            + "00000005" + "00000000" + "00000001"
+            + "ffffff21" + "ffffff20" + "ffffff11" + "fffffefe" + "fffffefb")
     }
 
     // MARK: ServerInit（抓包帧 7）
