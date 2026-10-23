@@ -53,6 +53,19 @@ struct MonitorExportFile: Sendable {
     let truncatedTables: [String]
 }
 
+/// 导出文件生成错误
+enum MonitorExportError: LocalizedError {
+    /// 单表内容超出 ZIP 32 位长度上限（≥4GiB，打包器无 ZIP64 扩展）
+    case archiveTooLarge
+
+    var errorDescription: String? {
+        switch self {
+        case .archiveTooLarge:
+            return L10n.t("导出数据过大（单表超出 4GiB），请缩短时间范围后重试")
+        }
+    }
+}
+
 // MARK: - 生成入口
 
 nonisolated enum MonitorExportFileBuilder {
@@ -61,9 +74,10 @@ nonisolated enum MonitorExportFileBuilder {
     static let xlsxMaxDataRows = 1_048_575
 
     /// 按格式生成导出文件。文件名对齐网页端：1panel-monitor-yyyyMMddHHmmss[.扩展名]，
-    /// 单表 CSV 额外带表名后缀（-base/-io/-network）
+    /// 单表 CSV 额外带表名后缀（-base/-io/-network）。
+    /// 超出 ZIP 32 位长度上限（单表 ≥4GiB）抛 archiveTooLarge 而非生成损坏文件
     static func build(tables: [MonitorExportTable], format: MonitorExportFormat,
-                      date: Date = Date()) -> MonitorExportFile {
+                      date: Date = Date()) throws -> MonitorExportFile {
         let stamp = fileNameStampText(date)
         let baseName = "1panel-monitor-\(stamp)"
         switch format {
@@ -79,7 +93,7 @@ nonisolated enum MonitorExportFileBuilder {
                 limited[i].rows = Array(limited[i].rows.prefix(xlsxMaxDataRows))
             }
             return MonitorExportFile(fileName: baseName + ".xlsx",
-                                     data: zipArchive(xlsxEntries(limited)),
+                                     data: try zipArchive(xlsxEntries(limited)),
                                      truncatedTables: truncated)
         case .csv:
             if tables.count == 1, let only = tables.first {
@@ -87,7 +101,7 @@ nonisolated enum MonitorExportFileBuilder {
                                          data: Data(csv(only).utf8),
                                          truncatedTables: [])
             }
-            let bundle = zipArchive(tables.map {
+            let bundle = try zipArchive(tables.map {
                 ZipEntry(name: "monitor-\($0.name).csv", content: Data(csv($0).utf8))
             })
             return MonitorExportFile(fileName: baseName + ".zip", data: bundle, truncatedTables: [])
@@ -293,8 +307,10 @@ nonisolated enum MonitorExportFileBuilder {
     }
 
     /// 最小 ZIP 打包器（store 方式）：本地文件头 + 中央目录 + EOCD，
-    /// CRC32 校验必需；条目名按 UTF-8（GPB 0x0800）
-    static func zipArchive(_ entries: [ZipEntry]) -> Data {
+    /// CRC32 校验必需；条目名按 UTF-8（GPB 0x0800）。
+    /// 无 ZIP64：单条目或累计偏移超 UInt32.max 抛错（此前 clamp 会静默产出损坏包、
+    /// 偏移累加会直接越界崩溃）
+    static func zipArchive(_ entries: [ZipEntry]) throws -> Data {
         var chunks: [Data] = []
         var central: [Data] = []
         var offset: UInt32 = 0
@@ -303,7 +319,10 @@ nonisolated enum MonitorExportFileBuilder {
         for entry in entries {
             let nameBytes = Data(entry.name.utf8)
             let crc = crc32(entry.content)
-            let size = UInt32(clamping: entry.content.count)
+            guard entry.content.count <= UInt32.max else { throw MonitorExportError.archiveTooLarge }
+            let size = UInt32(entry.content.count)
+            let entryLength = 30 + nameBytes.count + entry.content.count
+            guard UInt32(entryLength) <= UInt32.max - offset else { throw MonitorExportError.archiveTooLarge }
 
             var local = Data(count: 30)
             local.withUnsafeMutableBytes { ptr in
@@ -342,8 +361,7 @@ nonisolated enum MonitorExportFileBuilder {
             }
             central.append(header)
             central.append(nameBytes)
-
-            offset += UInt32(30 + nameBytes.count + entry.content.count)
+            offset += UInt32(entryLength)
         }
 
         var centralSize: UInt32 = 0

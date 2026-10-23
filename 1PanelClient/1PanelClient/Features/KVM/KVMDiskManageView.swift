@@ -55,9 +55,9 @@ struct KVMDiskManageView: View {
         resizableDisks.first { $0.target == target }
     }
 
-    /// 当前磁盘容量 GiB（字节换算取整）
+    /// 当前磁盘容量 GiB（字节换算取整）；search 响应 capacity 常为 0，未知为 nil
     private var currentGiB: Int? {
-        selectedDisk?.capacityGiB ?? selectedDisk.map { _ in 0 }
+        selectedDisk?.capacityGiB
     }
 
     var body: some View {
@@ -180,7 +180,8 @@ struct KVMDiskManageView: View {
                                selection: $target)
                 OutlinedShape(label: L10n.t("磁盘容量"), isFocused: false, hasValue: true,
                               trailing: { EmptyView() }) {
-                    Text(L10n.f("%ld GB", currentGiB ?? 0))
+                    // search 响应 capacity 为 0 时容量未知（info 加载后回填），不显示误导性的 0 GB
+                    Text(currentGiB.map { L10n.f("%ld GB", $0) } ?? "—")
                         .font(.dataMonospacedBody)
                 }
                 OutlinedUnitField(label: L10n.t("扩容后总容量"), unit: "GB", text: $sizeText, range: 1...65_536)

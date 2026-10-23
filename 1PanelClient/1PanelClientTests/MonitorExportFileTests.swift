@@ -82,8 +82,8 @@ struct MonitorExportFileTests {
     // MARK: ZIP / XLSX 容器
 
     @Test("ZIP 容器：本地头签名 + EOCD 记录条目数")
-    func zipStructure() {
-        let data = MonitorExportFileBuilder.zipArchive([
+    func zipStructure() throws {
+        let data = try MonitorExportFileBuilder.zipArchive([
             MonitorExportFileBuilder.ZipEntry(name: "monitor-base.csv", content: Data("a,b".utf8)),
             MonitorExportFileBuilder.ZipEntry(name: "monitor-io.csv", content: Data("c".utf8)),
         ])
@@ -104,8 +104,8 @@ struct MonitorExportFileTests {
     }
 
     @Test("XLSX 为合法 ZIP，包含工作簿/样式/逐表工作表部件")
-    func xlsxStructure() {
-        let file = MonitorExportFileBuilder.build(
+    func xlsxStructure() throws {
+        let file = try MonitorExportFileBuilder.build(
             tables: [Self.sampleTable(),
                      MonitorExportTable(name: "io", fields: ["time"], headers: ["日期"],
                                         rows: [[.number(1)]])],
@@ -132,20 +132,20 @@ struct MonitorExportFileTests {
         components.year = 2026; components.month = 10; components.day = 23
         components.hour = 11; components.minute = 47; components.second = 3
         let date = try #require(Calendar.current.date(from: components))
-        let single = MonitorExportFileBuilder.build(tables: [Self.sampleTable()], format: .csv, date: date)
+        let single = try MonitorExportFileBuilder.build(tables: [Self.sampleTable()], format: .csv, date: date)
         #expect(single.fileName == "1panel-monitor-20261023114703-base.csv")
 
-        let multi = MonitorExportFileBuilder.build(
+        let multi = try MonitorExportFileBuilder.build(
             tables: [Self.sampleTable(),
                      MonitorExportTable(name: "network", fields: ["up"], headers: ["上行"],
                                         rows: [[.number(1)]])],
             format: .csv, date: date)
         #expect(multi.fileName == "1panel-monitor-20261023114703.zip")
 
-        let json = MonitorExportFileBuilder.build(tables: [Self.sampleTable()], format: .json, date: date)
+        let json = try MonitorExportFileBuilder.build(tables: [Self.sampleTable()], format: .json, date: date)
         #expect(json.fileName == "1panel-monitor-20261023114703.json")
 
-        let xlsx = MonitorExportFileBuilder.build(tables: [Self.sampleTable()], format: .xlsx, date: date)
+        let xlsx = try MonitorExportFileBuilder.build(tables: [Self.sampleTable()], format: .xlsx, date: date)
         #expect(xlsx.fileName == "1panel-monitor-20261023114703.xlsx")
     }
 

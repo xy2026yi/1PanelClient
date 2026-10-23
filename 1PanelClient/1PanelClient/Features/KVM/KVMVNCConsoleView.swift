@@ -504,6 +504,7 @@ nonisolated enum RFBKeysym {
     static let tab: UInt32 = 0xff09
     static let enter: UInt32 = 0xff0d
     static let escape: UInt32 = 0xff1b
+    static let delete: UInt32 = 0xffff
     static let left: UInt32 = 0xff51
     static let up: UInt32 = 0xff52
     static let right: UInt32 = 0xff53
@@ -513,7 +514,9 @@ nonisolated enum RFBKeysym {
     static let alt: UInt32 = 0xffe9
 
     /// XT set-1 键码（QEMU 扩展键盘事件用；专用键与修饰键，
-    /// 网页端抓包实证该通道：'l' 的键码 0x26）
+    /// 网页端抓包实证该通道：'l' 的键码 0x26）。E0 前缀键（方向/Delete）
+    /// 置高位 0x80——QEMU 按高位识别 E0 前缀（noVNC 同款表：← 0xCB/↑ 0xC8/
+    /// → 0xCD/↓ 0xD0/Del 0xD3），不带高位是数字小键区键，受 NumLock 影响
     static func keycode(for keysym: UInt32) -> UInt32? {
         switch keysym {
         case escape: return 0x01
@@ -523,10 +526,11 @@ nonisolated enum RFBKeysym {
         case control: return 0x1d
         case shift: return 0x2a
         case alt: return 0x38
-        case left: return 0x4b
-        case up: return 0x48
-        case right: return 0x4d
-        case down: return 0x50
+        case RFBKeysym.delete: return 0xd3  // Delete（抓包未覆盖，按 noVNC XT 表）
+        case left: return 0xcb
+        case up: return 0xc8
+        case right: return 0xcd
+        case down: return 0xd0
         default: return nil
         }
     }
@@ -791,6 +795,9 @@ final class KVMVNCSession: ObservableObject {
                     handle(message)
                 }
                 handshakeBuffer.removeAll()
+                if let reason = assembler.failure {
+                    fail(reason)
+                }
             }
 
         case .normal:
@@ -1202,7 +1209,7 @@ struct KVMVNCConsoleView: View {
                     specialKey("↓", keysym: RFBKeysym.down)
                     specialKey("→", keysym: RFBKeysym.right)
                     specialKey("⌫", keysym: RFBKeysym.backspace)
-                    specialKey("Del", keysym: 0xffff)
+                    specialKey("Del", keysym: RFBKeysym.delete)
                 }
                 .padding(.horizontal, 2)
             }

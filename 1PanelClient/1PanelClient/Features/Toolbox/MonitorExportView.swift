@@ -230,6 +230,10 @@ struct MonitorExportView: View {
         guard endTime > startTime else { return fail(L10n.t("结束时间需晚于开始时间")) }
         isExporting = true
         defer { isExporting = false }
+        // 重置上一轮结果：失败早退时旧的「已保存」与告警残留会误导
+        savedTo = nil
+        emptyTables = []
+        truncatedTables = []
 
         // 组请求（与网页端一致）：任一 base 指标 → 单个 load 请求；
         // io/network 各一个请求，明细哨兵上送空串、合计上送 all、单设备上送设备名
@@ -268,7 +272,7 @@ struct MonitorExportView: View {
         }
         emptyTables = tables.filter { $0.rows.isEmpty }.map { tableDisplayName($0.name) }
         do {
-            let file = MonitorExportFileBuilder.build(tables: tables, format: format)
+            let file = try MonitorExportFileBuilder.build(tables: tables, format: format)
             truncatedTables = file.truncatedTables.map { tableDisplayName($0) }
             let saved = try LocalDownloads.save(data: file.data,
                                                 fileName: file.fileName,
@@ -335,11 +339,14 @@ struct MonitorExportView: View {
             ])
         }
         let records = datasets.filter { $0.param == "base" }.flatMap { $0.value ?? [] }
-        let rows: [[MonitorExportCell]] = records.compactMap { record in
+        // 与 io/network 表一致按时间升序（服务端不保证顺序）
+        let rows: [[MonitorExportCell]] = records.compactMap { record -> (Date, [MonitorExportCell])? in
             guard let createdAt = record.createdAt,
                   let date = MonitorDate.parse(createdAt) else { return nil }
-            return [.date(date)] + pickers.map { pick in pick(record) }
+            return (date, [.date(date)] + pickers.map { pick in pick(record) })
         }
+        .sorted { $0.0 < $1.0 }
+        .map(\.1)
         return MonitorExportTable(name: "base", fields: fields, headers: headers, rows: rows)
     }
 

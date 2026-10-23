@@ -176,15 +176,14 @@ final class KVMViewModel: ObservableObject {
         if let list: [KVMStoragePool] = await fetchList(.kvmStorageList) { storages = list }
     }
 
-    /// 无 body 的 POST 列表（镜像 / 模版 / 网络 / 存储池）；失败时保留旧快照并记错
+    /// 无 body 的 POST 列表（镜像 / 模版 / 网络 / 存储池）；失败时保留旧快照。
+    /// 不写 errorMessage——那是 VM 列表空态专用，引用数据并发拉取失败
+    /// 会把无关错误短暂顶进 VM 分段的「加载失败」占位
     private func fetchList<T: Decodable>(_ endpoint: APIEndpoint) async -> [T]? {
         do {
-            let list: [T] = try await client.send(path: endpoint.path, as: [T].self)
-            errorMessage = nil
-            return list
+            return try await client.send(path: endpoint.path, as: [T].self)
         } catch {
             guard !APIError.isCancellation(error) else { return nil }
-            errorMessage = error.localizedDescription
             return nil
         }
     }

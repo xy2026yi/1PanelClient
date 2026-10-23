@@ -46,10 +46,15 @@ struct KVMVNCRFBTests {
         #expect(hex(RFBClientEncoder.qemuExtKeyEvent(down: false, keysym: 0x6c, keycode: 0x26))
                 == "ff0000000000006c00000026")
 
-        // 专用键 XT set-1 键码
+        // 专用键 XT set-1 键码（E0 前缀键置 0x80 高位：0x4B 是小键盘 4，受
+        // NumLock 影响；noVNC XT 表 ← 0xCB / Del 0xD3）
         #expect(RFBKeysym.keycode(for: RFBKeysym.backspace) == 0x0e)
         #expect(RFBKeysym.keycode(for: RFBKeysym.enter) == 0x1c)
-        #expect(RFBKeysym.keycode(for: RFBKeysym.left) == 0x4b)
+        #expect(RFBKeysym.keycode(for: RFBKeysym.left) == 0xcb)
+        #expect(RFBKeysym.keycode(for: RFBKeysym.up) == 0xc8)
+        #expect(RFBKeysym.keycode(for: RFBKeysym.right) == 0xcd)
+        #expect(RFBKeysym.keycode(for: RFBKeysym.down) == 0xd0)
+        #expect(RFBKeysym.keycode(for: RFBKeysym.delete) == 0xd3)
         #expect(RFBKeysym.keycode(for: RFBKeysym.escape) == 0x01)
         #expect(RFBKeysym.keycode(for: 0x61) == nil)  // 字母走标准 KeyEvent
     }

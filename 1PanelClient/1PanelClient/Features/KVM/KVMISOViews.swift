@@ -471,25 +471,39 @@ struct KVMISOFormView: View {
     private func startUpload(name displayName: String) async {
         guard let file = pickedFile else { return }
         let fileName = file.lastPathComponent
+        // 安全域内重读权威大小：fileImporter 回调在域外读 attributesOfItem，
+        // 文件 App / iCloud 选件可能得 0，随后 0 字节会被当成上传成功
+        let scoped = file.startAccessingSecurityScopedResource()
+        let size = ((try? FileManager.default.attributesOfItem(atPath: file.path))?[.size] as? Int64)
+            ?? pickedFileSize
+        guard size > 0 else {
+            if scoped { file.stopAccessingSecurityScopedResource() }
+            vm.alertMessage = L10n.t("无法读取所选文件，或文件为空")
+            vm.showAlert = true
+            return
+        }
+        pickedFileSize = size
         // 上传 ID 对齐网页端格式：毫秒时间戳-随机串
         let uploadID = "\(Int(Date().timeIntervalSince1970 * 1000))-\(Self.randomToken(11))"
         guard let recordID = await vm.importStart(KVMISOImportStartRequest(
             type: type.rawValue, name: displayName, path: targetFilePath(fileName),
             status: "uploading", tempFileID: uploadID, tempFileType: "upload",
-            description: description)) else { return }
+            description: description)) else {
+            if scoped { file.stopAccessingSecurityScopedResource() }
+            return
+        }
         importRecordID = recordID
         uploadProgress = 0
 
         let client = vm.client
         let directory = targetDirectory
-        let size = pickedFileSize
         uploadTask = Task {
-            let scoped = file.startAccessingSecurityScopedResource()
             defer { if scoped { file.stopAccessingSecurityScopedResource() } }
             do {
                 try await Self.chunkUpload(client: client, url: file, name: fileName, size: size,
-                                           targetDir: directory, uploadID: uploadID) { progress in
-                    uploadProgress = progress
+                                           targetDir: directory, uploadID: uploadID) { value in
+                    // chunkUpload 在 await 之后可能于后台执行，状态写回需回主线程
+                    Task { @MainActor in uploadProgress = value }
                 }
                 let ok = await vm.importUpdate(KVMISOImportUpdateRequest(id: recordID, status: "ready"))
                 uploadProgress = nil
