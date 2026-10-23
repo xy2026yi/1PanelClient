@@ -3,8 +3,8 @@
 //  1PanelClient
 //
 //  虚拟机管理根页（高级功能分组，/xpack/vms/*，专业版门禁；logs/高级功能-KVM.md 抓包 2026-10-23）：
-//  进页先 GET environment 做依赖门控——未就绪不可使用功能，仅显示 libvirt / /dev/kvm /
-//  storage 三项 已启用·未启用 提示（storage 附目录路径）+ 重新检测；就绪后分段
+//  进页先 GET environment 做依赖门控——未就绪不可使用功能，仅显示 libvirt（详情
+//  /dev/kvm）/ storage（附目录路径）两行 已启用·未启用 提示 + 重新检测；就绪后分段
 //  虚拟机 / 镜像 / 模版 / 网络 / 存储池。
 //  虚拟机段：卡片列表（每台一卡：点击卡进详情、长按弹操作菜单——电源 / 编辑 / 重命名 / 删除，
 //  卡上常驻 监控·快照·磁盘管理·转为模版 四个快捷按钮，按状态可用），工具栏 创建 + 同步。
@@ -96,8 +96,9 @@ struct KVMView: View {
 
 // MARK: - 环境门控（依赖未就绪提示卡）
 
-/// 依赖未就绪：仅显示 libvirt / /dev/kvm / storage 三项 已启用·未启用 状态（storage 附目录路径，
-/// 架构不支持时追加一行），功能不可用；提供重新检测。安装依赖需在面板网页端完成
+/// 依赖未就绪：仅显示 libvirt / storage 两行 已启用·未启用 状态——libvirt 行
+/// 详情为 /dev/kvm（kvmMessage，KVM 设备并入 libvirt 行），storage 行附目录路径；
+/// 功能不可用，提供重新检测。安装依赖需在面板网页端完成
 struct KVMEnvironmentView: View {
     let environment: KVMEnvironment
     let isChecking: Bool
@@ -106,14 +107,10 @@ struct KVMEnvironmentView: View {
     var body: some View {
         List {
             Section {
-                envRow("libvirt",
-                       enabled: environment.libvirtExist == true && environment.libvirtActive == true)
-                envRow("/dev/kvm", enabled: environment.kvmExist == true)
+                envRow("libvirt", enabled: isLibvirtReady,
+                       detail: environment.kvmExist == true ? environment.kvmMessage : nil)
                 envRow("storage", enabled: environment.storageExist == true,
                        detail: environment.storageMessage)
-                if environment.archSupported == false {
-                    envRow(L10n.f("架构 %@", environment.arch ?? "-"), enabled: false)
-                }
             } header: {
                 SectionLabel(title: L10n.t("依赖检查"), systemImage: "stethoscope")
             } footer: {
@@ -134,6 +131,12 @@ struct KVMEnvironmentView: View {
         }
         .listStyle(.insetGrouped)
         .refreshable { await onRetry() }
+    }
+
+    /// libvirt 行启用：libvirt 已装且运行，且 /dev/kvm 存在（KVM 设备并入此行）
+    private var isLibvirtReady: Bool {
+        environment.libvirtExist == true && environment.libvirtActive == true
+            && environment.kvmExist == true
     }
 
     private func envRow(_ title: String, enabled: Bool, detail: String? = nil) -> some View {

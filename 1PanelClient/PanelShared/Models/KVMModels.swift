@@ -18,7 +18,7 @@ import Foundation
 // MARK: - 环境检测
 
 /// GET /xpack/vms/environment：依赖检测（arch / 辅助程序 / KVM 设备 / libvirt / 存储目录），
-/// ready 为总判定；未就绪时客户端只显示 libvirt / /dev/kvm / storage 三项启用状态提示
+/// ready 为总判定；未就绪时客户端只显示 libvirt（含 /dev/kvm）/ storage 两行启用状态提示
 nonisolated struct KVMEnvironment: Decodable, Equatable {
     let arch: String?
     let archSupported: Bool?
