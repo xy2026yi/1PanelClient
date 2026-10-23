@@ -691,6 +691,11 @@ enum APIEndpoint {
     case vllmOperate            // POST 启停/重启 {id, operate, taskID}；删除同端点 operate=delete + forceDelete
     case vllmCompose            // POST 按类型获取 compose 模板 {imageType}
     case vllmCommandTemplateList // POST 启动命令模板列表 {imageType}
+    // vLLM 实例监控（v2.4.0 新增，logs/2.4.0新增vllm.md 抓包 2026-10-23）：
+    // 路径前缀为 /api/v2/ai/vllm/monitor（非 xpack），按 appInstallID 定位实例
+    case vllmMonitorCurrent     // POST 实时指标 {appInstallID}（服务端即时拉 /metrics，无 GPU 时 status=unavailable 全 null）
+    case vllmMonitorSearch      // POST 历史 {appInstallID, startTime, endTime, aggregation: avg|max, group: overview|latency|requests}
+    case vllmMonitorClean       // POST 清空该实例监控记录 {appInstallID}
 
     // MARK: - 模型下载器（logs/vLLM与下载器.md 抓包 2026-09-12；标 [推测] 的端点未抓到请求）
     case modelDownloaderSettings       // GET/POST 下载设置（模型目录 / HF 与 ModelScope 端点及令牌）
@@ -1279,6 +1284,9 @@ enum APIEndpoint {
         case .vllmOperate:           return "/api/v2/xpack/vllm/operate"
         case .vllmCompose:           return "/api/v2/xpack/vllm/compose"
         case .vllmCommandTemplateList: return "/api/v2/xpack/vllm/command-template/list"
+        case .vllmMonitorCurrent:    return "/api/v2/ai/vllm/monitor/current"
+        case .vllmMonitorSearch:     return "/api/v2/ai/vllm/monitor/search"
+        case .vllmMonitorClean:      return "/api/v2/ai/vllm/monitor/clean"
         case .modelDownloaderSettings:      return "/api/v2/xpack/model/downloader/settings"
         case .modelDownloaderLocalSearch:   return "/api/v2/xpack/model/downloader/local/search"
         case .modelDownloaderLocalDelete:   return "/api/v2/xpack/model/downloader/local/delete"

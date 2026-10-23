@@ -2278,6 +2278,17 @@
         }
       }
     },
+    "KV 缓存使用率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KV Cache Usage"
+          }
+        }
+      }
+    },
     "Live restore" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2909,6 +2920,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to parse token: it must contain default_drive_id and refresh_token"
+          }
+        }
+      }
+    },
+    "Token 间延迟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inter-token Latency"
           }
         }
       }
@@ -3926,6 +3948,17 @@
         }
       }
     },
+    "不可用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable"
+          }
+        }
+      }
+    },
     "不安全" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4604,6 +4637,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Initialize Only"
+          }
+        }
+      }
+    },
+    "仅删除该实例的历史监控数据，不影响实例运行。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only deletes this instance's historical monitoring data; the instance keeps running."
           }
         }
       }
@@ -8953,6 +8997,17 @@
         }
       }
     },
+    "前缀缓存命中率" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefix Cache Hit Rate"
+          }
+        }
+      }
+    },
     "剩余 %ld 天" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13045,6 +13100,28 @@
         }
       }
     },
+    "完成原因 · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish reason · %@"
+          }
+        }
+      }
+    },
+    "完成请求数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed Requests"
+          }
+        }
+      }
+    },
     "官方" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13096,6 +13173,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The Base URL is written to model accounts after creation, ready for agents and other modules"
+          }
+        }
+      }
+    },
+    "实时指标" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Metrics"
           }
         }
       }
@@ -14097,6 +14185,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes all alert logs and cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "将删除实例「%@」的全部历史监控数据，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete all historical monitoring data of instance \"%@\". This cannot be undone. Continue?"
           }
         }
       }
@@ -15828,6 +15927,17 @@
         }
       }
     },
+    "平均" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mean"
+          }
+        }
+      }
+    },
     "平均使用率超过" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15835,6 +15945,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "average usage above"
+          }
+        }
+      }
+    },
+    "平均值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average"
+          }
+        }
+      }
+    },
+    "平均生成 Token" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avg. Generation Tokens"
           }
         }
       }
@@ -16077,6 +16209,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apps Page"
+          }
+        }
+      }
+    },
+    "延迟分析" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latency"
           }
         }
       }
@@ -18424,6 +18567,17 @@
         }
       }
     },
+    "排队时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queue Time"
+          }
+        }
+      }
+    },
     "排除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18585,6 +18739,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notice"
+          }
+        }
+      }
+    },
+    "提示吞吐" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt Throughput"
           }
         }
       }
@@ -20052,6 +20217,17 @@
         }
       }
     },
+    "无法读取 vLLM /metrics：实例未运行、无 GPU 或首次采样无前值可算速率。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot read vLLM /metrics: the instance is not running, no GPU is present, or the first sample has no baseline to compute rates."
+          }
+        }
+      }
+    },
     "无法读取该文件：请选择 UTF-8 文本格式的密钥文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21251,6 +21427,17 @@
         }
       }
     },
+    "暂无监控记录：需实例运行且面板已开启 vLLM 监控采集。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No monitoring records yet: the instance must be running and vLLM monitoring must be enabled in the panel."
+          }
+        }
+      }
+    },
     "暂无系统日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21841,6 +22028,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Max upload size"
+          }
+        }
+      }
+    },
+    "最大值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum"
           }
         }
       }
@@ -25882,6 +26080,17 @@
         }
       }
     },
+    "生成吞吐" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generation Throughput"
+          }
+        }
+      }
+    },
     "生成随机密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26351,6 +26560,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Monitor"
+          }
+        }
+      }
+    },
+    "监控 · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitor · %@"
           }
         }
       }
@@ -27884,6 +28104,17 @@
         }
       }
     },
+    "端到端延迟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End-to-end Latency"
+          }
+        }
+      }
+    },
     "端口" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28078,6 +28309,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Waiting…"
+          }
+        }
+      }
+    },
+    "等待中请求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting Requests"
           }
         }
       }
@@ -29798,6 +30040,28 @@
         }
       }
     },
+    "聚合方式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggregation"
+          }
+        }
+      }
+    },
+    "聚合方式作用于历史曲线：采样点过多时服务端按时间桶合并，取桶内平均值或最大值。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggregation applies to history charts: when there are too many samples, the server merges them into time buckets using the average or maximum per bucket."
+          }
+        }
+      }
+    },
     "脏页" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30773,6 +31037,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Parsed: Drive ID and Refresh Token filled in"
+          }
+        }
+      }
+    },
+    "解码耗时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decode Time"
           }
         }
       }
@@ -32471,6 +32746,28 @@
         }
       }
     },
+    "请求分析" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requests"
+          }
+        }
+      }
+    },
+    "请求吞吐" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Throughput"
+          }
+        }
+      }
+    },
     "请求数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33578,6 +33875,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Running"
+          }
+        }
+      }
+    },
+    "运行中请求" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running Requests"
           }
         }
       }
@@ -35078,6 +35386,17 @@
         }
       }
     },
+    "采样点较多，已按 %ld 秒分桶聚合。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Many samples; aggregated into %ld-second buckets."
+          }
+        }
+      }
+    },
     "采用旧配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35085,6 +35404,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use Old Config"
+          }
+        }
+      }
+    },
+    "采集状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection Status"
           }
         }
       }
@@ -36409,6 +36739,17 @@
         }
       }
     },
+    "预填充耗时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefill Time"
+          }
+        }
+      }
+    },
     "预检请求快速响应" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36537,6 +36878,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Feishu"
+          }
+        }
+      }
+    },
+    "首 Token 延迟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time to First Token"
           }
         }
       }
