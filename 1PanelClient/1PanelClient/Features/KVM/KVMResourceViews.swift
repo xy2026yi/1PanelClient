@@ -5,9 +5,10 @@
 //  虚拟机资源三段（logs/高级功能-KVM.md 抓包 2026-10-23）：
 //  - 模版：列表 / 删除（默认连同删除磁盘文件，任务式；弹窗确认展示磁盘路径）
 //    模版由虚拟机「转为模版」产生，无独立创建
-//  - 网络：列表 / 创建（NAT·Bridge·Macvtap，CIDR·网关·DHCP 范围）/ 启停 / 开机自启 /
-//    删除（半屏弹窗：强制删除开关 + 输入名称确认）
-//  - 存储池：列表 / 创建（本地目录）/ 启停 / 开机自启 / 删除（同网络）
+//  - 网络：卡片列表（每网络一卡：类型 / CIDR·网关 / DHCP / 桥接 / 关联数 + 启停·自启·
+//    删除按钮行）/ 创建（NAT·Bridge·Macvtap，CIDR·网关·DHCP 范围）；删除走半屏弹窗
+//    （强制删除开关 + 输入名称确认）
+//  - 存储池：卡片列表（路径 + 容量条 + 启停·自启·删除按钮行）/ 创建（本地目录），删除同网络
 //  网络与存储池的启停 / 自启走各自 update 端点单字段提交 {id, status} / {id, autoStart}。
 //
 
@@ -129,14 +130,13 @@ struct KVMNetworkListView: View {
     @ObservedObject var vm: KVMViewModel
 
     @State private var showCreate = false
-    @State private var actionNetwork: KVMNetwork?
     @State private var deleteNetwork: KVMNetwork?
     @State private var forceDelete = false
 
     var body: some View {
         List {
-            Section {
-                if vm.networks.isEmpty {
+            if vm.networks.isEmpty {
+                Section {
                     if vm.isLoading {
                         LoadingStateView(compact: true)
                             .padding(.vertical, 30)
@@ -148,20 +148,11 @@ struct KVMNetworkListView: View {
                         )
                         .listRowBackground(Color.clear)
                     }
-                } else {
-                    ForEach(vm.networks) { network in
-                        Button {
-                            actionNetwork = network
-                        } label: {
-                            networkRow(network)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
-            } footer: {
-                if !vm.networks.isEmpty {
-                    Text(L10n.t("点击网络启停 / 自启 / 删除；有关联虚拟机的网络需强制删除"))
+            } else {
+                // 每个网络一张卡：信息行 + 启停 / 自启 / 删除按钮行
+                ForEach(vm.networks) { network in
+                    networkCard(network)
                 }
             }
         }
@@ -179,15 +170,6 @@ struct KVMNetworkListView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             KVMNetworkFormView(vm: vm)
-        }
-        .sheet(item: $actionNetwork) { network in
-            ActionBottomSheet(
-                title: network.displayName,
-                items: actionItems(network),
-                onDismiss: { actionNetwork = nil }
-            )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(network).count))])
-            .presentationDragIndicator(.visible)
         }
         .sheet(item: $deleteNetwork) { network in
             TextInputConfirmSheet(
@@ -208,75 +190,86 @@ struct KVMNetworkListView: View {
         }
     }
 
-    private func actionItems(_ network: KVMNetwork) -> [ActionMenuItem] {
-        var items: [ActionMenuItem] = []
-        if network.isActive {
-            items.append(ActionMenuItem(title: L10n.t("停止"), icon: "stop.fill", color: .orange) {
-                Task { await vm.setNetworkActive(network, active: false) }
-            })
-        } else {
-            items.append(ActionMenuItem(title: L10n.t("启动"), icon: "play.fill", color: .green) {
-                Task { await vm.setNetworkActive(network, active: true) }
-            })
+    // MARK: 卡片
+
+    /// 单个网络卡：头行（图标 / 名称 / 类型 / 状态）+ 地址信息 + 快捷按钮行
+    private func networkCard(_ network: KVMNetwork) -> some View {
+        Section {
+            HStack(spacing: 12) {
+                IconBadge(systemName: "network", color: .teal)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(network.displayName)
+                            .font(.body.bold())
+                            .lineLimit(1)
+                        StatusBadge(text: KVMNetworkType(rawValue: (network.type ?? "").lowercased())?.displayName
+                                    ?? (network.type ?? "-"), color: .indigo)
+                    }
+                    if let cidr = network.cidr, !cidr.isEmpty {
+                        Text(L10n.f("%@ · 网关 %@", cidr, network.gateway ?? "-"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let start = network.dhcpStart, let end = network.dhcpEnd, !start.isEmpty {
+                        Text("DHCP \(start) – \(end)")
+                            .font(.dataMonospacedFootnote)
+                            .foregroundStyle(.tertiary)
+                    }
+                    HStack(spacing: 8) {
+                        if let bridge = network.bridgeName, !bridge.isEmpty {
+                            Text(bridge)
+                        }
+                        Text(L10n.f("%ld 台虚拟机", network.vmCount ?? 0))
+                        if network.autoStart == true {
+                            Text(L10n.t("开机自启"))
+                        }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    if let error = network.error, !error.isEmpty {
+                        Text(error)
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                            .lineLimit(2)
+                    }
+                }
+                Spacer()
+                StatusBadge(text: network.isActive ? L10n.t("运行中") : L10n.t("已停止"),
+                            color: network.isActive ? .statusRunning : .secondary)
+            }
+            .padding(.vertical, 4)
+            .listRowSeparator(.hidden)
+
+            networkActionRow(network)
         }
-        let autoOn = network.autoStart == true
-        items.append(ActionMenuItem(
-            title: autoOn ? L10n.t("关闭开机自启") : L10n.t("开启开机自启"),
-            icon: autoOn ? "power.circle" : "power.circle.fill", color: .blue
-        ) {
-            Task { await vm.setNetworkAutoStart(network, on: !autoOn) }
-        })
-        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-            deleteNetwork = network
-        })
-        return items
     }
 
-    private func networkRow(_ network: KVMNetwork) -> some View {
-        HStack(spacing: 12) {
-            IconBadge(systemName: "network", color: .teal)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(network.displayName)
-                        .font(.body.bold())
-                        .lineLimit(1)
-                    StatusBadge(text: KVMNetworkType(rawValue: (network.type ?? "").lowercased())?.displayName
-                                ?? (network.type ?? "-"), color: .indigo)
+    /// 启停 / 自启 / 删除三枚按钮（启停与自启按当前状态翻转文案、图标与颜色）
+    private func networkActionRow(_ network: KVMNetwork) -> some View {
+        let autoOn = network.autoStart == true
+        return HStack(spacing: 8) {
+            if network.isActive {
+                CardActionButton(title: L10n.t("停止"), icon: "stop.fill", color: .orange) {
+                    Task { await vm.setNetworkActive(network, active: false) }
                 }
-                if let cidr = network.cidr, !cidr.isEmpty {
-                    Text(L10n.f("%@ · 网关 %@", cidr, network.gateway ?? "-"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if let start = network.dhcpStart, let end = network.dhcpEnd, !start.isEmpty {
-                    Text("DHCP \(start) – \(end)")
-                        .font(.dataMonospacedFootnote)
-                        .foregroundStyle(.tertiary)
-                }
-                HStack(spacing: 8) {
-                    if let bridge = network.bridgeName, !bridge.isEmpty {
-                        Text(bridge)
-                    }
-                    Text(L10n.f("%ld 台虚拟机", network.vmCount ?? 0))
-                    if network.autoStart == true {
-                        Text(L10n.t("开机自启"))
-                    }
-                }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                if let error = network.error, !error.isEmpty {
-                    Text(error)
-                        .font(.caption2)
-                        .foregroundStyle(.red)
-                        .lineLimit(2)
+            } else {
+                CardActionButton(title: L10n.t("启动"), icon: "play.fill", color: .green) {
+                    Task { await vm.setNetworkActive(network, active: true) }
                 }
             }
-            Spacer()
-            StatusBadge(text: network.isActive ? L10n.t("运行中") : L10n.t("已停止"),
-                        color: network.isActive ? .statusRunning : .secondary)
+            CardActionButton(
+                title: autoOn ? L10n.t("关闭开机自启") : L10n.t("开启开机自启"),
+                icon: autoOn ? "power.circle" : "power.circle.fill", color: .blue
+            ) {
+                Task { await vm.setNetworkAutoStart(network, on: !autoOn) }
+            }
+            CardActionButton(title: L10n.t("删除"), icon: "trash", color: .red) {
+                forceDelete = false
+                deleteNetwork = network
+            }
         }
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
+        .padding(.top, 2)
+        .padding(.bottom, 4)
     }
 }
 
@@ -386,14 +379,13 @@ struct KVMStorageListView: View {
     @ObservedObject var vm: KVMViewModel
 
     @State private var showCreate = false
-    @State private var actionPool: KVMStoragePool?
     @State private var deletePool: KVMStoragePool?
     @State private var forceDelete = false
 
     var body: some View {
         List {
-            Section {
-                if vm.storages.isEmpty {
+            if vm.storages.isEmpty {
+                Section {
                     if vm.isLoading {
                         LoadingStateView(compact: true)
                             .padding(.vertical, 30)
@@ -405,20 +397,11 @@ struct KVMStorageListView: View {
                         )
                         .listRowBackground(Color.clear)
                     }
-                } else {
-                    ForEach(vm.storages) { pool in
-                        Button {
-                            actionPool = pool
-                        } label: {
-                            storageRow(pool)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
-            } footer: {
-                if !vm.storages.isEmpty {
-                    Text(L10n.t("点击存储池启停 / 自启 / 删除；有关联虚拟机的存储池需强制删除"))
+            } else {
+                // 每个存储池一张卡：信息行（含容量条）+ 启停 / 自启 / 删除按钮行
+                ForEach(vm.storages) { pool in
+                    storageCard(pool)
                 }
             }
         }
@@ -436,15 +419,6 @@ struct KVMStorageListView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             KVMStorageFormView(vm: vm)
-        }
-        .sheet(item: $actionPool) { pool in
-            ActionBottomSheet(
-                title: pool.displayName,
-                items: actionItems(pool),
-                onDismiss: { actionPool = nil }
-            )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(pool).count))])
-            .presentationDragIndicator(.visible)
         }
         .sheet(item: $deletePool) { pool in
             TextInputConfirmSheet(
@@ -465,78 +439,89 @@ struct KVMStorageListView: View {
         }
     }
 
-    private func actionItems(_ pool: KVMStoragePool) -> [ActionMenuItem] {
-        var items: [ActionMenuItem] = []
-        if pool.isActive {
-            items.append(ActionMenuItem(title: L10n.t("停止"), icon: "stop.fill", color: .orange) {
-                Task { await vm.setStorageActive(pool, active: false) }
-            })
-        } else {
-            items.append(ActionMenuItem(title: L10n.t("启动"), icon: "play.fill", color: .green) {
-                Task { await vm.setStorageActive(pool, active: true) }
-            })
+    // MARK: 卡片
+
+    /// 单个存储池卡：头行（图标 / 名称 / 类型 / 状态）+ 路径 + 容量条 + 快捷按钮行
+    private func storageCard(_ pool: KVMStoragePool) -> some View {
+        Section {
+            HStack(spacing: 12) {
+                IconBadge(systemName: "internaldrive", color: .gray)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(pool.displayName)
+                            .font(.body.bold())
+                            .lineLimit(1)
+                        StatusBadge(text: (pool.type ?? "").lowercased() == "dir" ? L10n.t("本地目录") : (pool.type ?? "-"),
+                                    color: .indigo)
+                    }
+                    Text(pool.path ?? "-")
+                        .font(.dataMonospacedFootnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    if pool.capacity != nil {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ProgressView(value: min(max((pool.usedPercent ?? 0) / 100, 0), 1))
+                                .tint((pool.usedPercent ?? 0) > 90 ? .red : .blue)
+                            Text(MetricFormat.usedOverTotal(pool.usedBytes, pool.capacity)
+                                 + (pool.usedPercent.map { String(format: "（%.1f%%）", $0) } ?? ""))
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .monospacedDigit()
+                        }
+                    }
+                    HStack(spacing: 8) {
+                        Text(L10n.f("%ld 台虚拟机", pool.vmCount ?? 0))
+                        if pool.autoStart == true {
+                            Text(L10n.t("开机自启"))
+                        }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    if let error = pool.error, !error.isEmpty {
+                        Text(error)
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                            .lineLimit(2)
+                    }
+                }
+                Spacer()
+                StatusBadge(text: pool.isActive ? L10n.t("运行中") : L10n.t("已停止"),
+                            color: pool.isActive ? .statusRunning : .secondary)
+            }
+            .padding(.vertical, 4)
+            .listRowSeparator(.hidden)
+
+            storageActionRow(pool)
         }
-        let autoOn = pool.autoStart == true
-        items.append(ActionMenuItem(
-            title: autoOn ? L10n.t("关闭开机自启") : L10n.t("开启开机自启"),
-            icon: autoOn ? "power.circle" : "power.circle.fill", color: .blue
-        ) {
-            Task { await vm.setStorageAutoStart(pool, on: !autoOn) }
-        })
-        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-            deletePool = pool
-        })
-        return items
     }
 
-    private func storageRow(_ pool: KVMStoragePool) -> some View {
-        HStack(spacing: 12) {
-            IconBadge(systemName: "internaldrive", color: .gray)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(pool.displayName)
-                        .font(.body.bold())
-                        .lineLimit(1)
-                    StatusBadge(text: (pool.type ?? "").lowercased() == "dir" ? L10n.t("本地目录") : (pool.type ?? "-"),
-                                color: .indigo)
+    /// 启停 / 自启 / 删除三枚按钮（启停与自启按当前状态翻转文案、图标与颜色）
+    private func storageActionRow(_ pool: KVMStoragePool) -> some View {
+        let autoOn = pool.autoStart == true
+        return HStack(spacing: 8) {
+            if pool.isActive {
+                CardActionButton(title: L10n.t("停止"), icon: "stop.fill", color: .orange) {
+                    Task { await vm.setStorageActive(pool, active: false) }
                 }
-                Text(pool.path ?? "-")
-                    .font(.dataMonospacedFootnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                if pool.capacity != nil {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ProgressView(value: min(max((pool.usedPercent ?? 0) / 100, 0), 1))
-                            .tint((pool.usedPercent ?? 0) > 90 ? .red : .blue)
-                        Text(MetricFormat.usedOverTotal(pool.usedBytes, pool.capacity)
-                             + (pool.usedPercent.map { String(format: "（%.1f%%）", $0) } ?? ""))
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .monospacedDigit()
-                    }
-                }
-                HStack(spacing: 8) {
-                    Text(L10n.f("%ld 台虚拟机", pool.vmCount ?? 0))
-                    if pool.autoStart == true {
-                        Text(L10n.t("开机自启"))
-                    }
-                }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                if let error = pool.error, !error.isEmpty {
-                    Text(error)
-                        .font(.caption2)
-                        .foregroundStyle(.red)
-                        .lineLimit(2)
+            } else {
+                CardActionButton(title: L10n.t("启动"), icon: "play.fill", color: .green) {
+                    Task { await vm.setStorageActive(pool, active: true) }
                 }
             }
-            Spacer()
-            StatusBadge(text: pool.isActive ? L10n.t("运行中") : L10n.t("已停止"),
-                        color: pool.isActive ? .statusRunning : .secondary)
+            CardActionButton(
+                title: autoOn ? L10n.t("关闭开机自启") : L10n.t("开启开机自启"),
+                icon: autoOn ? "power.circle" : "power.circle.fill", color: .blue
+            ) {
+                Task { await vm.setStorageAutoStart(pool, on: !autoOn) }
+            }
+            CardActionButton(title: L10n.t("删除"), icon: "trash", color: .red) {
+                forceDelete = false
+                deletePool = pool
+            }
         }
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
+        .padding(.top, 2)
+        .padding(.bottom, 4)
     }
 }
 

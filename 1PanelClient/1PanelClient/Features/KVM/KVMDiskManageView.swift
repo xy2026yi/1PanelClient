@@ -2,12 +2,12 @@
 //  KVMDiskManageView.swift
 //  1PanelClient
 //
-//  虚拟机磁盘管理（关机态，入口在虚拟机列表长按菜单）：
+//  虚拟机磁盘管理（关机态，入口在虚拟机卡片「磁盘管理」按钮）：
 //  进页 POST /xpack/vms/info {name, checkDisks:true} 取逐盘可扩容判定——
-//  disks[].resizeBlocked 非空（如 "backing" 挂在快照链上）即不可扩容。
-//  磁盘列表展示 设备 / 总线 / 格式 / 容量 / 源路径 + 不可扩容标记；
-//  扩容表单：设备（仅可选可扩容磁盘）/ 磁盘容量（当前）/ 扩容后总容量，
-//  提交 POST /xpack/vms/disks/resize {name, target, sizeGiB, taskID} →
+//  disks[].resizeBlocked 非空（如 "backing" 挂在快照链上）即不可扩容；
+//  光驱不展示（扩容仅针对硬盘）。磁盘列表展示 设备 / 总线 / 格式 / 容量 /
+//  源路径 + 不可扩容标记；扩容表单：设备（仅可选可扩容磁盘）/ 磁盘容量（当前）/
+//  扩容后总容量，提交 POST /xpack/vms/disks/resize {name, target, sizeGiB, taskID} →
 //  页内推入任务进度（operateNode=local），完成后重拉 info 与虚拟机列表。
 //
 
@@ -41,7 +41,10 @@ struct KVMDiskManageView: View {
         vm.vms.first { $0.id == initial.id } ?? initial
     }
 
-    private var disks: [KVMDisk] { info?.disks ?? machine.disks ?? [] }
+    /// 磁盘列表不含光驱（扩容仅针对硬盘，光驱不展示）
+    private var disks: [KVMDisk] {
+        (info?.disks ?? machine.disks ?? []).filter { ($0.device ?? "disk") != "cdrom" }
+    }
 
     /// 可扩容磁盘（非 cdrom 且 resizeBlocked 为空）
     private var resizableDisks: [KVMDisk] {
@@ -138,7 +141,7 @@ struct KVMDiskManageView: View {
     private func diskRow(_ disk: KVMDisk) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Image(systemName: disk.device == "cdrom" ? "opticaldisc" : "internaldrive")
+                Image(systemName: "internaldrive")
                     .foregroundStyle(.secondary)
                 Text("\(disk.target ?? "-") · \(disk.bus ?? "-") · \(disk.format ?? "-")")
                     .font(.subheadline.weight(.medium))
@@ -148,9 +151,7 @@ struct KVMDiskManageView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if disk.device == "cdrom" {
-                    StatusBadge(text: L10n.t("光驱"), color: .secondary)
-                } else if !disk.isResizable {
+                if !disk.isResizable {
                     StatusBadge(text: L10n.t("不可扩容"), color: .statusError)
                 }
             }
@@ -159,7 +160,7 @@ struct KVMDiskManageView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
-            if !disk.isResizable, disk.device != "cdrom", !disk.resizeBlockedDisplay.isEmpty {
+            if !disk.isResizable, !disk.resizeBlockedDisplay.isEmpty {
                 Text(L10n.f("原因：%@", disk.resizeBlockedDisplay))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)

@@ -598,8 +598,18 @@ struct OutlinedPicker: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }) {
-                Text(display(selection))
-                    .foregroundStyle(.primary)
+                // iOS 26：Menu 收起合成动画期间标签若因换值变宽/变窄会触发重排
+                //（控制台 "Decomposition of 'position' was requested…" 且落位抖动）。
+                // 值文本以全部选项的最宽者作足迹（隐藏占位），切换选项时帧不变，
+                // 左对齐显示与原视觉一致
+                ZStack(alignment: .leading) {
+                    ForEach(options, id: \.self) { option in
+                        Text(display(option))
+                    }
+                    .hidden()
+                    Text(display(selection))
+                        .foregroundStyle(.primary)
+                }
             }
         }
     }

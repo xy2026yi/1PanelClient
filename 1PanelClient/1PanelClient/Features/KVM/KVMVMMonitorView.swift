@@ -2,7 +2,7 @@
 //  KVMVMMonitorView.swift
 //  1PanelClient
 //
-//  虚拟机实时监控图表页（POST /xpack/vms/stats，入口在虚拟机列表长按菜单，仅运行态）：
+//  虚拟机实时监控图表页（POST /xpack/vms/stats，入口在虚拟机卡片「监控」按钮，仅运行态）：
 //  与容器监控（ContainerMonitorView）同款四张曲线图——CPU 使用率 / 内存(已用 MB) /
 //  磁盘 I/O(读·写 MB/s) / 网络(接收·发送 KB/s)。stats 为累计型计数（cpuTime 纳秒、
 //  磁盘与网络字节），CPU% 与速率由相邻两次采样求差得出，3 秒一采（首个样本无差值，

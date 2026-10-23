@@ -750,17 +750,6 @@
         }
       }
     },
-    "%ld 失败" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld failed"
-          }
-        }
-      }
-    },
     "%ld 条" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -856,28 +845,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld lines · %ld chars"
-          }
-        }
-      }
-    },
-    "%ld 警告" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld warnings"
-          }
-        }
-      }
-    },
-    "%ld 通过" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld passed"
           }
         }
       }
@@ -9030,28 +8997,6 @@
         }
       }
     },
-    "删除（保留源文件）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete (keep source file)"
-          }
-        }
-      }
-    },
-    "删除（保留磁盘文件）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete (keep disk file)"
-          }
-        }
-      }
-    },
     "删除（所有）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9378,28 +9323,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Pairing"
-          }
-        }
-      }
-    },
-    "删除并删除源文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete with source file"
-          }
-        }
-      }
-    },
-    "删除并删除磁盘文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete with disk file"
           }
         }
       }
@@ -14167,17 +14090,6 @@
         }
       }
     },
-    "实时监控" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live metrics"
-          }
-        }
-      }
-    },
     "客户端 ID" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14438,17 +14350,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Capacity"
-          }
-        }
-      }
-    },
-    "宿主机常驻（RSS）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Host resident memory (RSS)"
           }
         }
       }
@@ -14959,28 +14860,6 @@
         }
       }
     },
-    "封锁次数" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Block Count"
-          }
-        }
-      }
-    },
-    "封锁至" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blocked Until"
-          }
-        }
-      }
-    },
     "封锁记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15212,17 +15091,6 @@
         }
       }
     },
-    "将删除存储池「%@」（不删除目录内文件），是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete storage pool \"%@\" (files in the directory are kept)?"
-          }
-        }
-      }
-    },
     "将删除实例「%@」的全部历史监控数据，该操作无法回滚，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15241,39 +15109,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes the model directory \"%@\" and its files on the server and cannot be undone. Type the model name to confirm."
-          }
-        }
-      }
-    },
-    "将删除模版「%@」及其磁盘文件，不可恢复，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This deletes template \"%@\" and its disk file. This cannot be undone. Continue?"
-          }
-        }
-      }
-    },
-    "将删除模版记录「%@」（保留磁盘文件），是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete template record \"%@\" (disk file kept)?"
-          }
-        }
-      }
-    },
-    "将删除网络「%@」，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete network \"%@\"?"
           }
         }
       }
@@ -15307,28 +15142,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes the %ld selected websites and their configs. This cannot be undone. Continue?"
-          }
-        }
-      }
-    },
-    "将删除镜像「%@」并删除服务器上的源文件，不可恢复，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This deletes image \"%@\" and its source file on the server. This cannot be undone. Continue?"
-          }
-        }
-      }
-    },
-    "将删除镜像记录「%@」（保留服务器上的源文件），是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete image record \"%@\" (source file kept)?"
           }
         }
       }
@@ -15575,17 +15388,6 @@
         }
       }
     },
-    "将对网站「%@」进行 %@ 操作，任务已提交" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ on website \"%@\" submitted"
-          }
-        }
-      }
-    },
     "将对网站「%@」进行 %@ 操作，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15659,28 +15461,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply the \"%1$@\" scheme and restart %2$@? The database will be briefly unavailable."
-          }
-        }
-      }
-    },
-    "将强制删除存储池「%@」（不删除目录内文件），是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Force delete storage pool \"%@\" (files in the directory are kept)?"
-          }
-        }
-      }
-    },
-    "将强制删除网络「%@」，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Force delete network \"%@\"?"
           }
         }
       }
@@ -25563,17 +25343,6 @@
         }
       }
     },
-    "每 3 秒采样一次；CPU 使用率与速率由相邻两次累计值求差得出，首次采样后显示。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sampled every 3 seconds; CPU usage and rates are derived from consecutive cumulative values and appear after the first sample."
-          }
-        }
-      }
-    },
     "每个指标生成一个独立工作表。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27279,17 +27048,6 @@
         }
       }
     },
-    "点击存储池启停 / 自启 / 删除；有关联虚拟机的存储池不可删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a pool to start/stop, toggle autostart or delete; pools with attached VMs cannot be deleted"
-          }
-        }
-      }
-    },
     "点击实例查看操作，长命令启动参数以模板为准" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27352,39 +27110,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap a template to delete it; deleting does not affect virtual machines created from it"
-          }
-        }
-      }
-    },
-    "点击网络启停 / 自启 / 删除；有关联虚拟机的网络不可删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a network to start/stop, toggle autostart or delete; networks with attached VMs cannot be deleted"
-          }
-        }
-      }
-    },
-    "点击虚拟机查看操作；编辑 / 重命名 / 转为模版 / 恢复快照需先关机" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a virtual machine for actions; edit / rename / template / snapshot restore require it to be shut off"
-          }
-        }
-      }
-    },
-    "点击镜像编辑或删除；上传 / 下载中的镜像完成后状态变为就绪" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap an image to edit or delete; uploading / downloading images become ready when finished"
           }
         }
       }
@@ -29127,17 +28852,6 @@
         }
       }
     },
-    "磁盘写入" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disk write"
-          }
-        }
-      }
-    },
     "磁盘占用过高" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29233,17 +28947,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disk Read"
-          }
-        }
-      }
-    },
-    "磁盘读取" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disk read"
           }
         }
       }
@@ -30502,17 +30205,6 @@
         }
       }
     },
-    "累计 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "total %@"
-          }
-        }
-      }
-    },
     "线程会话" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31646,17 +31338,6 @@
         }
       }
     },
-    "网络发送" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Network TX"
-          }
-        }
-      }
-    },
     "网络名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31664,17 +31345,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Network Name"
-          }
-        }
-      }
-    },
-    "网络接收" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Network RX"
           }
         }
       }
@@ -32511,17 +32181,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Virtual machines"
-          }
-        }
-      }
-    },
-    "虚拟机未运行，无实时监控数据" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The virtual machine is not running; no live metrics"
           }
         }
       }
@@ -37223,17 +36882,6 @@
         }
       }
     },
-    "采样中…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sampling…"
-          }
-        }
-      }
-    },
     "采样位" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39247,17 +38895,6 @@
         }
       }
     },
-    "点击进入详情，长按打开操作菜单；编辑 / 重命名 / 转为模版 / 恢复快照需先关机" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a VM for details, long-press for the action menu; edit / rename / convert to template / snapshot recovery require the VM to be shut off first"
-          }
-        }
-      }
-    },
     "已执行「%@」" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39309,17 +38946,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disks can be expanded only while the VM is shut off; disks on a snapshot chain (backing file) or read-only disks cannot be expanded."
-          }
-        }
-      }
-    },
-    "光驱" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CD-ROM"
           }
         }
       }
@@ -39456,17 +39082,6 @@
         }
       }
     },
-    "点击网络启停 / 自启 / 删除；有关联虚拟机的网络需强制删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a network to start / stop, toggle autostart, or delete; networks with attached VMs require force delete"
-          }
-        }
-      }
-    },
     "将删除网络「%@」，该操作不可回滚。如果确认操作，请手动输入 %@。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39474,17 +39089,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Network “%@” will be deleted; this cannot be undone. If you confirm, type %@ manually."
-          }
-        }
-      }
-    },
-    "点击存储池启停 / 自启 / 删除；有关联虚拟机的存储池需强制删除" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap a storage pool to start / stop, toggle autostart, or delete; pools with attached VMs require force delete"
           }
         }
       }
