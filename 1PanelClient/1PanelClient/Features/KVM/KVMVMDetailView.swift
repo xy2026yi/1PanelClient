@@ -117,12 +117,21 @@ struct KVMVMDetailView: View {
                 KVMStatusBadge(status: machine.status)
             }
             if let graphics = machine.graphics {
-                InfoRow(L10n.t("控制台"),
-                        value: "\((graphics.type ?? "vnc").uppercased()) \(graphics.listen ?? "-"):\(graphics.port ?? "-")",
-                        monospaced: true)
+                NavigationLink {
+                    KVMVNCConsoleView(server: vm.server, machineName: machine.displayName)
+                } label: {
+                    HStack {
+                        Label(L10n.t("控制台"), systemImage: "rectangle.on.rectangle")
+                        Spacer()
+                        Text("\(graphics.type ?? "vnc").uppercased() \(graphics.listen ?? ""):\(graphics.port ?? "")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
         } footer: {
-            Text(L10n.t("VNC 控制台请在面板网页端打开；此处仅展示监听地址与端口。"))
+            Text(L10n.t("控制台为 VNC 图形界面：轻点左键、长按右键、拖动移动指针，捏合缩放；右上角键盘可输入。"))
         }
     }
 

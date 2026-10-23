@@ -1,0 +1,999 @@
+//
+//  KVMVNCConsoleView.swift
+//  1PanelClient
+//
+//  虚拟机 VNC 控制台（MVP）：WS /xpack/vms/console/ws?name=&operateNode=local 承载
+//  裸 RFB 3.8 字节流（logs/vnc_ws_dump.txt 抓包为联调 ground truth）。
+//  - 鉴权在 WS/HTTP 层（1Panel-Token，与终端同款），RFB 安全类型 None（抓包实证）；
+//  - 像素格式固定 32bpp/24bit 真彩小端、shifts 16/8/0（服务端原生 BGRA，
+//    直接写入 byteOrder32Little + noneSkipFirst 位图，零逐像素转换）；
+//  - 编码只宣告 RAW + CopyRect + DesktopSize 伪编码（服务端只能从客户端集合里选），
+//    不宣告光标伪编码——qemu 会把客户机光标画进帧缓冲；压缩编码留二期；
+//  - 键盘用标准 KeyEvent（keysym），QEMU 扩展键码留二期；
+//  - WS 帧与 RFB 消息边界不对齐（代理按 TCP 块切分，抓包实证），必须流式拼装。
+//  输入：轻点=左键、长按=右键、拖动=移动指针；捏合缩放（缩放中双指拖动平移）；
+//  底部键盘栏接收英文/符号（IME 无法映射 keysym）+ 方向/功能键与粘滞修饰键。
+//
+
+import SwiftUI
+import CryptoKit
+import Combine
+
+// MARK: - RFB 字节序辅助
+
+nonisolated enum RFBBytes {
+    static func be16(_ value: UInt16) -> [UInt8] {
+        [UInt8(value >> 8), UInt8(value & 0xff)]
+    }
+
+    static func be32(_ value: UInt32) -> [UInt8] {
+        [UInt8(value >> 24), UInt8(value >> 16 & 0xff),
+         UInt8(value >> 8 & 0xff), UInt8(value & 0xff)]
+    }
+
+    /// 大端 u32（Data 任意切片安全：按 startIndex 寻址）
+    static func u32(_ data: Data) -> UInt32? {
+        guard data.count == 4 else { return nil }
+        let i = data.startIndex
+        return UInt32(data[i]) << 24 | UInt32(data[i + 1]) << 16
+            | UInt32(data[i + 2]) << 8 | UInt32(data[i + 3])
+    }
+}
+
+// MARK: - RFB 客户端消息编码（字节形状对齐抓包）
+
+nonisolated enum RFBClientEncoder {
+    /// 协议版本（抓包帧 1/2：524642203030332e3030380a）
+    static func protocolVersion() -> Data { Data("RFB 003.008\n".utf8) }
+
+    /// 选择安全类型 None=1（抓包帧 4：01）
+    static func securitySelect() -> Data { Data([0x01]) }
+
+    /// ClientInit shared=1（抓包帧 6：01）
+    static func clientInit() -> Data { Data([0x01]) }
+
+    /// SetPixelFormat：32bpp / 24bit / 小端 / 真彩 / max 255·255·255 /
+    /// shifts R=16 G=8 B=0（服务端原生 BGRA 字节序，帧缓冲可直接落位）
+    static func setPixelFormat() -> Data {
+        Data([0x00, 0x00, 0x00, 0x00,             // 类型 0 + 3 字节填充
+              0x20, 0x18, 0x00, 0x01,             // 32bpp / 24bit / 小端 / 真彩
+              0x00, 0xff, 0x00, 0xff, 0x00, 0xff, // max 255·255·255
+              0x10, 0x08, 0x00,                   // shifts R=16 G=8 B=0
+              0x00, 0x00, 0x00])                  // 3 字节填充
+    }
+
+    /// SetEncodings：RAW(0) + CopyRect(1) + DesktopSize(-223)。
+    /// 不含光标伪编码（-239）→ qemu 把客户机光标直接画进帧缓冲
+    static func setEncodings() -> Data {
+        let encodings: [Int32] = [0, 1, -223]
+        var data = Data([0x02, 0x00, 0x00])
+        data.append(contentsOf: RFBBytes.be16(UInt16(encodings.count)))
+        for encoding in encodings {
+            data.append(contentsOf: RFBBytes.be32(UInt32(bitPattern: encoding)))
+        }
+        return data
+    }
+
+    /// FramebufferUpdateRequest（抓包帧 10 全量：03000000000004000300；增量：0301…）
+    static func framebufferUpdateRequest(incremental: Bool, width: Int, height: Int) -> Data {
+        var data = Data([0x03, incremental ? 0x01 : 0x00])
+        data.append(contentsOf: RFBBytes.be16(0))
+        data.append(contentsOf: RFBBytes.be16(0))
+        data.append(contentsOf: RFBBytes.be16(UInt16(width)))
+        data.append(contentsOf: RFBBytes.be16(UInt16(height)))
+        return data
+    }
+
+    /// PointerEvent（抓包：0500026f021c = 移动 623,540；05 01 … = 左键按下）
+    static func pointerEvent(buttonMask: UInt8, x: Int, y: Int) -> Data {
+        var data = Data([0x05, buttonMask])
+        data.append(contentsOf: RFBBytes.be16(UInt16(x)))
+        data.append(contentsOf: RFBBytes.be16(UInt16(y)))
+        return data
+    }
+
+    /// 标准 KeyEvent（类型 4）
+    static func keyEvent(down: Bool, keysym: UInt32) -> Data {
+        var data = Data([0x04, down ? 0x01 : 0x00, 0x00, 0x00])
+        data.append(contentsOf: RFBBytes.be32(keysym))
+        return data
+    }
+}
+
+// MARK: - ServerInit 解析（抓包帧 7 样本见单测）
+
+nonisolated struct RFBServerInit: Equatable {
+    let width: Int
+    let height: Int
+    /// 服务端名称（如 "QEMU (teat1)"）
+    let name: String
+
+    /// 解析 ServerInit 报文（w×h + 16 字节像素格式 + u32 名称长度 + 名称）
+    static func parse(_ data: Data) -> RFBServerInit? {
+        guard data.count >= 24,
+              let nameLength = RFBBytes.u32(data.subdata(in: 20..<24)),
+              nameLength <= 4096, data.count >= 24 + Int(nameLength) else { return nil }
+        let i = data.startIndex
+        let width = Int(data[i]) << 8 | Int(data[i + 1])
+        let height = Int(data[i + 2]) << 8 | Int(data[i + 3])
+        let nameData = data.subdata(in: 24..<(24 + Int(nameLength)))
+        return RFBServerInit(width: width, height: height,
+                             name: String(data: nameData, encoding: .utf8) ?? "")
+    }
+}
+
+// MARK: - 服务端消息（ServerInit 之后的正常阶段）
+
+nonisolated enum RFBServerMessage: Equatable {
+    /// 一批帧更新全部落位（客户端应补发一次增量请求）
+    case updateComplete
+    case rawRect(x: Int, y: Int, width: Int, height: Int, pixels: Data)
+    case copyRect(x: Int, y: Int, width: Int, height: Int, sourceX: Int, sourceY: Int)
+    /// 分辨率变化（重置帧缓冲并补发全量请求）
+    case desktopSize(width: Int, height: Int)
+    case bell
+    case serverCutText(String)
+    /// 已消费但客户端无需处理的消息（如 SetColourMapEntries）
+    case ignored
+}
+
+/// RFB 字节流 → 服务端消息。WS 帧边界与消息边界不对齐（代理按 TCP 块切分），
+/// 内部缓存拼装；feed 可任意切块（单测按乱块喂入验证）
+nonisolated final class RFBMessageAssembler {
+    /// 解析出错（未知消息类型 / 未宣告的编码 / 非法长度）——连接应断开
+    var onError: ((String) -> Void)?
+    var onMessage: ((RFBServerMessage) -> Void)?
+
+    private var buffer = Data()
+    /// 当前帧更新批次剩余矩形数（跨 feed 保存）
+    private var pendingRects = 0
+
+    /// 复位内部缓存与批次状态（重连时调用）
+    func reset() {
+        buffer.removeAll()
+        pendingRects = 0
+    }
+
+    func feed(_ data: Data) {
+        buffer.append(data)
+        while true {
+            if pendingRects > 0 {
+                guard let message = tryTakeRect() else { return }
+                var isDesktopSize = false
+                if case .desktopSize = message { isDesktopSize = true }
+                onMessage?(message)
+                if isDesktopSize || pendingRects == 0 {
+                    onMessage?(.updateComplete)
+                }
+            } else if let rectCount = tryTakeUpdateHeader() {
+                pendingRects = rectCount
+                if rectCount == 0 { onMessage?(.updateComplete) }
+            } else if let message = tryTakeNormalMessage() {
+                onMessage?(message)
+            } else {
+                return  // 字节不足，等下一帧
+            }
+        }
+    }
+
+    // MARK: 内部读取（字节不足时不动缓存返回 nil）
+
+    private func take(_ count: Int) -> Data? {
+        guard buffer.count >= count else { return nil }
+        let sub = buffer.subdata(in: buffer.startIndex..<(buffer.startIndex + count))
+        buffer.removeFirst(count)
+        return sub
+    }
+
+    private func peekU16(_ index: Int) -> Int? {
+        let i = buffer.startIndex + index
+        guard buffer.count > index + 1 else { return nil }
+        return Int(buffer[i]) << 8 | Int(buffer[i + 1])
+    }
+
+    /// 帧更新头（类型 0 + 填充 + 矩形数）；非帧更新返回 nil（不消费字节）。
+    /// 矩形数在移除头部之前读（先 take 再 peek 会读到矩形头的 x 坐标）
+    private func tryTakeUpdateHeader() -> Int? {
+        guard buffer.count >= 4, buffer[buffer.startIndex] == 0 else { return nil }
+        let rectCount = peekU16(2) ?? 0
+        _ = take(4)
+        return rectCount
+    }
+
+    /// 单个矩形（12 字节头 + 按 encoding 定长负载）
+    private func tryTakeRect() -> RFBServerMessage? {
+        guard buffer.count >= 12 else { return nil }
+        guard let x = peekU16(0), let y = peekU16(2),
+              let width = peekU16(4), let height = peekU16(6),
+              let e0 = peekU16(8), let e1 = peekU16(10) else { return nil }
+        let encoding = Int32(bitPattern: UInt32(e0) << 16 | UInt32(e1))
+
+        switch encoding {
+        case 0:  // RAW
+            let byteCount = width * height * 4
+            guard width > 0, height > 0, byteCount <= 64 * 1024 * 1024 else {
+                onError?(String(format: "Illegal RAW rect %dx%d", width, height))
+                return nil
+            }
+            guard let payload = take(12 + byteCount) else { return nil }
+            pendingRects -= 1
+            let pixels = payload.suffix(byteCount)
+            return .rawRect(x: x, y: y, width: width, height: height, pixels: pixels)
+        case 1:  // CopyRect
+            guard let payload = take(16), payload.count == 16 else { return nil }
+            let sx = Int(payload[payload.startIndex + 12]) << 8 | Int(payload[payload.startIndex + 13])
+            let sy = Int(payload[payload.startIndex + 14]) << 8 | Int(payload[payload.startIndex + 15])
+            pendingRects -= 1
+            return .copyRect(x: x, y: y, width: width, height: height, sourceX: sx, sourceY: sy)
+        case -223:  // DesktopSize 伪编码
+            _ = take(12)
+            pendingRects = 0
+            return .desktopSize(width: width, height: height)
+        default:
+            onError?(String(format: "Unannounced encoding %d (%dx%d@%d,%d)",
+                            encoding, width, height, x, y))
+            return nil
+        }
+    }
+
+    /// 帧更新之外的普通消息（Bell / ServerCutText / SetColourMapEntries）
+    private func tryTakeNormalMessage() -> RFBServerMessage? {
+        guard let type = buffer.first else { return nil }
+        switch type {
+        case 1:  // SetColourMapEntries：填充 2 + first 2 + count 2 + count*6
+            guard let count = peekU16(4) else { return nil }
+            guard take(6 + count * 6) != nil else { return nil }
+            return .ignored
+        case 2:  // Bell
+            _ = take(1)
+            return .bell
+        case 3:  // ServerCutText：填充 3 + u32 长度 + 文本
+            guard buffer.count >= 8,
+                  let lengthValue = RFBBytes.u32(buffer.subdata(
+                    in: (buffer.startIndex + 4)..<(buffer.startIndex + 8))) else { return nil }
+            let length = Int(lengthValue & 0x7fffffff)
+            guard length <= 1_048_576, let text = take(8 + length) else {
+                if length > 1_048_576 { onError?("ServerCutText too long: \(length)") }
+                return nil
+            }
+            return .serverCutText(String(data: text.suffix(length), encoding: .utf8) ?? "")
+        default:
+            onError?(String(format: "Unknown message type %d", type))
+            return nil
+        }
+    }
+}
+
+// MARK: - 帧缓冲（BGRA 32bpp）
+
+/// 服务端原生字节序（shifts 16/8/0 小端 = BGRA）直接落位，
+/// CGImage 用 byteOrder32Little + noneSkipFirst 零转换成像
+nonisolated final class RFBFramebuffer {
+    private(set) var width: Int
+    private(set) var height: Int
+    /// BGRA 逐行存储
+    private(set) var pixels: [UInt8]
+
+    init(width: Int, height: Int) {
+        self.width = max(width, 1)
+        self.height = max(height, 1)
+        pixels = [UInt8](repeating: 0, count: self.width * self.height * 4)
+    }
+
+    /// RAW 矩形落位（越界部分裁剪——服务端贴边矩形可能越帧缘）
+    func applyRaw(x: Int, y: Int, width: Int, height: Int, pixels: Data) {
+        guard pixels.count >= width * height * 4 else { return }
+        let copyWidth = min(width, self.width - x)
+        let copyHeight = min(height, self.height - y)
+        guard copyWidth > 0, copyHeight > 0, x >= 0, y >= 0 else { return }
+        pixels.withUnsafeBytes { (source: UnsafeRawBufferPointer) in
+            for row in 0..<copyHeight {
+                let sourceOffset = row * width * 4
+                let targetStart = ((y + row) * self.width + x) * 4
+                self.pixels.replaceSubrange(targetStart..<(targetStart + copyWidth * 4),
+                    with: source[sourceOffset..<(sourceOffset + copyWidth * 4)]
+                        .bindMemory(to: UInt8.self))
+            }
+        }
+    }
+
+    /// CopyRect：帧内区域搬移（源与目标可能重叠，先拷出再写回）
+    func applyCopyRect(x: Int, y: Int, width: Int, height: Int, sourceX: Int, sourceY: Int) {
+        let copyWidth = min(width, self.width - x, self.width - sourceX)
+        let copyHeight = min(height, self.height - y, self.height - sourceY)
+        guard copyWidth > 0, copyHeight > 0, x >= 0, y >= 0, sourceX >= 0, sourceY >= 0 else { return }
+        var staging = [UInt8](repeating: 0, count: copyWidth * copyHeight * 4)
+        for row in 0..<copyHeight {
+            let sourceStart = ((sourceY + row) * self.width + sourceX) * 4
+            staging.replaceSubrange((row * copyWidth * 4)..<((row + 1) * copyWidth * 4),
+                                    with: pixels[sourceStart..<(sourceStart + copyWidth * 4)])
+        }
+        for row in 0..<copyHeight {
+            let targetStart = ((y + row) * self.width + x) * 4
+            pixels.replaceSubrange(targetStart..<(targetStart + copyWidth * 4),
+                                    with: staging[(row * copyWidth * 4)..<((row + 1) * copyWidth * 4)])
+        }
+    }
+
+    /// 分辨率变化：重置（内容未定义，清黑）
+    func resize(width: Int, height: Int) {
+        self.width = max(width, 1)
+        self.height = max(height, 1)
+        pixels = [UInt8](repeating: 0, count: self.width * self.height * 4)
+    }
+
+    /// 指定坐标像素（BGRA 四字节；单测用）
+    func pixel(x: Int, y: Int) -> (UInt8, UInt8, UInt8, UInt8)? {
+        guard x >= 0, y >= 0, x < width, y < height else { return nil }
+        let start = (y * width + x) * 4
+        return (pixels[start], pixels[start + 1], pixels[start + 2], pixels[start + 3])
+    }
+
+    /// 当前帧成像（像素拷贝一份供 CGImage 持有）
+    func makeImage() -> CGImage? {
+        var copy = pixels
+        return copy.withUnsafeMutableBytes { (buffer: UnsafeMutableRawBufferPointer) in
+            guard let base = buffer.baseAddress else { return nil }
+            guard let context = CGContext(
+                data: base, width: width, height: height,
+                bitsPerComponent: 8, bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+                    | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
+            return context.makeImage()
+        }
+    }
+}
+
+// MARK: - X11 keysym
+
+nonisolated enum RFBKeysym {
+    static let backspace: UInt32 = 0xff08
+    static let tab: UInt32 = 0xff09
+    static let enter: UInt32 = 0xff0d
+    static let escape: UInt32 = 0xff1b
+    static let left: UInt32 = 0xff51
+    static let up: UInt32 = 0xff52
+    static let right: UInt32 = 0xff53
+    static let down: UInt32 = 0xff54
+    static let shift: UInt32 = 0xffe1
+    static let control: UInt32 = 0xffe3
+    static let alt: UInt32 = 0xffe9
+
+    /// 字符 → keysym：Latin-1 区间（0x20...0xff）码点即 keysym；
+    /// 换行归一为 Return；中文 / emoji 等 IME 字符无法映射返回 nil
+    static func keysym(for character: Character) -> UInt32? {
+        guard let scalar = character.unicodeScalars.first, character.unicodeScalars.count == 1 else {
+            return nil
+        }
+        if scalar == "\n" || scalar == "\r" { return enter }
+        let value = scalar.value
+        return (0x20...0xff).contains(value) ? value : nil
+    }
+}
+
+// MARK: - VNC 会话
+
+@MainActor
+final class KVMVNCSession: ObservableObject {
+    enum ConnectionState: Equatable {
+        case idle, connecting, connected
+        case failed(String)
+    }
+
+    @Published private(set) var state: ConnectionState = .idle
+    @Published private(set) var framebufferImage: CGImage?
+    @Published private(set) var framebufferSize: CGSize = .zero
+    @Published private(set) var serverName: String = ""
+    /// 收到的帧更新批次数（状态条显示）
+    @Published private(set) var updateBatches = 0
+
+    let server: ServerConfig
+    let vmName: String
+
+    private var task: URLSessionWebSocketTask?
+    private lazy var urlSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = .infinity
+        config.timeoutIntervalForResource = .infinity
+        return URLSession(configuration: config)
+    }()
+    private var receiveTask: Task<Void, Never>?
+    private var pingTask: Task<Void, Never>?
+    private var framebuffer: RFBFramebuffer?
+    private let assembler = RFBMessageAssembler()
+    /// 握手阶段字节缓存（版本 → 安全类型 → 结果 → ServerInit）
+    private var handshakeBuffer = Data()
+    private enum HandshakePhase { case version, securityTypes, securityResult, serverInit, normal }
+    private var handshakePhase: HandshakePhase = .version
+    private var generation = 0
+
+    init(server: ServerConfig, vmName: String) {
+        self.server = server
+        self.vmName = vmName
+        assembler.onMessage = { [weak self] message in
+            Task { @MainActor in self?.handle(message) }
+        }
+        assembler.onError = { [weak self] reason in
+            Task { @MainActor in self?.fail(reason) }
+        }
+    }
+
+    deinit {
+        receiveTask?.cancel()
+        pingTask?.cancel()
+        task?.cancel(with: .goingAway, reason: nil)
+    }
+
+    // MARK: 连接（鉴权与 URL 构造与终端同款）
+
+    func connect() {
+        guard state != .connecting, state != .connected else { return }
+        state = .connecting
+        handshakePhase = .version
+        handshakeBuffer = Data()
+        assembler.reset()
+        framebuffer = nil
+        framebufferImage = nil
+        updateBatches = 0
+
+        generation += 1
+        receiveTask?.cancel()
+        pingTask?.cancel()
+        task?.cancel(with: .goingAway, reason: nil)
+
+        guard let url = makeWebSocketURL() else {
+            fail(L10n.t("无法构造控制台连接地址"))
+            return
+        }
+        var request = URLRequest(url: url)
+        for (k, v) in authHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+
+        let gen = generation
+        let ws = urlSession.webSocketTask(with: request)
+        ws.resume()
+        task = ws
+        receiveTask = Task { [weak self] in await self?.receiveLoop(gen: gen) }
+        pingTask = Task { [weak self] in await self?.pingLoop(gen: gen) }
+    }
+
+    func disconnect() {
+        generation += 1
+        receiveTask?.cancel()
+        pingTask?.cancel()
+        task?.cancel(with: .normalClosure, reason: nil)
+        task = nil
+        state = .idle
+    }
+
+    private func makeWebSocketURL() -> URL? {
+        guard var comp = URLComponents(string: server.normalizedBaseURL) else { return nil }
+        comp.scheme = comp.scheme == "https" ? "wss" : "ws"
+        comp.path = "/api/v2/xpack/vms/console/ws"
+        comp.queryItems = [
+            URLQueryItem(name: "name", value: vmName),
+            URLQueryItem(name: "operateNode", value: "local"),
+        ]
+        return comp.url
+    }
+
+    private func authHeaders() -> [String: String] {
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        let raw = "1panel" + server.apiKey + timestamp
+        let digest = Insecure.MD5.hash(data: Data(raw.utf8))
+        let token = digest.map { String(format: "%02x", $0) }.joined()
+        return ["1Panel-Token": token, "1Panel-Timestamp": timestamp]
+    }
+
+    // MARK: 接收循环
+
+    private func receiveLoop(gen: Int) async {
+        guard let task else { return }
+        while !Task.isCancelled {
+            do {
+                let message = try await task.receive()
+                guard gen == self.generation else { return }
+                guard case .data(let data) = message else { continue }  // VNC 只有二进制帧
+                ingest(data)
+            } catch {
+                guard gen == self.generation, !Task.isCancelled else { return }
+                fail(L10n.f("连接已断开：%@", error.localizedDescription))
+                return
+            }
+        }
+    }
+
+    private func pingLoop(gen: Int) async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(10))
+            guard gen == self.generation, let task else { break }
+            task.sendPing { [weak self] error in
+                guard error != nil else { return }
+                Task { @MainActor in
+                    guard gen == self?.generation else { return }
+                    self?.fail(L10n.t("连接已断开"))
+                }
+            }
+        }
+    }
+
+    // MARK: 握手与消息分发
+
+    private func ingest(_ data: Data) {
+        switch handshakePhase {
+        case .version:
+            handshakeBuffer.append(data)
+            guard handshakeBuffer.count >= 12 else { return }
+            let version = handshakeBuffer.prefix(12)
+            handshakeBuffer.removeFirst(12)
+            guard version.starts(with: Data("RFB ".utf8)) else {
+                fail(L10n.f("非 RFB 协议：%@", String(decoding: version, as: UTF8.self)))
+                return
+            }
+            send(RFBClientEncoder.protocolVersion())
+            handshakePhase = .securityTypes
+            continueHandshake()
+
+        case .securityTypes:
+            handshakeBuffer.append(data)
+            guard let typeCount = handshakeBuffer.first else { return }
+            if typeCount == 0 {
+                // 0 = 失败：u32 原因长度 + 文本
+                guard handshakeBuffer.count >= 5,
+                      let length = RFBBytes.u32(handshakeBuffer.subdata(in: 1..<5)) else { return }
+                guard handshakeBuffer.count >= 5 + Int(length) else { return }
+                let reason = String(data: handshakeBuffer.subdata(in: 5..<(5 + Int(length))),
+                                    encoding: .utf8) ?? ""
+                fail(L10n.f("服务端拒绝连接：%@", reason))
+                return
+            }
+            guard handshakeBuffer.count >= 1 + Int(typeCount) else { return }
+            // 抓包实证类型集合为 [1]=None；直接选 None
+            handshakeBuffer.removeFirst(1 + Int(typeCount))
+            send(RFBClientEncoder.securitySelect())
+            handshakePhase = .securityResult
+            continueHandshake()
+
+        case .securityResult:
+            handshakeBuffer.append(data)
+            guard handshakeBuffer.count >= 4,
+                  let result = RFBBytes.u32(handshakeBuffer.prefix(4)) else { return }
+            handshakeBuffer.removeFirst(4)
+            guard result == 0 else {
+                fail(L10n.t("VNC 安全握手失败"))
+                return
+            }
+            send(RFBClientEncoder.clientInit())
+            handshakePhase = .serverInit
+            continueHandshake()
+
+        case .serverInit:
+            handshakeBuffer.append(data)
+            guard handshakeBuffer.count >= 24,
+                  let nameLength = RFBBytes.u32(handshakeBuffer.subdata(in: 20..<24)) else { return }
+            let total = 24 + Int(nameLength)
+            guard handshakeBuffer.count >= total else { return }
+            let payload = handshakeBuffer.prefix(total)
+            handshakeBuffer.removeFirst(total)
+            guard let serverInit = RFBServerInit.parse(Data(payload)) else {
+                fail(L10n.t("ServerInit 解析失败"))
+                return
+            }
+            serverName = serverInit.name
+            framebufferSize = CGSize(width: serverInit.width, height: serverInit.height)
+            framebuffer = RFBFramebuffer(width: serverInit.width, height: serverInit.height)
+
+            // 客户端格式 + 编码集 + 首次全量请求（顺序对齐网页端）
+            send(RFBClientEncoder.setPixelFormat())
+            send(RFBClientEncoder.setEncodings())
+            send(RFBClientEncoder.framebufferUpdateRequest(
+                incremental: false, width: serverInit.width, height: serverInit.height))
+
+            handshakePhase = .normal
+            state = .connected
+            if !handshakeBuffer.isEmpty {
+                assembler.feed(Data(handshakeBuffer))
+                handshakeBuffer.removeAll()
+            }
+
+        case .normal:
+            assembler.feed(data)
+        }
+    }
+
+    /// 握手各阶段缓冲里可能已带后续报文，原地继续消费
+    private func continueHandshake() {
+        guard !handshakeBuffer.isEmpty else { return }
+        let buffered = Data(handshakeBuffer)
+        handshakeBuffer.removeAll()
+        ingest(buffered)
+    }
+
+    private func handle(_ message: RFBServerMessage) {
+        switch message {
+        case .rawRect(let x, let y, let width, let height, let pixels):
+            framebuffer?.applyRaw(x: x, y: y, width: width, height: height, pixels: pixels)
+        case .copyRect(let x, let y, let width, let height, let sx, let sy):
+            framebuffer?.applyCopyRect(x: x, y: y, width: width, height: height,
+                                       sourceX: sx, sourceY: sy)
+        case .desktopSize(let width, let height):
+            framebuffer?.resize(width: width, height: height)
+            framebufferSize = CGSize(width: width, height: height)
+            send(RFBClientEncoder.framebufferUpdateRequest(
+                incremental: false, width: width, height: height))
+        case .updateComplete:
+            updateBatches += 1
+            if let image = framebuffer?.makeImage() {
+                framebufferImage = image
+            }
+            // 请求下一批增量（QEMU 有变化才回包；连接存活交给 ping）
+            if let fb = framebuffer {
+                send(RFBClientEncoder.framebufferUpdateRequest(
+                    incremental: true, width: fb.width, height: fb.height))
+            }
+        case .bell:
+            Haptic.selection()
+        case .serverCutText, .ignored:
+            break  // 客户机剪贴板不回填（二期可写系统剪贴板）
+        }
+    }
+
+    // MARK: 输入出口
+
+    func sendPointer(buttonMask: UInt8, x: Int, y: Int) {
+        send(RFBClientEncoder.pointerEvent(buttonMask: buttonMask, x: x, y: y))
+    }
+
+    /// 带修饰的按键：先按下激活修饰，再击键，最后逆序释放修饰
+    func sendKey(keysym: UInt32, modifiers: [UInt32] = []) {
+        for modifier in modifiers where modifier != keysym {
+            send(RFBClientEncoder.keyEvent(down: true, keysym: modifier))
+        }
+        send(RFBClientEncoder.keyEvent(down: true, keysym: keysym))
+        send(RFBClientEncoder.keyEvent(down: false, keysym: keysym))
+        for modifier in modifiers.reversed() where modifier != keysym {
+            send(RFBClientEncoder.keyEvent(down: false, keysym: modifier))
+        }
+    }
+
+    /// 文本输入逐字符转 keysym（不可映射字符忽略；修饰随字符发送）
+    func sendText(_ text: String, modifiers: [UInt32] = []) {
+        for character in text {
+            if let keysym = RFBKeysym.keysym(for: character) {
+                sendKey(keysym: keysym, modifiers: modifiers)
+            }
+        }
+    }
+
+    private func send(_ data: Data) {
+        guard let task else { return }
+        Task {
+            try? await task.send(.data(data))
+        }
+    }
+
+    private func fail(_ reason: String) {
+        guard state != .idle else { return }
+        generation += 1
+        receiveTask?.cancel()
+        pingTask?.cancel()
+        task?.cancel(with: .goingAway, reason: nil)
+        task = nil
+        state = .failed(reason)
+    }
+}
+
+// MARK: - 控制台视图
+
+struct KVMVNCConsoleView: View {
+    @StateObject private var console: KVMVNCSession
+
+    /// 画面显示缩放（1 = 适配屏宽；捏合 1...4 倍）
+    @State private var displayScale: CGFloat = 1
+    @State private var fitScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var isPinching = false
+    @State private var lastPinchValue: CGFloat = 1
+    @State private var isKeyboardVisible = false
+    @State private var keyboardInput = ""
+    @FocusState private var keyboardFocused: Bool
+    // 粘滞修饰（随下一次击键发送并自动复位）
+    @State private var ctrlOn = false
+    @State private var altOn = false
+    @State private var shiftOn = false
+
+    init(server: ServerConfig, machineName: String) {
+        _console = StateObject(wrappedValue: KVMVNCSession(server: server, vmName: machineName))
+    }
+
+    private var activeModifiers: [UInt32] {
+        var modifiers: [UInt32] = []
+        if ctrlOn { modifiers.append(RFBKeysym.control) }
+        if altOn { modifiers.append(RFBKeysym.alt) }
+        if shiftOn { modifiers.append(RFBKeysym.shift) }
+        return modifiers
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            consoleArea
+            if isKeyboardVisible { keyboardBar }
+        }
+        .background(Color.black.ignoresSafeArea())
+        .navigationTitle(L10n.t("虚拟机控制台"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isKeyboardVisible.toggle()
+                    keyboardFocused = isKeyboardVisible
+                } label: {
+                    Image(systemName: "keyboard")
+                }
+                .accessibilityLabel(L10n.t("键盘"))
+            }
+        }
+        .task { console.connect() }
+        .onDisappear { console.disconnect() }
+    }
+
+    // MARK: 画面区
+
+    @State private var panAnchor: CGSize = .zero
+    @State private var lastContainerSize: CGSize = .zero
+    @State private var lastPointerLocation: CGPoint = .zero
+
+    private var consoleArea: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                Color.black
+
+                if let image = console.framebufferImage {
+                    Image(uiImage: UIImage(cgImage: image))
+                        .interpolation(.none)
+                        .scaleEffect(displayScale)
+                        .offset(offset)
+                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                        .allowsHitTesting(false)
+                } else if case .failed = console.state {
+                    EmptyView()  // 失败态由状态条呈现
+                } else {
+                    VStack(spacing: 10) {
+                        ProgressView()
+                        Text(L10n.t("连接中…"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+
+                // 输入层：固定容器坐标系（不受画面缩放/平移变换影响，
+                // 视图坐标 → 帧缓冲坐标统一走 framebufferPoint）
+                Color.clear
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                lastPointerLocation = value.location
+                                if isPinching {
+                                    // 捏合进行中（双指）→ 平移画面
+                                    offset = CGSize(
+                                        width: offset.width + value.translation.width - panAnchor.width,
+                                        height: offset.height + value.translation.height - panAnchor.height)
+                                    panAnchor = value.translation
+                                } else if console.state == .connected {
+                                    movePointer(to: value.location, in: geo.size)
+                                }
+                            }
+                    )
+                    .simultaneousGesture(
+                        MagnificationGesture()
+                            .onChanged { value in
+                                if !isPinching { isPinching = true; panAnchor = .zero }
+                                let ratio = value / lastPinchValue
+                                lastPinchValue = value
+                                displayScale = min(max(displayScale * ratio, fitScale), 5)
+                            }
+                            .onEnded { _ in
+                                isPinching = false
+                                lastPinchValue = 1
+                                clampOffset(in: geo.size)
+                            }
+                    )
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                            rightClickLast()
+                        }
+                    )
+                    .onTapGesture {
+                        tapLast()
+                    }
+
+                statusBar
+            }
+            .onAppear { refit(in: geo.size) }
+            .onChange(of: geo.size) { _, _ in refit(in: geo.size) }
+            .onChange(of: console.framebufferSize) { _, _ in
+                refit(in: geo.size)
+            }
+        }
+    }
+
+    /// 适配缩放（画面 → 容器内完整显示的最小比例）；不打断进行中的捏合
+    private func refit(in container: CGSize) {
+        lastContainerSize = container
+        guard console.framebufferSize.width > 0, container.width > 0 else { return }
+        fitScale = min(container.width / console.framebufferSize.width,
+                       container.height / console.framebufferSize.height)
+        guard !isPinching else { return }
+        if displayScale < fitScale || offset == .zero {
+            displayScale = fitScale
+            offset = .zero
+        }
+    }
+
+    private var statusBar: some View {
+        HStack(spacing: 8) {
+            switch console.state {
+            case .idle:
+                EmptyView()
+            case .connecting:
+                ProgressView().scaleEffect(0.7)
+                Text(L10n.t("连接中…"))
+            case .connected:
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                Text(console.serverName.isEmpty ? L10n.t("已连接") : console.serverName)
+                    .lineLimit(1)
+                Spacer()
+                Text("\(Int(console.framebufferSize.width))×\(Int(console.framebufferSize.height))")
+                    .monospacedDigit()
+            case .failed(let reason):
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Text(reason).lineLimit(2)
+                Spacer()
+                Button(L10n.t("重连")) { console.connect() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+        }
+        .font(.caption)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: Capsule())
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .allowsHitTesting(console.state != .connected)
+    }
+
+    // MARK: 坐标换算与点击
+
+    /// 视图坐标 → 帧缓冲像素坐标（画面以 position 居中 + scaleEffect + offset 呈现）
+    private func framebufferPoint(at location: CGPoint, in container: CGSize) -> (x: Int, y: Int)? {
+        guard console.framebufferSize.width > 0, displayScale > 0 else { return nil }
+        let imageX = (location.x - container.width / 2 - offset.width) / displayScale
+        let imageY = (location.y - container.height / 2 - offset.height) / displayScale
+        guard imageX >= 0, imageY >= 0,
+              imageX < console.framebufferSize.width,
+              imageY < console.framebufferSize.height else { return nil }
+        return (Int(imageX), Int(imageY))
+    }
+
+    private func movePointer(to location: CGPoint, in container: CGSize) {
+        guard let point = framebufferPoint(at: location, in: container) else { return }
+        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
+    }
+
+    private func tapLast() {
+        guard let point = framebufferPoint(at: lastPointerLocation, in: lastContainerSize) else { return }
+        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
+        console.sendPointer(buttonMask: 1, x: point.x, y: point.y)  // 左键按下
+        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
+    }
+
+    private func rightClickLast() {
+        guard let point = framebufferPoint(at: lastPointerLocation, in: lastContainerSize) else { return }
+        Haptic.selection()
+        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
+        console.sendPointer(buttonMask: 4, x: point.x, y: point.y)  // 右键按下
+        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
+    }
+
+    private func clampOffset(in container: CGSize) {
+        guard console.framebufferSize.width > 0 else { return }
+        let maxX = max(0, (console.framebufferSize.width * displayScale - container.width) / 2)
+        let maxY = max(0, (console.framebufferSize.height * displayScale - container.height) / 2)
+        offset = CGSize(width: min(max(offset.width, -maxX), maxX),
+                        height: min(max(offset.height, -maxY), maxY))
+    }
+
+    // MARK: 键盘栏
+
+    private var keyboardBar: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                TextField(L10n.t("键盘输入（仅英文与符号）"), text: $keyboardInput)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .focused($keyboardFocused)
+                    .submitLabel(.send)
+                    .onChange(of: keyboardInput) { _, newValue in
+                        // 逐字符发送可映射内容后清空（IME 组字的中文/emoji 无法映射 keysym，
+                        // 直接丢弃——占位文案已注明仅英文与符号）
+                        let sendable = newValue.filter { RFBKeysym.keysym(for: $0) != nil }
+                        if !sendable.isEmpty {
+                            console.sendText(String(sendable), modifiers: activeModifiers)
+                            resetModifiers()
+                        }
+                        keyboardInput = ""
+                    }
+                Button {
+                    console.sendKey(keysym: RFBKeysym.enter, modifiers: activeModifiers)
+                    resetModifiers()
+                } label: {
+                    Image(systemName: "return")
+                }
+                .buttonStyle(.bordered)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    stickyModifier("Ctrl", keysym: RFBKeysym.control, isOn: $ctrlOn)
+                    stickyModifier("Alt", keysym: RFBKeysym.alt, isOn: $altOn)
+                    stickyModifier("Shift", keysym: RFBKeysym.shift, isOn: $shiftOn)
+                    specialKey("Esc", keysym: RFBKeysym.escape)
+                    specialKey("Tab", keysym: RFBKeysym.tab)
+                    specialKey("←", keysym: RFBKeysym.left)
+                    specialKey("↑", keysym: RFBKeysym.up)
+                    specialKey("↓", keysym: RFBKeysym.down)
+                    specialKey("→", keysym: RFBKeysym.right)
+                    specialKey("⌫", keysym: RFBKeysym.backspace)
+                }
+                .padding(.horizontal, 2)
+            }
+            .padding(.bottom, 4)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .background(.regularMaterial)
+    }
+
+    private func stickyModifier(_ label: String, keysym: UInt32, isOn: Binding<Bool>) -> some View {
+        Button {
+            isOn.wrappedValue.toggle()
+            Haptic.selection()
+        } label: {
+            Text(label)
+                .font(.caption.weight(isOn.wrappedValue ? .bold : .regular))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isOn.wrappedValue ? Color.accentColor.opacity(0.25)
+                                               : Color.secondary.opacity(0.12),
+                            in: Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func specialKey(_ label: String, keysym: UInt32) -> some View {
+        Button {
+            console.sendKey(keysym: keysym, modifiers: activeModifiers)
+            resetModifiers()
+        } label: {
+            Text(label)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.secondary.opacity(0.12), in: Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func resetModifiers() {
+        ctrlOn = false
+        altOn = false
+        shiftOn = false
+    }
+}

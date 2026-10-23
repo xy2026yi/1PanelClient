@@ -9,8 +9,8 @@
 //  虚拟机段：卡片列表（每台一卡：点击卡进详情、长按弹操作菜单——电源 / 编辑 / 重命名 / 删除，
 //  卡上常驻 监控·快照·磁盘管理·转为模版 四个快捷按钮，按状态可用），工具栏 创建 + 同步。
 //  任务式操作进度由根页 navigationDestination(item: activeTask) 推入 TaskProgressView
-//  （operateNode=local），完成后重拉当前段。VNC 控制台为二进制 RFB over WebSocket，
-//  客户端暂不实现，仅详情展示连接信息。
+//  （operateNode=local），完成后重拉当前段。VNC 控制台见 KVMVNCConsoleView
+//  （详情页「控制台」行推入）。
 //
 
 import SwiftUI

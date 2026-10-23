@@ -3575,17 +3575,6 @@
         }
       }
     },
-    "VNC 控制台请在面板网页端打开；此处仅展示监听地址与端口。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open the VNC console from the panel web UI; only the listen address and port are shown here."
-          }
-        }
-      }
-    },
     "WAF" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39089,6 +39078,127 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dependency check failed; the feature is unavailable. Install dependencies from the web console, then retry."
+          }
+        }
+      }
+    },
+    "虚拟机控制台" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VM console"
+          }
+        }
+      }
+    },
+    "键盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard"
+          }
+        }
+      }
+    },
+    "重连" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnect"
+          }
+        }
+      }
+    },
+    "连接已断开" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection closed"
+          }
+        }
+      }
+    },
+    "无法构造控制台连接地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to build console URL"
+          }
+        }
+      }
+    },
+    "非 RFB 协议：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not an RFB protocol: %@"
+          }
+        }
+      }
+    },
+    "服务端拒绝连接：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server refused connection: %@"
+          }
+        }
+      }
+    },
+    "VNC 安全握手失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VNC security handshake failed"
+          }
+        }
+      }
+    },
+    "ServerInit 解析失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to parse ServerInit"
+          }
+        }
+      }
+    },
+    "键盘输入（仅英文与符号）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type here (English & symbols only)"
+          }
+        }
+      }
+    },
+    "控制台为 VNC 图形界面：轻点左键、长按右键、拖动移动指针，捏合缩放；右上角键盘可输入。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Console is a VNC graphical screen: tap for left click, long-press for right click, drag to move the pointer, pinch to zoom; keyboard available from the top-right button."
           }
         }
       }
