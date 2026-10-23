@@ -1,0 +1,615 @@
+//
+//  KVMResourceViews.swift
+//  1PanelClient
+//
+//  虚拟机资源三段（logs/高级功能-KVM.md 抓包 2026-10-23）：
+//  - 模版：列表 / 删除（可选删磁盘，任务式）；模版由虚拟机「转为模版」产生，无独立创建
+//  - 网络：列表 / 创建（NAT·Bridge·Macvtap，CIDR·网关·DHCP 范围）/ 启停 / 开机自启 / 删除
+//    （关联虚拟机的网络不可直接删除，仅保留强制删除由服务端裁决）
+//  - 存储池：列表 / 创建（本地目录）/ 启停 / 开机自启 / 删除（同网络限制）
+//  网络与存储池的启停 / 自启走各自 update 端点单字段提交 {id, status} / {id, autoStart}。
+//
+
+import SwiftUI
+
+// MARK: - 模版
+
+struct KVMTemplateListView: View {
+    @ObservedObject var vm: KVMViewModel
+
+    @State private var actionTemplate: KVMTemplate?
+    @State private var pendingDelete: (template: KVMTemplate, deleteDisk: Bool)?
+
+    var body: some View {
+        List {
+            Section {
+                if vm.templates.isEmpty {
+                    if vm.isLoading {
+                        LoadingStateView(compact: true)
+                            .padding(.vertical, 30)
+                    } else {
+                        ContentUnavailableView(
+                            L10n.t("暂无模版"),
+                            systemImage: "doc.on.doc",
+                            description: Text(L10n.t("将一台关机的虚拟机「转为模版」后，可在创建时「从模版启动」"))
+                        )
+                        .listRowBackground(Color.clear)
+                    }
+                } else {
+                    ForEach(vm.templates) { template in
+                        Button {
+                            actionTemplate = template
+                        } label: {
+                            templateRow(template)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            } footer: {
+                if !vm.templates.isEmpty {
+                    Text(L10n.t("点击模版删除；删除模版不影响由其创建的虚拟机"))
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .refreshable { await vm.loadTemplates() }
+        .sheet(item: $actionTemplate) { template in
+            ActionBottomSheet(
+                title: template.displayName,
+                items: [
+                    ActionMenuItem(title: L10n.t("删除（保留磁盘文件）"), icon: "trash", color: .orange, role: .destructive) {
+                        pendingDelete = (template, false)
+                    },
+                    ActionMenuItem(title: L10n.t("删除并删除磁盘文件"), icon: "trash.fill", color: .red, role: .destructive) {
+                        pendingDelete = (template, true)
+                    },
+                ],
+                onDismiss: { actionTemplate = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
+        }
+        .alert(
+            L10n.t("删除模版"),
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
+        ) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
+                if let pending = pendingDelete {
+                    Task { await vm.deleteTemplate(pending.template, deleteDisk: pending.deleteDisk) }
+                }
+                pendingDelete = nil
+            }
+        } message: {
+            if let pending = pendingDelete {
+                Text(pending.deleteDisk
+                     ? L10n.f("将删除模版「%@」及其磁盘文件，不可恢复，是否继续？", pending.template.displayName)
+                     : L10n.f("将删除模版记录「%@」（保留磁盘文件），是否继续？", pending.template.displayName))
+            }
+        }
+    }
+
+    private func templateRow(_ template: KVMTemplate) -> some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: "doc.on.doc", color: .purple)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(template.displayName)
+                    .font(.body.bold())
+                    .lineLimit(1)
+                Text(L10n.f("%ld 核 · %ld MB · %ld GB",
+                            template.cpu ?? 0, template.memory ?? 0, template.diskSize ?? 0))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    if let source = template.sourceVM, !source.isEmpty {
+                        Label(source, systemImage: "desktopcomputer")
+                    }
+                    if let size = template.size, size > 0 {
+                        let parts = MetricFormat.byteParts(size)
+                        Text("\(parts.value) \(parts.unit)")
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+            }
+            Spacer()
+            if template.isExist == false {
+                StatusBadge(text: L10n.t("文件缺失"), color: .statusError)
+            }
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - 网络
+
+struct KVMNetworkListView: View {
+    @ObservedObject var vm: KVMViewModel
+
+    @State private var showCreate = false
+    @State private var actionNetwork: KVMNetwork?
+    @State private var pendingDelete: (network: KVMNetwork, force: Bool)?
+
+    var body: some View {
+        List {
+            Section {
+                if vm.networks.isEmpty {
+                    if vm.isLoading {
+                        LoadingStateView(compact: true)
+                            .padding(.vertical, 30)
+                    } else {
+                        ContentUnavailableView(
+                            L10n.t("暂无网络"),
+                            systemImage: "network",
+                            description: Text(L10n.t("点击右上角 + 创建虚拟网络"))
+                        )
+                        .listRowBackground(Color.clear)
+                    }
+                } else {
+                    ForEach(vm.networks) { network in
+                        Button {
+                            actionNetwork = network
+                        } label: {
+                            networkRow(network)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            } footer: {
+                if !vm.networks.isEmpty {
+                    Text(L10n.t("点击网络启停 / 自启 / 删除；有关联虚拟机的网络不可删除"))
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .refreshable { await vm.loadNetworks() }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建网络"))
+            }
+        }
+        .navigationDestination(isPresented: $showCreate) {
+            KVMNetworkFormView(vm: vm)
+        }
+        .sheet(item: $actionNetwork) { network in
+            ActionBottomSheet(
+                title: network.displayName,
+                items: actionItems(network),
+                onDismiss: { actionNetwork = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(network).count))])
+            .presentationDragIndicator(.visible)
+        }
+        .alert(
+            L10n.t("删除网络"),
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
+        ) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
+                if let pending = pendingDelete {
+                    Task { await vm.deleteNetwork(pending.network, force: pending.force) }
+                }
+                pendingDelete = nil
+            }
+        } message: {
+            if let pending = pendingDelete {
+                Text(pending.force
+                     ? L10n.f("将强制删除网络「%@」，是否继续？", pending.network.displayName)
+                     : L10n.f("将删除网络「%@」，是否继续？", pending.network.displayName))
+            }
+        }
+    }
+
+    private func actionItems(_ network: KVMNetwork) -> [ActionMenuItem] {
+        var items: [ActionMenuItem] = []
+        if network.isActive {
+            items.append(ActionMenuItem(title: L10n.t("停止"), icon: "stop.fill", color: .orange) {
+                Task { await vm.setNetworkActive(network, active: false) }
+            })
+        } else {
+            items.append(ActionMenuItem(title: L10n.t("启动"), icon: "play.fill", color: .green) {
+                Task { await vm.setNetworkActive(network, active: true) }
+            })
+        }
+        let autoOn = network.autoStart == true
+        items.append(ActionMenuItem(
+            title: autoOn ? L10n.t("关闭开机自启") : L10n.t("开启开机自启"),
+            icon: autoOn ? "power.circle" : "power.circle.fill", color: .blue
+        ) {
+            Task { await vm.setNetworkAutoStart(network, on: !autoOn) }
+        })
+        if !network.hasVMs {
+            items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                pendingDelete = (network, false)
+            })
+        }
+        items.append(ActionMenuItem(title: L10n.t("强制删除"), icon: "trash.fill", color: .red, role: .destructive) {
+            pendingDelete = (network, true)
+        })
+        return items
+    }
+
+    private func networkRow(_ network: KVMNetwork) -> some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: "network", color: .teal)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(network.displayName)
+                        .font(.body.bold())
+                        .lineLimit(1)
+                    StatusBadge(text: KVMNetworkType(rawValue: (network.type ?? "").lowercased())?.displayName
+                                ?? (network.type ?? "-"), color: .indigo)
+                }
+                if let cidr = network.cidr, !cidr.isEmpty {
+                    Text(L10n.f("%@ · 网关 %@", cidr, network.gateway ?? "-"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let start = network.dhcpStart, let end = network.dhcpEnd, !start.isEmpty {
+                    Text("DHCP \(start) – \(end)")
+                        .font(.dataMonospacedFootnote)
+                        .foregroundStyle(.tertiary)
+                }
+                HStack(spacing: 8) {
+                    if let bridge = network.bridgeName, !bridge.isEmpty {
+                        Text(bridge)
+                    }
+                    Text(L10n.f("%ld 台虚拟机", network.vmCount ?? 0))
+                    if network.autoStart == true {
+                        Text(L10n.t("开机自启"))
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                if let error = network.error, !error.isEmpty {
+                    Text(error)
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                }
+            }
+            Spacer()
+            StatusBadge(text: network.isActive ? L10n.t("运行中") : L10n.t("已停止"),
+                        color: network.isActive ? .statusRunning : .secondary)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+/// 创建网络：名称 / 类型 / 类型相关字段（Bridge 桥接名、Macvtap 源接口）/ CIDR / 网关 / DHCP 范围 / 自启 / 描述
+struct KVMNetworkFormView: View {
+    @ObservedObject var vm: KVMViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name = ""
+    @State private var type: KVMNetworkType = .nat
+    @State private var bridgeName = ""
+    @State private var sourceInterface = ""
+    @State private var cidr = ""
+    @State private var gateway = ""
+    @State private var dhcpStart = ""
+    @State private var dhcpEnd = ""
+    @State private var autoStart = true
+    @State private var description = ""
+    @State private var isSubmitting = false
+
+    var body: some View {
+        Form {
+            Section {
+                OutlinedTextField(label: L10n.t("名称"), text: $name)
+                OutlinedPicker(label: L10n.t("类型"), options: KVMNetworkType.allCases,
+                               selection: $type) { $0.displayName }
+                if type == .bridge {
+                    OutlinedTextField(label: L10n.t("桥接名称"), prompt: "br0", text: $bridgeName)
+                }
+                if type == .macvtap {
+                    OutlinedTextField(label: L10n.t("源接口"), prompt: "eth0", text: $sourceInterface)
+                }
+            } header: {
+                SectionLabel(title: L10n.t("基本信息"), systemImage: "network")
+            } footer: {
+                switch type {
+                case .nat: Text(L10n.t("NAT：虚拟机经宿主机地址转换访问外网，由 libvirt 分配独立网段。"))
+                case .bridge: Text(L10n.t("Bridge：虚拟机桥接到宿主机网桥，与宿主机同网段。"))
+                case .macvtap: Text(L10n.t("Macvtap：虚拟机直接挂到宿主机物理接口，宿主机与虚拟机互不可达。"))
+                }
+            }
+
+            Section {
+                OutlinedTextField(label: L10n.t("网络 CIDR"), prompt: "192.168.100.0/24", text: $cidr,
+                                  keyboardType: .numbersAndPunctuation)
+                OutlinedTextField(label: L10n.t("网关"), prompt: "192.168.100.1", text: $gateway,
+                                  keyboardType: .numbersAndPunctuation)
+                OutlinedTextField(label: L10n.t("DHCP 起始地址"), prompt: "192.168.100.2", text: $dhcpStart,
+                                  keyboardType: .numbersAndPunctuation)
+                OutlinedTextField(label: L10n.t("DHCP 结束地址"), prompt: "192.168.100.254", text: $dhcpEnd,
+                                  keyboardType: .numbersAndPunctuation)
+            } header: {
+                SectionLabel(title: L10n.t("地址分配"), systemImage: "number")
+            }
+
+            Section {
+                Toggle(L10n.t("开机自启"), isOn: $autoStart)
+                OutlinedMultiLineField(label: L10n.t("描述"), lines: 3, text: $description)
+            }
+        }
+        .navigationTitle(L10n.t("创建网络"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting { ProgressView() } else { Text(L10n.t("创建")).bold() }
+                }
+                .disabled(!isValid || isSubmitting)
+            }
+        }
+    }
+
+    private var isValid: Bool {
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+        switch type {
+        case .nat: return !cidr.isEmpty
+        case .bridge: return !bridgeName.isEmpty
+        case .macvtap: return !sourceInterface.isEmpty
+        }
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        let request = KVMNetworkCreateRequest(
+            name: name.trimmingCharacters(in: .whitespaces),
+            type: type.rawValue,
+            bridgeName: bridgeName,
+            sourceInterface: sourceInterface,
+            cidr: cidr,
+            gateway: gateway,
+            dhcpStart: dhcpStart,
+            dhcpEnd: dhcpEnd,
+            autoStart: autoStart,
+            description: description)
+        if await vm.createNetwork(request) {
+            dismiss()
+        }
+    }
+}
+
+// MARK: - 存储池
+
+struct KVMStorageListView: View {
+    @ObservedObject var vm: KVMViewModel
+
+    @State private var showCreate = false
+    @State private var actionPool: KVMStoragePool?
+    @State private var pendingDelete: (pool: KVMStoragePool, force: Bool)?
+
+    var body: some View {
+        List {
+            Section {
+                if vm.storages.isEmpty {
+                    if vm.isLoading {
+                        LoadingStateView(compact: true)
+                            .padding(.vertical, 30)
+                    } else {
+                        ContentUnavailableView(
+                            L10n.t("暂无存储池"),
+                            systemImage: "internaldrive",
+                            description: Text(L10n.t("点击右上角 + 以本地目录创建存储池"))
+                        )
+                        .listRowBackground(Color.clear)
+                    }
+                } else {
+                    ForEach(vm.storages) { pool in
+                        Button {
+                            actionPool = pool
+                        } label: {
+                            storageRow(pool)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            } footer: {
+                if !vm.storages.isEmpty {
+                    Text(L10n.t("点击存储池启停 / 自启 / 删除；有关联虚拟机的存储池不可删除"))
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .refreshable { await vm.loadStorages() }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建存储池"))
+            }
+        }
+        .navigationDestination(isPresented: $showCreate) {
+            KVMStorageFormView(vm: vm)
+        }
+        .sheet(item: $actionPool) { pool in
+            ActionBottomSheet(
+                title: pool.displayName,
+                items: actionItems(pool),
+                onDismiss: { actionPool = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(pool).count))])
+            .presentationDragIndicator(.visible)
+        }
+        .alert(
+            L10n.t("删除存储池"),
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
+        ) {
+            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
+            Button(L10n.t("删除"), role: .destructive) {
+                Haptic.warning()
+                if let pending = pendingDelete {
+                    Task { await vm.deleteStorage(pending.pool, force: pending.force) }
+                }
+                pendingDelete = nil
+            }
+        } message: {
+            if let pending = pendingDelete {
+                Text(pending.force
+                     ? L10n.f("将强制删除存储池「%@」（不删除目录内文件），是否继续？", pending.pool.displayName)
+                     : L10n.f("将删除存储池「%@」（不删除目录内文件），是否继续？", pending.pool.displayName))
+            }
+        }
+    }
+
+    private func actionItems(_ pool: KVMStoragePool) -> [ActionMenuItem] {
+        var items: [ActionMenuItem] = []
+        if pool.isActive {
+            items.append(ActionMenuItem(title: L10n.t("停止"), icon: "stop.fill", color: .orange) {
+                Task { await vm.setStorageActive(pool, active: false) }
+            })
+        } else {
+            items.append(ActionMenuItem(title: L10n.t("启动"), icon: "play.fill", color: .green) {
+                Task { await vm.setStorageActive(pool, active: true) }
+            })
+        }
+        let autoOn = pool.autoStart == true
+        items.append(ActionMenuItem(
+            title: autoOn ? L10n.t("关闭开机自启") : L10n.t("开启开机自启"),
+            icon: autoOn ? "power.circle" : "power.circle.fill", color: .blue
+        ) {
+            Task { await vm.setStorageAutoStart(pool, on: !autoOn) }
+        })
+        if !pool.hasVMs {
+            items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                pendingDelete = (pool, false)
+            })
+        }
+        items.append(ActionMenuItem(title: L10n.t("强制删除"), icon: "trash.fill", color: .red, role: .destructive) {
+            pendingDelete = (pool, true)
+        })
+        return items
+    }
+
+    private func storageRow(_ pool: KVMStoragePool) -> some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: "internaldrive", color: .gray)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(pool.displayName)
+                        .font(.body.bold())
+                        .lineLimit(1)
+                    StatusBadge(text: (pool.type ?? "").lowercased() == "dir" ? L10n.t("本地目录") : (pool.type ?? "-"),
+                                color: .indigo)
+                }
+                Text(pool.path ?? "-")
+                    .font(.dataMonospacedFootnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if pool.capacity != nil {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ProgressView(value: min(max((pool.usedPercent ?? 0) / 100, 0), 1))
+                            .tint((pool.usedPercent ?? 0) > 90 ? .red : .blue)
+                        Text(MetricFormat.usedOverTotal(pool.usedBytes, pool.capacity)
+                             + (pool.usedPercent.map { String(format: "（%.1f%%）", $0) } ?? ""))
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .monospacedDigit()
+                    }
+                }
+                HStack(spacing: 8) {
+                    Text(L10n.f("%ld 台虚拟机", pool.vmCount ?? 0))
+                    if pool.autoStart == true {
+                        Text(L10n.t("开机自启"))
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                if let error = pool.error, !error.isEmpty {
+                    Text(error)
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                }
+            }
+            Spacer()
+            StatusBadge(text: pool.isActive ? L10n.t("运行中") : L10n.t("已停止"),
+                        color: pool.isActive ? .statusRunning : .secondary)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+/// 创建存储池：名称 / 类型（本地目录，固定）/ 路径（目录选择）/ 自启 / 描述
+struct KVMStorageFormView: View {
+    @ObservedObject var vm: KVMViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name = ""
+    @State private var path = ""
+    @State private var autoStart = true
+    @State private var description = ""
+    @State private var isSubmitting = false
+
+    var body: some View {
+        Form {
+            Section {
+                OutlinedTextField(label: L10n.t("名称"), text: $name)
+                OutlinedShape(label: L10n.t("类型"), isFocused: false, hasValue: true,
+                              trailing: { EmptyView() }) {
+                    Text(L10n.t("本地目录"))
+                        .foregroundStyle(.primary)
+                }
+                FilePathBrowseRow(title: L10n.t("路径"), path: $path, client: vm.client)
+            } header: {
+                SectionLabel(title: L10n.t("基本信息"), systemImage: "internaldrive")
+            } footer: {
+                Text(L10n.t("以服务器上的一个目录作为虚拟机磁盘与模版的存放位置；目录不存在时由服务端创建。"))
+            }
+
+            Section {
+                Toggle(L10n.t("开机自启"), isOn: $autoStart)
+                OutlinedMultiLineField(label: L10n.t("描述"), lines: 3, text: $description)
+            }
+        }
+        .navigationTitle(L10n.t("创建存储池"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting { ProgressView() } else { Text(L10n.t("创建")).bold() }
+                }
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || path.isEmpty || isSubmitting)
+            }
+        }
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        let request = KVMStorageCreateRequest(
+            name: name.trimmingCharacters(in: .whitespaces),
+            path: path,
+            autoStart: autoStart,
+            description: description)
+        if await vm.createStorage(request) {
+            dismiss()
+        }
+    }
+}

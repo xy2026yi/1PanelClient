@@ -18,10 +18,10 @@ import Foundation
 @Suite("高级功能门禁", .serialized)
 struct AdvancedFeatureGateTests {
 
-    @Test("门禁集合：高级功能分组整体 + AI 的 vLLM/模型下载")
+    @Test("门禁集合：高级功能分组整体（含 KVM 虚拟机）+ AI 的 vLLM/模型下载")
     func gatedItems() {
         // WAF 已合并为常显模块（监控为其内部受控子入口），不再整体门禁
-        let expected: Set<ManageItem> = [.gpuMonitor, .websiteMonitor, .nodeManage,
+        let expected: Set<ManageItem> = [.gpuMonitor, .websiteMonitor, .nodeManage, .kvm,
                                          .aiVllm, .aiDownloader]
         #expect(AdvancedFeatureGate.gatedItems == expected)
         // 非门禁项抽查
