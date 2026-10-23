@@ -2735,17 +2735,6 @@
         }
       }
     },
-    "KVM 设备" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KVM device"
-          }
-        }
-      }
-    },
     "libvirt" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13749,17 +13738,6 @@
         }
       }
     },
-    "存储目录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Storage directory"
-          }
-        }
-      }
-    },
     "存储类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23451,17 +23429,6 @@
         }
       }
     },
-    "服务未运行" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Service not running"
-          }
-        }
-      }
-    },
     "服务管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24294,17 +24261,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Architecture"
-          }
-        }
-      }
-    },
-    "架构 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Architecture %@"
           }
         }
       }
@@ -27308,17 +27264,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Environment check failed: %@"
-          }
-        }
-      }
-    },
-    "环境检测" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Environment check"
           }
         }
       }
@@ -32163,17 +32108,6 @@
         }
       }
     },
-    "虚拟机管理依赖 KVM 设备、libvirt 服务与存储目录；请在面板网页端完成依赖安装后重新检测。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Virtual machine management requires the KVM device, libvirt service and a storage directory; finish installing dependencies from the panel web UI, then re-check."
-          }
-        }
-      }
-    },
     "蜘蛛" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35195,17 +35129,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aux IP"
-          }
-        }
-      }
-    },
-    "辅助程序" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Helper"
           }
         }
       }
@@ -39016,17 +38939,6 @@
         }
       }
     },
-    "点击镜像编辑 / 删除；上传 / 下载中的镜像完成后状态变为就绪" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap an image to edit or delete; images being uploaded / downloaded become ready when finished"
-          }
-        }
-      }
-    },
     "将删除镜像「%@」，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39155,6 +39067,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bridge: VMs attach to a host bridge on the same subnet. Only bridges marked as recommended can be selected."
+          }
+        }
+      }
+    },
+    "依赖检查" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dependency check"
+          }
+        }
+      }
+    },
+    "依赖检查未通过，功能不可用；请在面板网页端完成依赖安装后重新检测。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dependency check failed; the feature is unavailable. Install dependencies from the web console, then retry."
           }
         }
       }

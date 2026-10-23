@@ -10,14 +10,15 @@
 //  抓包来源：logs/高级功能-KVM.md（2026-10-23）。任务类操作（创建/编辑/重命名/
 //  转模版/删除/快照/模版删除/磁盘扩容）返回 {taskID}，进度走 logs/tasks/read
 //  （operateNode=local）；即时操作（电源/同步/网络·存储启停自启/ISO 增删改）返回 success。
-//  ISO 类型 rawValue 见 KVMISOType（oraclelinux 经网页请求确认修正，仅 ubuntu [推测]）。
+//  ISO 类型 rawValue 见 KVMISOType（全部经网页请求确认，oraclelinux 已修正）。
 //
 
 import Foundation
 
 // MARK: - 环境检测
 
-/// GET /xpack/vms/environment：依赖检测（架构 / 辅助程序 / KVM 设备 / libvirt / 存储目录）
+/// GET /xpack/vms/environment：依赖检测（arch / 辅助程序 / KVM 设备 / libvirt / 存储目录），
+/// ready 为总判定；未就绪时客户端只显示 libvirt / /dev/kvm / storage 三项启用状态提示
 nonisolated struct KVMEnvironment: Decodable, Equatable {
     let arch: String?
     let archSupported: Bool?
@@ -33,18 +34,6 @@ nonisolated struct KVMEnvironment: Decodable, Equatable {
     let storageMessage: String?
 
     var isReady: Bool { ready == true }
-
-    /// 检测项（标题 / 是否通过 / 附带信息），供环境卡逐行展示
-    var checks: [(title: String, passed: Bool, message: String)] {
-        [
-            (L10n.f("架构 %@", arch ?? "-"), archSupported == true, ""),
-            (L10n.t("辅助程序"), helperExist == true, helperMessage ?? ""),
-            (L10n.t("KVM 设备"), kvmExist == true, kvmMessage ?? ""),
-            (L10n.t("libvirt"), libvirtExist == true && libvirtActive == true,
-             libvirtMessage ?? (libvirtExist == true && libvirtActive != true ? L10n.t("服务未运行") : "")),
-            (L10n.t("存储目录"), storageExist == true, storageMessage ?? ""),
-        ]
-    }
 }
 
 // MARK: - 虚拟机
@@ -507,9 +496,9 @@ nonisolated struct KVMISOImage: Decodable, Identifiable, Hashable {
     var isReady: Bool { (status ?? "").lowercased() == "ready" }
 }
 
-/// 镜像类型（表单形态 3）。rawValue 除 ubuntu 外均经网页请求确认
-///（2026-10-23：centos / rocky / almalinux / fedora / opensuse / rhel /
-/// oraclelinux / archlinux / windows / freebsd；debian 见本文件抓包），ubuntu 标 [推测]
+/// 镜像类型（表单形态 3）。rawValue 全部经确认：debian / archlinux 见本文件抓包，
+/// 其余（centos / rocky / almalinux / fedora / opensuse / rhel / oraclelinux /
+/// windows / freebsd / ubuntu）为 2026-10-23 网页请求确认
 nonisolated enum KVMISOType: String, CaseIterable, Identifiable {
     case debian, ubuntu, centos, rocky, almalinux, fedora, opensuse, rhel, oraclelinux, archlinux, windows, freebsd
 

@@ -3,7 +3,8 @@
 //  1PanelClient
 //
 //  虚拟机镜像 ISO（/xpack/vms/iso/*，logs/高级功能-KVM.md 抓包 2026-10-23）：
-//  列表 / 添加（三种来源）/ 编辑 / 删除（半屏弹窗，可选删源文件）。
+//  卡片列表（每镜像一卡：类型 / 大小 / 路径 / 状态 + 编辑·删除按钮行）/ 添加（三种来源）/
+//  编辑 / 删除（半屏弹窗，可选删源文件）。
 //  - 服务器选择：POST iso {type, name, path, description}
 //  - 本地上传：iso/import/start（status=uploading, tempFileID=uploadID, tempFileType=upload）→ {id}
 //    → files/chunkupload 分片（filename/uploadID/path/chunkIndex/chunkCount/overwrite=True，5MB/片）
@@ -24,13 +25,12 @@ struct KVMISOListView: View {
 
     @State private var showCreate = false
     @State private var editISO: KVMISOImage?
-    @State private var actionISO: KVMISOImage?
     @State private var deleteISO: KVMISOImage?
 
     var body: some View {
         List {
-            Section {
-                if vm.isos.isEmpty {
+            if vm.isos.isEmpty {
+                Section {
                     if vm.isLoading {
                         LoadingStateView(compact: true)
                             .padding(.vertical, 30)
@@ -42,20 +42,11 @@ struct KVMISOListView: View {
                         )
                         .listRowBackground(Color.clear)
                     }
-                } else {
-                    ForEach(vm.isos) { iso in
-                        Button {
-                            actionISO = iso
-                        } label: {
-                            KVMISORow(iso: iso)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
-            } footer: {
-                if !vm.isos.isEmpty {
-                    Text(L10n.t("点击镜像编辑 / 删除；上传 / 下载中的镜像完成后状态变为就绪"))
+            } else {
+                // 每个镜像一张卡：信息行 + 编辑 / 删除按钮行
+                ForEach(vm.isos) { iso in
+                    isoCard(iso)
                 }
             }
         }
@@ -81,15 +72,6 @@ struct KVMISOListView: View {
         .navigationDestination(item: $editISO) { iso in
             KVMISOFormView(vm: vm, iso: iso)
         }
-        .sheet(item: $actionISO) { iso in
-            ActionBottomSheet(
-                title: iso.displayName,
-                items: actionItems(iso),
-                onDismiss: { actionISO = nil }
-            )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(iso).count))])
-            .presentationDragIndicator(.visible)
-        }
         .sheet(item: $deleteISO) { iso in
             KVMISODeleteSheet(iso: iso) { deleteFile in
                 await vm.deleteISO(iso, deleteFile: deleteFile)
@@ -97,15 +79,25 @@ struct KVMISOListView: View {
         }
     }
 
-    private func actionItems(_ iso: KVMISOImage) -> [ActionMenuItem] {
-        [
-            ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .teal) {
-                editISO = iso
-            },
-            ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                deleteISO = iso
-            },
-        ]
+    // MARK: 卡片
+
+    /// 单个镜像卡：信息行（图标 / 名称 / 类型 / 大小 / 路径 / 状态）+ 编辑 / 删除按钮行
+    private func isoCard(_ iso: KVMISOImage) -> some View {
+        Section {
+            KVMISORow(iso: iso)
+                .listRowSeparator(.hidden)
+
+            HStack(spacing: 8) {
+                CardActionButton(title: L10n.t("编辑"), icon: "pencil", color: .teal) {
+                    editISO = iso
+                }
+                CardActionButton(title: L10n.t("删除"), icon: "trash", color: .red) {
+                    deleteISO = iso
+                }
+            }
+            .padding(.top, 2)
+            .padding(.bottom, 4)
+        }
     }
 }
 

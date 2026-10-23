@@ -29,15 +29,22 @@ struct KVMModelsTests {
         let env = try JSONDecoder().decode(KVMEnvironment.self, from: Data(notReady.utf8))
         #expect(!env.isReady)
         #expect(env.archSupported == true)
-        #expect(env.checks.count == 5)
-        #expect(env.checks.contains { !$0.passed })
+        // 门控行判定：libvirt 需存在且运行、kvm 看 kvmExist、storage 看 storageExist
+        #expect(!(env.libvirtExist == true && env.libvirtActive == true))
+        #expect(env.kvmExist == false)
+        #expect(env.storageExist == false)
+        #expect(env.storageMessage?.contains("libvirt/images") == true)
 
         let ready = """
         {"arch":"amd64","archSupported":true,"ready":true,"helperExist":true,"helperMessage":"",
          "kvmExist":true,"kvmMessage":"/dev/kvm","libvirtExist":true,"libvirtActive":true,
          "libvirtMessage":"","storageExist":true,"storageMessage":"/var/lib/libvirt/images"}
         """
-        #expect(try JSONDecoder().decode(KVMEnvironment.self, from: Data(ready.utf8)).isReady)
+        let readyEnv = try JSONDecoder().decode(KVMEnvironment.self, from: Data(ready.utf8))
+        #expect(readyEnv.isReady)
+        #expect(readyEnv.libvirtExist == true && readyEnv.libvirtActive == true)
+        #expect(readyEnv.kvmExist == true)
+        #expect(readyEnv.storageExist == true)
     }
 
     // MARK: 虚拟机解码与状态
@@ -271,6 +278,7 @@ struct KVMModelsTests {
         #expect(iso.size == 66_060_288)
         #expect(KVMISOType.display("archlinux") == "Arch Linux")
         #expect(KVMISOType.display("debian") == "Debian")
+        #expect(KVMISOType.display("ubuntu") == "Ubuntu")
         // 网页请求确认的 rawValue（2026-10-23）：oraclelinux 而非 oracle
         #expect(KVMISOType(rawValue: "oraclelinux") == .oraclelinux)
         #expect(KVMISOType.display("oraclelinux") == "Oracle Linux")

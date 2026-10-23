@@ -3,8 +3,9 @@
 //  1PanelClient
 //
 //  虚拟机管理根页（高级功能分组，/xpack/vms/*，专业版门禁；logs/高级功能-KVM.md 抓包 2026-10-23）：
-//  进页先 GET environment 检测依赖（架构 / 辅助程序 / KVM 设备 / libvirt / 存储目录），
-//  未就绪只显检测卡 + 重新检测；就绪后分段 虚拟机 / 镜像 / 模版 / 网络 / 存储池。
+//  进页先 GET environment 做依赖门控——未就绪不可使用功能，仅显示 libvirt / /dev/kvm /
+//  storage 三项 已启用·未启用 提示（storage 附目录路径）+ 重新检测；就绪后分段
+//  虚拟机 / 镜像 / 模版 / 网络 / 存储池。
 //  虚拟机段：卡片列表（每台一卡：点击卡进详情、长按弹操作菜单——电源 / 编辑 / 重命名 / 删除，
 //  卡上常驻 监控·快照·磁盘管理·转为模版 四个快捷按钮，按状态可用），工具栏 创建 + 同步。
 //  任务式操作进度由根页 navigationDestination(item: activeTask) 推入 TaskProgressView
@@ -93,9 +94,10 @@ struct KVMView: View {
     }
 }
 
-// MARK: - 环境检测卡
+// MARK: - 环境门控（依赖未就绪提示卡）
 
-/// 依赖未就绪：逐项显示 通过 / 未通过 + 服务端信息，提供重新检测
+/// 依赖未就绪：仅显示 libvirt / /dev/kvm / storage 三项 已启用·未启用 状态（storage 附目录路径，
+/// 架构不支持时追加一行），功能不可用；提供重新检测。安装依赖需在面板网页端完成
 struct KVMEnvironmentView: View {
     let environment: KVMEnvironment
     let isChecking: Bool
@@ -104,27 +106,18 @@ struct KVMEnvironmentView: View {
     var body: some View {
         List {
             Section {
-                ForEach(Array(environment.checks.enumerated()), id: \.offset) { _, check in
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: check.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundStyle(check.passed ? Color.statusRunning : Color.statusError)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(check.title)
-                            if !check.message.isEmpty {
-                                Text(check.message)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
-                            }
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 2)
+                envRow("libvirt",
+                       enabled: environment.libvirtExist == true && environment.libvirtActive == true)
+                envRow("/dev/kvm", enabled: environment.kvmExist == true)
+                envRow("storage", enabled: environment.storageExist == true,
+                       detail: environment.storageMessage)
+                if environment.archSupported == false {
+                    envRow(L10n.f("架构 %@", environment.arch ?? "-"), enabled: false)
                 }
             } header: {
-                SectionLabel(title: L10n.t("环境检测"), systemImage: "stethoscope")
+                SectionLabel(title: L10n.t("依赖检查"), systemImage: "stethoscope")
             } footer: {
-                Text(L10n.t("虚拟机管理依赖 KVM 设备、libvirt 服务与存储目录；请在面板网页端完成依赖安装后重新检测。"))
+                Text(L10n.t("依赖检查未通过，功能不可用；请在面板网页端完成依赖安装后重新检测。"))
             }
 
             Section {
@@ -141,6 +134,26 @@ struct KVMEnvironmentView: View {
         }
         .listStyle(.insetGrouped)
         .refreshable { await onRetry() }
+    }
+
+    private func envRow(_ title: String, enabled: Bool, detail: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(title)
+                    .font(.body.weight(.medium))
+                Spacer()
+                StatusBadge(text: enabled ? L10n.t("已启用") : L10n.t("未启用"),
+                            color: enabled ? .statusRunning : .statusError)
+            }
+            if let detail, !detail.isEmpty {
+                Text(detail)
+                    .font(.dataMonospacedFootnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
