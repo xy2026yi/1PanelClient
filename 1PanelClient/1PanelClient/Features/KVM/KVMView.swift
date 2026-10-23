@@ -5,10 +5,10 @@
 //  虚拟机管理根页（高级功能分组，/xpack/vms/*，专业版门禁；logs/高级功能-KVM.md 抓包 2026-10-23）：
 //  进页先 GET environment 检测依赖（架构 / 辅助程序 / KVM 设备 / libvirt / 存储目录），
 //  未就绪只显检测卡 + 重新检测；就绪后分段 虚拟机 / 镜像 / 模版 / 网络 / 存储池。
-//  虚拟机段：列表（状态轮询过渡态）、点击行弹操作面板（详情 / 电源 / 编辑 / 重命名 / 转模版 / 删除）、
-//  工具栏 创建 + 同步。任务式操作进度由根页 navigationDestination(item: activeTask) 推入
-//  TaskProgressView（operateNode=local），完成后重拉当前段。
-//  VNC 控制台为二进制 RFB over WebSocket，客户端暂不实现，仅在详情展示连接信息。
+//  虚拟机段：列表（状态轮询过渡态）、点击行进详情页、长按弹操作面板（电源 / 快照 / 监控 /
+//  磁盘管理 / 编辑 / 重命名 / 转模版 / 删除），工具栏 创建 + 同步。任务式操作进度由根页
+//  navigationDestination(item: activeTask) 推入 TaskProgressView（operateNode=local），
+//  完成后重拉当前段。VNC 控制台为二进制 RFB over WebSocket，客户端暂不实现，仅详情展示连接信息。
 //
 
 import SwiftUI
@@ -49,7 +49,7 @@ struct KVMView: View {
                 content
             }
         }
-        .navigationTitle(L10n.t("虚拟机"))
+        .navigationTitle(L10n.t("虚拟机管理"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() } }
         .toastOverlay(message: $vm.toastMessage)
@@ -145,17 +145,27 @@ struct KVMEnvironmentView: View {
 
 // MARK: - 虚拟机列表
 
+/// 虚拟机推入路由（详情 / 编辑 / 监控 / 磁盘管理共用一个 item 目标——
+/// navigationDestination(item:) 同类型多次声明只认第一个，须收敛为单枚举）
+enum KVMVMRoute: Hashable {
+    case detail(KVMVirtualMachine)
+    case edit(KVMVirtualMachine)
+    case monitor(KVMVirtualMachine)
+    case disks(KVMVirtualMachine)
+}
+
 struct KVMVMListView: View {
     @ObservedObject var vm: KVMViewModel
 
     @State private var showCreate = false
     @State private var actionVM: KVMVirtualMachine?
-    @State private var detailVM: KVMVirtualMachine?
-    @State private var editVM: KVMVirtualMachine?
+    @State private var route: KVMVMRoute?
     @State private var renameVM: KVMVirtualMachine?
     @State private var templateVM: KVMVirtualMachine?
     @State private var deleteVM: KVMVirtualMachine?
     @State private var forceDelete = false
+    /// 长按菜单 - 快照创建（运行态）
+    @State private var snapshotVM: KVMVirtualMachine?
     @State private var pendingOperate: (vm: KVMVirtualMachine, operate: KVMOperate)?
     @State private var isSyncing = false
 
@@ -185,23 +195,21 @@ struct KVMVMListView: View {
                     }
                 } else {
                     ForEach(vm.vms) { machine in
-                        Button {
-                            actionVM = machine
-                        } label: {
-                            KVMVMRow(machine: machine, isOperating: vm.operatingIDs.contains(machine.id))
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .onAppear {
-                            if machine.id == vm.vms.last?.id {
-                                Task { await vm.loadMoreVMs() }
+                        KVMVMRow(machine: machine, isOperating: vm.operatingIDs.contains(machine.id))
+                            .rowTapAndLongPress(
+                                onTap: { route = .detail(machine) },
+                                onLongPress: { actionVM = machine }
+                            )
+                            .onAppear {
+                                if machine.id == vm.vms.last?.id {
+                                    Task { await vm.loadMoreVMs() }
+                                }
                             }
-                        }
                     }
                 }
             } footer: {
                 if !vm.vms.isEmpty {
-                    Text(L10n.t("点击虚拟机查看操作；编辑 / 重命名 / 转为模版 / 恢复快照需先关机"))
+                    Text(L10n.t("点击进入详情，长按打开操作菜单；编辑 / 重命名 / 转为模版 / 恢复快照需先关机"))
                 }
             }
         }
@@ -241,11 +249,13 @@ struct KVMVMListView: View {
         .navigationDestination(isPresented: $showCreate) {
             KVMVMFormView(vm: vm)
         }
-        .navigationDestination(item: $editVM) { machine in
-            KVMVMFormView(vm: vm, machine: machine)
-        }
-        .navigationDestination(item: $detailVM) { machine in
-            KVMVMDetailView(vm: vm, machine: machine)
+        .navigationDestination(item: $route) { route in
+            switch route {
+            case .detail(let machine): KVMVMDetailView(vm: vm, machine: machine)
+            case .edit(let machine): KVMVMFormView(vm: vm, machine: machine)
+            case .monitor(let machine): KVMVMMonitorView(vm: vm, machine: machine)
+            case .disks(let machine): KVMDiskManageView(vm: vm, machine: machine)
+            }
         }
         .sheet(item: $actionVM) { machine in
             ActionBottomSheet(
@@ -255,6 +265,11 @@ struct KVMVMListView: View {
             )
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(machine).count))])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $snapshotVM) { machine in
+            KVMSnapshotCreateSheet(machine: machine) { snapshotName, description in
+                await vm.createSnapshot(machine, snapshotName: snapshotName, description: description) != nil
+            }
         }
         .sheet(item: $renameVM) { machine in
             KVMRenameSheet(machine: machine) { newName in
@@ -305,12 +320,10 @@ struct KVMVMListView: View {
         }
     }
 
-    /// 操作面板：详情 / 按状态可用的电源操作 / 关机态才有的 编辑·重命名·转模版 / 删除
+    /// 长按菜单：按状态可用的电源操作 / 运行态 快照·监控 / 关机态 磁盘管理·编辑·重命名·转模版 / 删除。
+    /// 点击行本身进详情页（与网页端一致）
     private func actionItems(_ machine: KVMVirtualMachine) -> [ActionMenuItem] {
         var items: [ActionMenuItem] = []
-        items.append(ActionMenuItem(title: L10n.t("详情"), icon: "info.circle", color: .blue) {
-            detailVM = machine
-        })
         for operate in KVMOperate.available(for: machine) {
             items.append(ActionMenuItem(
                 title: operate.displayName, icon: operate.icon,
@@ -325,9 +338,20 @@ struct KVMVMListView: View {
                 }
             })
         }
+        if machine.isRunning {
+            items.append(ActionMenuItem(title: L10n.t("快照"), icon: "camera.on.rectangle", color: .purple) {
+                snapshotVM = machine
+            })
+            items.append(ActionMenuItem(title: L10n.t("监控"), icon: "chart.xyaxis.line", color: .blue) {
+                route = .monitor(machine)
+            })
+        }
         if machine.isShutOff {
+            items.append(ActionMenuItem(title: L10n.t("磁盘管理"), icon: "internaldrive", color: .teal) {
+                route = .disks(machine)
+            })
             items.append(ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .teal) {
-                editVM = machine
+                route = .edit(machine)
             })
             items.append(ActionMenuItem(title: L10n.t("重命名"), icon: "character.cursor.ibeam", color: .indigo) {
                 renameVM = machine

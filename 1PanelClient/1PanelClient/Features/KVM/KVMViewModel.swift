@@ -196,6 +196,7 @@ final class KVMViewModel: ObservableObject {
                                        body: KVMOperateRequest(name: vm.displayName, operate: operate.rawValue),
                                        failure: { L10n.f("%@失败：%@", operate.displayName, $0) })
         if ok {
+            toastMessage = L10n.f("已执行「%@」", operate.displayName)
             // libvirt 状态切换有延迟：短暂等待后重拉
             try? await Task.sleep(nanoseconds: 800_000_000)
             await loadVMs()
@@ -280,6 +281,27 @@ final class KVMViewModel: ObservableObject {
                        failure: { L10n.f("恢复快照失败：%@", $0) })
     }
 
+    // MARK: 详情 / 磁盘扩容
+
+    /// POST info {name, checkDisks}：checkDisks=true 时磁盘带 resizeBlocked 可扩容判定
+    func info(_ vm: KVMVirtualMachine, checkDisks: Bool) async throws -> KVMVirtualMachine {
+        try await client.send(path: APIEndpoint.kvmInfo.path,
+                              body: KVMInfoRequest(name: vm.displayName, checkDisks: checkDisks),
+                              as: KVMVirtualMachine.self)
+    }
+
+    /// 磁盘扩容（任务式）→ 进度页；present=true 由根页推入，
+    /// 磁盘管理页传 false 自行 push（避免与根页双推）
+    @discardableResult
+    func resizeDisk(_ vm: KVMVirtualMachine, target: String, sizeGiB: Int, present: Bool = true) async -> String? {
+        await sendTask(.kvmDiskResize,
+                       body: KVMDiskResizeRequest(name: vm.displayName, target: target,
+                                                  sizeGiB: sizeGiB, taskID: UUID().uuidString),
+                       present: present,
+                       title: L10n.f("扩容磁盘 %@", target),
+                       failure: { L10n.f("扩容失败：%@", $0) })
+    }
+
     // MARK: 监控 / 健康检查 / 控制台
 
     func stats(_ vm: KVMVirtualMachine) async throws -> KVMStats {
@@ -358,14 +380,14 @@ final class KVMViewModel: ObservableObject {
         let ok = await sendEmpty(.kvmNetworkUpdate,
                                  body: KVMResourceUpdateRequest(id: network.id, status: active ? "running" : "inactive"),
                                  failure: { L10n.f("操作失败：%@", $0) })
-        if ok { await loadNetworks() }
+        if ok { toastMessage = active ? L10n.t("已启动") : L10n.t("已停止"); await loadNetworks() }
     }
 
     func setNetworkAutoStart(_ network: KVMNetwork, on: Bool) async {
         let ok = await sendEmpty(.kvmNetworkUpdate,
                                  body: KVMResourceUpdateRequest(id: network.id, autoStart: on),
                                  failure: { L10n.f("操作失败：%@", $0) })
-        if ok { await loadNetworks() }
+        if ok { toastMessage = on ? L10n.t("已开启开机自启") : L10n.t("已关闭开机自启"); await loadNetworks() }
     }
 
     func deleteNetwork(_ network: KVMNetwork, force: Bool) async {
@@ -386,14 +408,14 @@ final class KVMViewModel: ObservableObject {
         let ok = await sendEmpty(.kvmStorageUpdate,
                                  body: KVMResourceUpdateRequest(id: pool.id, status: active ? "running" : "inactive"),
                                  failure: { L10n.f("操作失败：%@", $0) })
-        if ok { await loadStorages() }
+        if ok { toastMessage = active ? L10n.t("已启动") : L10n.t("已停止"); await loadStorages() }
     }
 
     func setStorageAutoStart(_ pool: KVMStoragePool, on: Bool) async {
         let ok = await sendEmpty(.kvmStorageUpdate,
                                  body: KVMResourceUpdateRequest(id: pool.id, autoStart: on),
                                  failure: { L10n.f("操作失败：%@", $0) })
-        if ok { await loadStorages() }
+        if ok { toastMessage = on ? L10n.t("已开启开机自启") : L10n.t("已关闭开机自启"); await loadStorages() }
     }
 
     func deleteStorage(_ pool: KVMStoragePool, force: Bool) async {

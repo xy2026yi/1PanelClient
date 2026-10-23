@@ -4,7 +4,8 @@
 //
 //  KVM 虚拟机管理模型测试：环境检测 / 虚拟机与资源解码（抓包样本）、
 //  电源操作可用性矩阵、监控采样求差（CPU% 与速率）、创建·编辑请求编码形状
-//  （模版启动 vs 普通）、快照命名、资源更新单字段提交、健康检查解码
+//  （模版启动 vs 普通）、快照命名、资源更新单字段提交、健康检查解码、
+//  详情 checkDisks 可扩容判定与磁盘扩容请求形状
 //
 
 import Testing
@@ -319,6 +320,58 @@ struct KVMModelsTests {
         #expect(autoObj["status"] == nil)
     }
 
+    // MARK: 详情 / 磁盘扩容
+
+    @Test("info(checkDisks) 抓包样本：resizeBlocked 非空不可扩容，容量换算 GiB")
+    func decodeInfoDisks() throws {
+        let json = """
+        {"id":4,"name":"teat1","cpu":1,"memory":1024,"diskSize":6,"status":"shut off",
+         "disks":[{"capacity":6442450944,"format":"qcow2","readOnly":false,"shareable":false,
+                   "resizeBlocked":"backing","device":"disk","type":"file",
+                   "source":"/var/lib/libvirt/images/teat1-snapshots/snap-20261023150216.qcow2",
+                   "target":"vda","bus":"virtio"},
+                  {"capacity":0,"format":"raw","readOnly":true,"shareable":false,
+                   "resizeBlocked":"","device":"cdrom","type":"file",
+                   "source":"/var/lib/libvirt/images/vm-iso/alpine-virt-3.21.3-x86_64.iso",
+                   "target":"sda","bus":"sata"}],
+         "taskID":"0c909393-7dc8-4c16-9611-7efe1caade31"}
+        """
+        let vm = try JSONDecoder().decode(KVMVirtualMachine.self, from: Data(json.utf8))
+        let disks = try #require(vm.disks)
+        #expect(disks.count == 2)
+        #expect(disks[0].capacityGiB == 6)          // 6442450944 B = 6 GiB
+        #expect(!disks[0].isResizable)              // resizeBlocked = "backing"
+        #expect(disks[0].resizeBlockedDisplay == L10n.t("存在快照链（backing 文件）"))
+        #expect(!disks[1].isResizable)              // cdrom
+        #expect(disks[1].capacityGiB == nil)        // capacity = 0
+
+        // 可扩容盘：disk + resizeBlocked 为空
+        let plain = #"{"capacity":5368709120,"format":"qcow2","device":"disk","target":"vda","bus":"virtio","resizeBlocked":""}"#
+        let disk = try JSONDecoder().decode(KVMDisk.self, from: Data(plain.utf8))
+        #expect(disk.isResizable)
+        #expect(disk.capacityGiB == 5)
+    }
+
+    @Test("磁盘扩容请求形状对齐抓包：{name, target, sizeGiB, taskID}")
+    func encodeDiskResize() throws {
+        let request = KVMDiskResizeRequest(name: "teat1", target: "vda", sizeGiB: 6,
+                                           taskID: "0c909393-7dc8-4c16-9611-7efe1caade31")
+        let obj = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any])
+        #expect(obj.count == 4)
+        #expect(obj["name"] as? String == "teat1")
+        #expect(obj["target"] as? String == "vda")
+        #expect(obj["sizeGiB"] as? Int == 6)
+        #expect(obj["taskID"] as? String == "0c909393-7dc8-4c16-9611-7efe1caade31")
+    }
+
+    @Test("info 请求形状：{name, checkDisks}")
+    func encodeInfoRequest() throws {
+        let obj = try #require(JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(KVMInfoRequest(name: "teat1", checkDisks: true))) as? [String: Any])
+        #expect(obj["name"] as? String == "teat1")
+        #expect(obj["checkDisks"] as? Bool == true)
+    }
+
     // MARK: 端点
 
     @Test("KVM 端点路径与方法（environment 为 GET，其余 POST）")
@@ -331,6 +384,10 @@ struct KVMModelsTests {
         #expect(APIEndpoint.kvmHealthCheck.path == "/api/v2/xpack/vms/health/check")
         #expect(APIEndpoint.kvmSnapshotList.path == "/api/v2/xpack/vms/snapshots/list")
         #expect(APIEndpoint.kvmSnapshotRecover.path == "/api/v2/xpack/vms/snapshots/recover")
+        #expect(APIEndpoint.kvmInfo.path == "/api/v2/xpack/vms/info")
+        #expect(APIEndpoint.kvmInfo.method == "POST")
+        #expect(APIEndpoint.kvmDiskResize.path == "/api/v2/xpack/vms/disks/resize")
+        #expect(APIEndpoint.kvmDiskResize.method == "POST")
         #expect(APIEndpoint.kvmISOImportStart.path == "/api/v2/xpack/vms/iso/import/start")
         #expect(APIEndpoint.kvmISOImportUpdate.path == "/api/v2/xpack/vms/iso/import/update")
         #expect(APIEndpoint.kvmTemplateCreate.path == "/api/v2/xpack/vms/templates")

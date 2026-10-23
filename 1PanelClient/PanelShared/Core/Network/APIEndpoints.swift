@@ -729,6 +729,8 @@ enum APIEndpoint {
     case kvmSnapshotCreate         // POST 创建快照 {taskID, name, snapshotName, description}
     case kvmSnapshotList           // POST 快照列表 {name}
     case kvmSnapshotRecover        // POST 恢复快照 {taskID, name, snapshotName}（仅 shut off）
+    case kvmInfo                   // POST 单台详情 {name, checkDisks}（checkDisks=true 时磁盘带 resizeBlocked 判定）
+    case kvmDiskResize             // POST 磁盘扩容 {name, target, sizeGiB, taskID}（resizeBlocked 非空不可扩容）
     case kvmISOList                // POST 镜像列表（无 body）
     case kvmISOCreate              // POST 登记服务器上已有镜像 {type, name, path, description}
     case kvmISOImportStart         // POST 上传/下载登记 {type, name, path, status, tempFileID[, tempFileType], description} → {id}
@@ -1350,6 +1352,8 @@ enum APIEndpoint {
         case .kvmSnapshotCreate:     return "/api/v2/xpack/vms/snapshots"
         case .kvmSnapshotList:       return "/api/v2/xpack/vms/snapshots/list"
         case .kvmSnapshotRecover:    return "/api/v2/xpack/vms/snapshots/recover"
+        case .kvmInfo:               return "/api/v2/xpack/vms/info"
+        case .kvmDiskResize:         return "/api/v2/xpack/vms/disks/resize"
         case .kvmISOList:            return "/api/v2/xpack/vms/iso/list"
         case .kvmISOCreate:          return "/api/v2/xpack/vms/iso"
         case .kvmISOImportStart:     return "/api/v2/xpack/vms/iso/import/start"

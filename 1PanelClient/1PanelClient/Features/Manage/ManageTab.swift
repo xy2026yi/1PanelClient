@@ -557,7 +557,7 @@ enum ManageItem: String, Identifiable {
         case .aiOllama:    return "Ollama"
         case .aiVllm:      return "vLLM"
         case .aiDownloader: return L10n.t("模型下载")
-        case .kvm:         return L10n.t("虚拟机")
+        case .kvm:         return L10n.t("虚拟机管理")
         }
     }
 

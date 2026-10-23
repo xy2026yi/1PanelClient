@@ -3,7 +3,7 @@
 //  1PanelClient
 //
 //  虚拟机镜像 ISO（/xpack/vms/iso/*，logs/高级功能-KVM.md 抓包 2026-10-23）：
-//  列表 / 添加（三种来源）/ 编辑 / 删除（可选删源文件）。
+//  列表 / 添加（三种来源）/ 编辑 / 删除（半屏弹窗，可选删源文件）。
 //  - 服务器选择：POST iso {type, name, path, description}
 //  - 本地上传：iso/import/start（status=uploading, tempFileID=uploadID, tempFileType=upload）→ {id}
 //    → files/chunkupload 分片（filename/uploadID/path/chunkIndex/chunkCount/overwrite=True，5MB/片）
@@ -25,7 +25,7 @@ struct KVMISOListView: View {
     @State private var showCreate = false
     @State private var editISO: KVMISOImage?
     @State private var actionISO: KVMISOImage?
-    @State private var pendingDelete: (iso: KVMISOImage, deleteFile: Bool)?
+    @State private var deleteISO: KVMISOImage?
 
     var body: some View {
         List {
@@ -55,7 +55,7 @@ struct KVMISOListView: View {
                 }
             } footer: {
                 if !vm.isos.isEmpty {
-                    Text(L10n.t("点击镜像编辑或删除；上传 / 下载中的镜像完成后状态变为就绪"))
+                    Text(L10n.t("点击镜像编辑 / 删除；上传 / 下载中的镜像完成后状态变为就绪"))
                 }
             }
         }
@@ -90,23 +90,9 @@ struct KVMISOListView: View {
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(iso).count))])
             .presentationDragIndicator(.visible)
         }
-        .alert(
-            L10n.t("删除镜像"),
-            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
-        ) {
-            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
-            Button(L10n.t("删除"), role: .destructive) {
-                Haptic.warning()
-                if let pending = pendingDelete {
-                    Task { await vm.deleteISO(pending.iso, deleteFile: pending.deleteFile) }
-                }
-                pendingDelete = nil
-            }
-        } message: {
-            if let pending = pendingDelete {
-                Text(pending.deleteFile
-                     ? L10n.f("将删除镜像「%@」并删除服务器上的源文件，不可恢复，是否继续？", pending.iso.displayName)
-                     : L10n.f("将删除镜像记录「%@」（保留服务器上的源文件），是否继续？", pending.iso.displayName))
+        .sheet(item: $deleteISO) { iso in
+            KVMISODeleteSheet(iso: iso) { deleteFile in
+                await vm.deleteISO(iso, deleteFile: deleteFile)
             }
         }
     }
@@ -116,13 +102,65 @@ struct KVMISOListView: View {
             ActionMenuItem(title: L10n.t("编辑"), icon: "pencil", color: .teal) {
                 editISO = iso
             },
-            ActionMenuItem(title: L10n.t("删除（保留源文件）"), icon: "trash", color: .orange, role: .destructive) {
-                pendingDelete = (iso, false)
-            },
-            ActionMenuItem(title: L10n.t("删除并删除源文件"), icon: "trash.fill", color: .red, role: .destructive) {
-                pendingDelete = (iso, true)
+            ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                deleteISO = iso
             },
         ]
+    }
+}
+
+// MARK: - 删除镜像（半屏弹窗，可选删除源文件）
+
+/// 删除镜像确认：默认仅删除镜像记录，开启「删除源文件」后连同服务器上的 ISO 一并删除
+struct KVMISODeleteSheet: View {
+    let iso: KVMISOImage
+    /// (是否删除源文件) → 已提交（关闭弹层由调用方按结果处理）
+    let onSubmit: (Bool) async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var deleteFile = false
+    @State private var isSubmitting = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(L10n.f("将删除镜像「%@」，是否继续？", iso.displayName))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section {
+                    Toggle(L10n.t("删除源文件"), isOn: $deleteFile)
+                } footer: {
+                    Text(L10n.t("开启后连同服务器上的源文件一并删除；关闭则仅删除镜像记录，保留源文件。"))
+                }
+            }
+            .navigationTitle(L10n.t("删除镜像"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task {
+                            isSubmitting = true
+                            defer { isSubmitting = false }
+                            await onSubmit(deleteFile)
+                            dismiss()
+                        }
+                    } label: {
+                        if isSubmitting { ProgressView() } else { Text(L10n.t("确认")).bold() }
+                    }
+                    .disabled(isSubmitting)
+                    .tint(.red)
+                }
+            }
+            .interactiveDismissDisabled(isSubmitting)
+        }
+        .bottomSheetDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }
 

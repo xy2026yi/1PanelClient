@@ -3,10 +3,11 @@
 //  1PanelClient
 //
 //  虚拟机资源三段（logs/高级功能-KVM.md 抓包 2026-10-23）：
-//  - 模版：列表 / 删除（可选删磁盘，任务式）；模版由虚拟机「转为模版」产生，无独立创建
-//  - 网络：列表 / 创建（NAT·Bridge·Macvtap，CIDR·网关·DHCP 范围）/ 启停 / 开机自启 / 删除
-//    （关联虚拟机的网络不可直接删除，仅保留强制删除由服务端裁决）
-//  - 存储池：列表 / 创建（本地目录）/ 启停 / 开机自启 / 删除（同网络限制）
+//  - 模版：列表 / 删除（默认连同删除磁盘文件，任务式；弹窗确认展示磁盘路径）
+//    模版由虚拟机「转为模版」产生，无独立创建
+//  - 网络：列表 / 创建（NAT·Bridge·Macvtap，CIDR·网关·DHCP 范围）/ 启停 / 开机自启 /
+//    删除（半屏弹窗：强制删除开关 + 输入名称确认）
+//  - 存储池：列表 / 创建（本地目录）/ 启停 / 开机自启 / 删除（同网络）
 //  网络与存储池的启停 / 自启走各自 update 端点单字段提交 {id, status} / {id, autoStart}。
 //
 
@@ -18,7 +19,7 @@ struct KVMTemplateListView: View {
     @ObservedObject var vm: KVMViewModel
 
     @State private var actionTemplate: KVMTemplate?
-    @State private var pendingDelete: (template: KVMTemplate, deleteDisk: Bool)?
+    @State private var pendingDelete: KVMTemplate?
 
     var body: some View {
         List {
@@ -58,35 +59,32 @@ struct KVMTemplateListView: View {
             ActionBottomSheet(
                 title: template.displayName,
                 items: [
-                    ActionMenuItem(title: L10n.t("删除（保留磁盘文件）"), icon: "trash", color: .orange, role: .destructive) {
-                        pendingDelete = (template, false)
-                    },
-                    ActionMenuItem(title: L10n.t("删除并删除磁盘文件"), icon: "trash.fill", color: .red, role: .destructive) {
-                        pendingDelete = (template, true)
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+                        pendingDelete = template
                     },
                 ],
                 onDismiss: { actionTemplate = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
             .presentationDragIndicator(.visible)
         }
+        // 删除默认连同磁盘文件（deleteDisk=true，与网页端默认一致）
         .alert(
             L10n.t("删除模版"),
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
         ) {
             Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
-            Button(L10n.t("删除"), role: .destructive) {
+            Button(L10n.t("确认"), role: .destructive) {
                 Haptic.warning()
-                if let pending = pendingDelete {
-                    Task { await vm.deleteTemplate(pending.template, deleteDisk: pending.deleteDisk) }
+                if let template = pendingDelete {
+                    Task { await vm.deleteTemplate(template, deleteDisk: true) }
                 }
                 pendingDelete = nil
             }
         } message: {
-            if let pending = pendingDelete {
-                Text(pending.deleteDisk
-                     ? L10n.f("将删除模版「%@」及其磁盘文件，不可恢复，是否继续？", pending.template.displayName)
-                     : L10n.f("将删除模版记录「%@」（保留磁盘文件），是否继续？", pending.template.displayName))
+            if let template = pendingDelete {
+                Text(L10n.f("删除模版 %@（%@），该操作不可回滚，是否继续？",
+                            template.displayName, template.diskPath ?? "-"))
             }
         }
     }
@@ -132,7 +130,8 @@ struct KVMNetworkListView: View {
 
     @State private var showCreate = false
     @State private var actionNetwork: KVMNetwork?
-    @State private var pendingDelete: (network: KVMNetwork, force: Bool)?
+    @State private var deleteNetwork: KVMNetwork?
+    @State private var forceDelete = false
 
     var body: some View {
         List {
@@ -162,7 +161,7 @@ struct KVMNetworkListView: View {
                 }
             } footer: {
                 if !vm.networks.isEmpty {
-                    Text(L10n.t("点击网络启停 / 自启 / 删除；有关联虚拟机的网络不可删除"))
+                    Text(L10n.t("点击网络启停 / 自启 / 删除；有关联虚拟机的网络需强制删除"))
                 }
             }
         }
@@ -190,24 +189,22 @@ struct KVMNetworkListView: View {
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(network).count))])
             .presentationDragIndicator(.visible)
         }
-        .alert(
-            L10n.t("删除网络"),
-            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
-        ) {
-            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
-            Button(L10n.t("删除"), role: .destructive) {
-                Haptic.warning()
-                if let pending = pendingDelete {
-                    Task { await vm.deleteNetwork(pending.network, force: pending.force) }
+        .sheet(item: $deleteNetwork) { network in
+            TextInputConfirmSheet(
+                title: L10n.t("删除网络"),
+                message: L10n.f("将删除网络「%@」，该操作不可回滚。如果确认操作，请手动输入 %@。",
+                                network.displayName, network.displayName),
+                expectedText: network.displayName
+            ) {
+                await vm.deleteNetwork(network, force: forceDelete)
+            } options: {
+                Section {
+                    Toggle(L10n.t("强制删除"), isOn: $forceDelete)
+                } footer: {
+                    Text(L10n.t("有关联虚拟机时不可直接删除，需开启强制删除。"))
                 }
-                pendingDelete = nil
             }
-        } message: {
-            if let pending = pendingDelete {
-                Text(pending.force
-                     ? L10n.f("将强制删除网络「%@」，是否继续？", pending.network.displayName)
-                     : L10n.f("将删除网络「%@」，是否继续？", pending.network.displayName))
-            }
+            .onAppear { forceDelete = false }
         }
     }
 
@@ -229,13 +226,8 @@ struct KVMNetworkListView: View {
         ) {
             Task { await vm.setNetworkAutoStart(network, on: !autoOn) }
         })
-        if !network.hasVMs {
-            items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                pendingDelete = (network, false)
-            })
-        }
-        items.append(ActionMenuItem(title: L10n.t("强制删除"), icon: "trash.fill", color: .red, role: .destructive) {
-            pendingDelete = (network, true)
+        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+            deleteNetwork = network
         })
         return items
     }
@@ -395,7 +387,8 @@ struct KVMStorageListView: View {
 
     @State private var showCreate = false
     @State private var actionPool: KVMStoragePool?
-    @State private var pendingDelete: (pool: KVMStoragePool, force: Bool)?
+    @State private var deletePool: KVMStoragePool?
+    @State private var forceDelete = false
 
     var body: some View {
         List {
@@ -425,7 +418,7 @@ struct KVMStorageListView: View {
                 }
             } footer: {
                 if !vm.storages.isEmpty {
-                    Text(L10n.t("点击存储池启停 / 自启 / 删除；有关联虚拟机的存储池不可删除"))
+                    Text(L10n.t("点击存储池启停 / 自启 / 删除；有关联虚拟机的存储池需强制删除"))
                 }
             }
         }
@@ -453,24 +446,22 @@ struct KVMStorageListView: View {
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(pool).count))])
             .presentationDragIndicator(.visible)
         }
-        .alert(
-            L10n.t("删除存储池"),
-            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
-        ) {
-            Button(L10n.t("取消"), role: .cancel) { pendingDelete = nil }
-            Button(L10n.t("删除"), role: .destructive) {
-                Haptic.warning()
-                if let pending = pendingDelete {
-                    Task { await vm.deleteStorage(pending.pool, force: pending.force) }
+        .sheet(item: $deletePool) { pool in
+            TextInputConfirmSheet(
+                title: L10n.t("删除存储池"),
+                message: L10n.f("将删除存储池「%@」（不删除目录内文件），该操作不可回滚。如果确认操作，请手动输入 %@。",
+                                pool.displayName, pool.displayName),
+                expectedText: pool.displayName
+            ) {
+                await vm.deleteStorage(pool, force: forceDelete)
+            } options: {
+                Section {
+                    Toggle(L10n.t("强制删除"), isOn: $forceDelete)
+                } footer: {
+                    Text(L10n.t("有关联虚拟机时不可直接删除，需开启强制删除。"))
                 }
-                pendingDelete = nil
             }
-        } message: {
-            if let pending = pendingDelete {
-                Text(pending.force
-                     ? L10n.f("将强制删除存储池「%@」（不删除目录内文件），是否继续？", pending.pool.displayName)
-                     : L10n.f("将删除存储池「%@」（不删除目录内文件），是否继续？", pending.pool.displayName))
-            }
+            .onAppear { forceDelete = false }
         }
     }
 
@@ -492,13 +483,8 @@ struct KVMStorageListView: View {
         ) {
             Task { await vm.setStorageAutoStart(pool, on: !autoOn) }
         })
-        if !pool.hasVMs {
-            items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
-                pendingDelete = (pool, false)
-            })
-        }
-        items.append(ActionMenuItem(title: L10n.t("强制删除"), icon: "trash.fill", color: .red, role: .destructive) {
-            pendingDelete = (pool, true)
+        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash", color: .red, role: .destructive) {
+            deletePool = pool
         })
         return items
     }

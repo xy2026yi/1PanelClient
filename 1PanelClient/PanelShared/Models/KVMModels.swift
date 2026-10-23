@@ -4,12 +4,12 @@
 //
 //  虚拟机管理（KVM，/api/v2/xpack/vms/*，专业版，受高级功能门禁）：
 //  环境检测 / 虚拟机（列表·创建·编辑·重命名·转模版·删除·电源操作·同步·监控·
-//  快照·健康检查·控制台信息）/ 镜像 ISO（服务器选择·本地上传·远程下载·编辑·删除）/
-//  模版 / 网络 / 存储池。
+//  快照·健康检查·控制台信息·详情 checkDisks·磁盘扩容）/ 镜像 ISO（服务器选择·
+//  本地上传·远程下载·编辑·删除）/ 模版 / 网络 / 存储池。
 //
 //  抓包来源：logs/高级功能-KVM.md（2026-10-23）。任务类操作（创建/编辑/重命名/
-//  转模版/删除/快照/模版删除）返回 {taskID}，进度走 logs/tasks/read（operateNode=local）；
-//  即时操作（电源/同步/网络·存储启停自启/ISO 增删改）返回 success。
+//  转模版/删除/快照/模版删除/磁盘扩容）返回 {taskID}，进度走 logs/tasks/read
+//  （operateNode=local）；即时操作（电源/同步/网络·存储启停自启/ISO 增删改）返回 success。
 //  ISO 类型 rawValue 仅 debian / archlinux 抓到，其余按命名规律推定并标 [推测]。
 //
 
@@ -106,6 +106,23 @@ nonisolated struct KVMDisk: Decodable, Hashable {
     /// vda / sda
     let target: String?
     let bus: String?
+
+    /// 容量 GiB（字节换算，向下取整；0 / 缺失为 nil）
+    var capacityGiB: Int? {
+        guard let capacity, capacity > 0 else { return nil }
+        return Int(capacity / 1_073_741_824)
+    }
+    /// 是否可扩容：非 cdrom 且 info(checkDisks) 判定无阻塞（resizeBlocked 为空）
+    var isResizable: Bool {
+        (device ?? "disk") != "cdrom" && (resizeBlocked ?? "").isEmpty
+    }
+    /// 阻塞原因（抓包值 backing = 磁盘挂在快照链上；未知值回退原值）
+    var resizeBlockedDisplay: String {
+        switch (resizeBlocked ?? "").lowercased() {
+        case "backing": return L10n.t("存在快照链（backing 文件）")
+        default: return resizeBlocked ?? ""
+        }
+    }
 }
 
 nonisolated struct KVMInterface: Decodable, Hashable {
@@ -385,6 +402,24 @@ nonisolated struct KVMSnapshotRecoverRequest: Encodable {
     let taskID: String
     let name: String
     let snapshotName: String
+}
+
+// MARK: - 详情 / 磁盘扩容
+
+/// POST /xpack/vms/info {name, checkDisks}；checkDisks=true 时服务端逐盘校验
+/// 可扩容性并回填 disks[].resizeBlocked（非空即不可扩容，如 "backing"）
+nonisolated struct KVMInfoRequest: Encodable {
+    let name: String
+    let checkDisks: Bool
+}
+
+/// POST /xpack/vms/disks/resize {name, target, sizeGiB, taskID}；
+/// sizeGiB 为扩容后的总容量；仅 resizeBlocked 为空的磁盘可提交
+nonisolated struct KVMDiskResizeRequest: Encodable {
+    let name: String
+    let target: String
+    let sizeGiB: Int
+    let taskID: String
 }
 
 nonisolated enum KVMSnapshotNaming {

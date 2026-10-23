@@ -3,9 +3,9 @@
 //  1PanelClient
 //
 //  虚拟机详情（logs/高级功能-KVM.md 抓包 2026-10-23）：状态与控制台信息 / 基本信息 /
-//  磁盘与网卡 / 实时监控（POST stats 3 秒轮询：累计型 cpuTime·字节数两次采样求差得
-//  CPU% 与速率，内存按 actual-unused）/ 快照（列表·创建·恢复，恢复仅关机态）/
-//  健康检查（POST health/check，按 PASS/WARN/FAIL 列项）。工具栏菜单提供电源操作。
+//  磁盘与网卡 / 快照（列表·创建·恢复，恢复仅关机态）/ 健康检查（POST health/check，
+//  按 PASS/WARN/FAIL 列项）。工具栏菜单提供电源操作。实时监控已独立为图表页
+//  KVMVMMonitorView（入口在虚拟机列表长按菜单），详情页不再内嵌数值监控。
 //  VNC 控制台（二进制 RFB over WS）暂不实现，仅展示 type/port/listen。
 //
 
@@ -15,18 +15,6 @@ struct KVMVMDetailView: View {
     @ObservedObject var vm: KVMViewModel
     /// 进入时的快照；展示时优先取列表里的实时对象（电源操作后状态随刷新变化）
     let initial: KVMVirtualMachine
-
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var isSceneActive = true
-
-    // 监控（stats 保留上一次采样，供下一次求差）
-    @State private var stats: KVMStats?
-    @State private var cpuPercent: Double?
-    @State private var diskReadRate: Double?
-    @State private var diskWriteRate: Double?
-    @State private var netRxRate: Double?
-    @State private var netTxRate: Double?
-    @State private var statsError: String?
 
     // 快照
     @State private var snapshots: [KVMSnapshot] = []
@@ -57,7 +45,6 @@ struct KVMVMDetailView: View {
             statusSection
             infoSection
             devicesSection
-            monitorSection
             snapshotSection
         }
         .listStyle(.insetGrouped)
@@ -91,18 +78,8 @@ struct KVMVMDetailView: View {
             await vm.loadVMs()
             await loadSnapshots()
         }
-        .onChange(of: scenePhase) { _, phase in
-            isSceneActive = phase == .active
-        }
-        // 实时监控 3 秒轮询（仅运行态；关机 / 暂停态接口无意义，停止采样）
         .task(id: machine.id) {
             await loadSnapshots()
-            while !Task.isCancelled {
-                if isSceneActive, machine.isRunning {
-                    await loadStats()
-                }
-                try? await Task.sleep(for: .seconds(3))
-            }
         }
         .alert(
             pendingOperate?.displayName ?? "",
@@ -275,90 +252,6 @@ struct KVMVMDetailView: View {
         }
     }
 
-    // MARK: 实时监控
-
-    private var monitorSection: some View {
-        Section {
-            if !machine.isRunning {
-                Text(L10n.t("虚拟机未运行，无实时监控数据"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else if let stats {
-                InfoRow(L10n.t("CPU 使用率"),
-                        value: cpuPercent.map { String(format: "%.1f%%", $0) } ?? L10n.t("采样中…"),
-                        monospaced: true)
-                if let memory = stats.memory {
-                    InfoRow(L10n.t("内存"),
-                            value: MetricFormat.usedOverTotal((memory.usedKiB ?? 0) * 1024, (memory.actualKiB ?? 0) * 1024)
-                                + (memory.usedPercent.map { String(format: "（%.1f%%）", $0) } ?? ""),
-                            monospaced: true)
-                    if let rss = memory.rssKiB {
-                        InfoRow(L10n.t("宿主机常驻（RSS）"), value: bytesText(rss * 1024), monospaced: true)
-                    }
-                }
-                if let disk = stats.disk {
-                    InfoRow(L10n.t("磁盘读取"),
-                            value: rateText(diskReadRate) + " · " + L10n.f("累计 %@", bytesText(disk.readBytes ?? 0)),
-                            monospaced: true)
-                    InfoRow(L10n.t("磁盘写入"),
-                            value: rateText(diskWriteRate) + " · " + L10n.f("累计 %@", bytesText(disk.writeBytes ?? 0)),
-                            monospaced: true)
-                }
-                if let network = stats.network {
-                    InfoRow(L10n.t("网络接收"),
-                            value: rateText(netRxRate) + " · " + L10n.f("累计 %@", bytesText(network.rxBytes ?? 0)),
-                            monospaced: true)
-                    InfoRow(L10n.t("网络发送"),
-                            value: rateText(netTxRate) + " · " + L10n.f("累计 %@", bytesText(network.txBytes ?? 0)),
-                            monospaced: true)
-                }
-            } else if let statsError {
-                Text(statsError)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                HStack { Spacer(); ProgressView(); Spacer() }
-            }
-        } header: {
-            SectionLabel(title: L10n.t("实时监控"), systemImage: "waveform.path.ecg")
-        } footer: {
-            if machine.isRunning {
-                Text(L10n.t("每 3 秒采样一次；CPU 使用率与速率由相邻两次累计值求差得出，首次采样后显示。"))
-            }
-        }
-    }
-
-    private func loadStats() async {
-        do {
-            let current = try await vm.stats(machine)
-            cpuPercent = KVMStats.cpuPercent(previous: stats, current: current)
-            diskReadRate = KVMStats.rate(previous: stats.map { ($0.disk?.readBytes, $0.timestamp) },
-                                         current: (current.disk?.readBytes, current.timestamp))
-            diskWriteRate = KVMStats.rate(previous: stats.map { ($0.disk?.writeBytes, $0.timestamp) },
-                                          current: (current.disk?.writeBytes, current.timestamp))
-            netRxRate = KVMStats.rate(previous: stats.map { ($0.network?.rxBytes, $0.timestamp) },
-                                      current: (current.network?.rxBytes, current.timestamp))
-            netTxRate = KVMStats.rate(previous: stats.map { ($0.network?.txBytes, $0.timestamp) },
-                                      current: (current.network?.txBytes, current.timestamp))
-            stats = current
-            statsError = nil
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            if stats == nil { statsError = error.localizedDescription }
-        }
-    }
-
-    private func bytesText(_ bytes: Int64) -> String {
-        let parts = MetricFormat.byteParts(bytes)
-        return "\(parts.value) \(parts.unit)"
-    }
-
-    private func rateText(_ rate: Double?) -> String {
-        guard let rate else { return "—" }
-        let parts = MetricFormat.byteParts(Int64(rate))
-        return "\(parts.value) \(parts.unit)/s"
-    }
-
     // MARK: 快照
 
     private var snapshotSection: some View {
@@ -471,6 +364,11 @@ struct KVMVMDetailView: View {
             vm.alertMessage = L10n.f("健康检查失败：%@", error.localizedDescription)
             vm.showAlert = true
         }
+    }
+
+    private func bytesText(_ bytes: Int64) -> String {
+        let parts = MetricFormat.byteParts(bytes)
+        return "\(parts.value) \(parts.unit)"
     }
 
     private static let dateFormatter: DateFormatter = {
