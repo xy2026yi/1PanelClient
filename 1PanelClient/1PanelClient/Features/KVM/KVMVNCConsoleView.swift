@@ -65,10 +65,13 @@ nonisolated enum RFBClientEncoder {
               0x00, 0x00, 0x00])                  // 3 字节填充
     }
 
-    /// SetEncodings：RAW(0) + CopyRect(1) + DesktopSize(-223)。
-    /// 不含光标伪编码（-239）→ qemu 把客户机光标直接画进帧缓冲
+    /// SetEncodings：hextile(5) + RAW(0) + CopyRect(1)（qemu 从客户端集合选，倾向 hextile）
+    /// + 伪编码 DesktopSize(-223) / LastRect(-224) / Cursor(-239，仅消费不绘制) /
+    /// QEMU 扩展键(-258) / LED(-261)。dump_1 实证网页端宣告全套扩展且 qemu 会回发
+    /// -258/-261 宣告矩形；最小集 [0,1,-223] 会被面板断线（dump_3/4/5）。
+    /// 不宣告 Tight/ZRLE（无法解码）、不宣告 -308（载荷结构存疑）
     static func setEncodings() -> Data {
-        let encodings: [Int32] = [0, 1, -223]
+        let encodings: [Int32] = [5, 0, 1, -223, -224, -239, -258, -261]
         var data = Data([0x02, 0x00, 0x00])
         data.append(contentsOf: RFBBytes.be16(UInt16(encodings.count)))
         for encoding in encodings {
@@ -152,12 +155,20 @@ nonisolated final class RFBMessageAssembler {
     private var buffer = Data()
     /// 当前帧更新批次剩余矩形数（跨 feed 保存）
     private var pendingRects = 0
+    /// hextile 等多路径矩形完成后由 tryTakeRect 置位，feed 循环据此发 updateComplete
+    private var onBatchCompleteFlag = false
+    /// hextile 跨瓦片/矩形延续的前景/背景色（RFB 规定未指定时沿用上值）
+    private var hextileBackground: [UInt8]?
+    private var hextileForeground: [UInt8]?
 
     /// 复位内部缓存与批次状态（重连时调用）
     func reset() {
         buffer.removeAll()
         pendingRects = 0
         failure = nil
+        onBatchCompleteFlag = false
+        hextileBackground = nil
+        hextileForeground = nil
     }
 
     /// 喂入并按序取回本段解析出的全部消息（回调式无法保证消费顺序，
@@ -167,12 +178,13 @@ nonisolated final class RFBMessageAssembler {
         buffer.append(data)
         var messages: [RFBServerMessage] = []
         while true {
+            onBatchCompleteFlag = false
             if pendingRects > 0 {
                 guard let message = tryTakeRect() else { return messages }
                 var isDesktopSize = false
                 if case .desktopSize = message { isDesktopSize = true }
                 messages.append(message)
-                if isDesktopSize || pendingRects == 0 {
+                if isDesktopSize || pendingRects == 0 || onBatchCompleteFlag {
                     messages.append(.updateComplete)
                 }
             } else if let rectCount = tryTakeUpdateHeader() {
@@ -229,6 +241,30 @@ nonisolated final class RFBMessageAssembler {
             pendingRects -= 1
             let pixels = payload.suffix(byteCount)
             return .rawRect(x: x, y: y, width: width, height: height, pixels: pixels)
+        case 5:  // Hextile：16×16 瓦片，展开成 RAW 像素后按 rawRect 落位
+            if let pixels = tryExpandHextile(x: x, y: y, width: width, height: height) {
+                pendingRects -= 1
+                if pendingRects == 0 { onBatchCompleteFlag = true }
+                return .rawRect(x: x, y: y, width: width, height: height, pixels: pixels)
+            }
+            return nil
+        case -239:  // 光标伪编码：像素 + 位掩码，仅消费（不绘制本地光标）
+            let byteCount = width * height * 4 + (width + 7) / 8 * height
+            guard width >= 0, height >= 0, byteCount <= 16 * 1024 * 1024,
+                  let _ = take(12 + byteCount) else {
+                failure = String(format: "Illegal cursor rect %dx%d", width, height)
+                return nil
+            }
+            pendingRects -= 1
+            return .ignored
+        case -258, -224:  // QEMU 扩展键宣告 / LastRect：0 长度
+            _ = take(12)
+            pendingRects -= 1
+            return .ignored
+        case -261:  // QEMU LED 状态：1 字节
+            guard let _ = take(13) else { return nil }
+            pendingRects -= 1
+            return .ignored
         case 1:  // CopyRect
             guard let payload = take(16), payload.count == 16 else { return nil }
             let sx = Int(payload[payload.startIndex + 12]) << 8 | Int(payload[payload.startIndex + 13])
@@ -246,6 +282,98 @@ nonisolated final class RFBMessageAssembler {
         }
     }
 
+
+    // MARK: Hextile 展开（peek 式：字节不足不动缓存）
+
+    /// 瓦片流全部解析完成后一次性消费并返回展开的 RAW 像素（w*h*4）。
+    /// 控制位：1=Raw瓦片 2=指定背景 4=指定前景 8=含子矩形 16=子矩形带色
+    private func tryExpandHextile(x: Int, y: Int, width: Int, height: Int) -> Data? {
+        guard width > 0, height > 0, width * height <= 16 * 1024 * 1024 else {
+            failure = String(format: "Illegal hextile rect %dx%d", width, height)
+            return nil
+        }
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        var cursor = 12  // 跳过仍在缓存中的 12 字节矩形头（peek，不消费）
+
+        func peekByte() -> UInt8? {
+            guard buffer.count > cursor else { return nil }
+            return buffer[buffer.startIndex + cursor]
+        }
+        func peekBytes(_ count: Int) -> [UInt8]? {
+            guard buffer.count >= cursor + count else { return nil }
+            return [UInt8](buffer[(buffer.startIndex + cursor)..<(buffer.startIndex + cursor + count)])
+        }
+
+        for tileY in 0..<((height + 15) / 16) {
+            for tileX in 0..<((width + 15) / 16) {
+                let tileWidth = min(16, width - tileX * 16)
+                let tileHeight = min(16, height - tileY * 16)
+                guard let control = peekByte() else { return nil }
+                cursor += 1
+                let offset = (tileY * 16 * width + tileX * 16) * 4
+
+                if control & 0x01 != 0 {  // Raw 瓦片
+                    guard let raw = peekBytes(tileWidth * tileHeight * 4) else { return nil }
+                    cursor += raw.count
+                    for row in 0..<tileHeight {
+                        let source = row * tileWidth * 4
+                        let target = offset + row * width * 4
+                        pixels.replaceSubrange(target..<(target + tileWidth * 4),
+                                               with: raw[source..<(source + tileWidth * 4)])
+                    }
+                    continue
+                }
+                if control & 0x02 != 0 {
+                    guard let bg = peekBytes(4) else { return nil }
+                    cursor += 4
+                    hextileBackground = bg
+                }
+                if control & 0x04 != 0 {
+                    guard let fg = peekBytes(4) else { return nil }
+                    cursor += 4
+                    hextileForeground = fg
+                }
+                guard let background = hextileBackground else {
+                    failure = "Hextile background unspecified"
+                    return nil
+                }
+                // 填背景
+                for row in 0..<tileHeight {
+                    let target = offset + row * width * 4
+                    for column in 0..<tileWidth {
+                        pixels.replaceSubrange((target + column * 4)..<(target + column * 4 + 4),
+                                               with: background)
+                    }
+                }
+                if control & 0x08 != 0 {
+                    guard let count = peekByte() else { return nil }
+                    cursor += 1
+                    for _ in 0..<count {
+                        var color = hextileForeground ?? background
+                        if control & 0x10 != 0 {
+                            guard let pixelColor = peekBytes(4) else { return nil }
+                            cursor += 4
+                            color = pixelColor
+                        }
+                        guard let xywh = peekBytes(2) else { return nil }
+                        cursor += 2
+                        let sx = Int(xywh[0] >> 4), sy = Int(xywh[0] & 0x0f)
+                        let sw = Int(xywh[1] >> 4) + 1, sh = Int(xywh[1] & 0x0f) + 1
+                        for row in sy..<min(sy + sh, tileHeight) {
+                            let base = offset + row * width * 4
+                            for column in sx..<min(sx + sw, tileWidth) {
+                                pixels.replaceSubrange((base + column * 4)..<(base + column * 4 + 4),
+                                                       with: color)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        guard take(cursor) != nil else { return nil }  // 矩形头 + 瓦片流一次性消费
+        return Data(pixels)
+    }
+
     /// 帧更新之外的普通消息（Bell / ServerCutText / SetColourMapEntries）
     private func tryTakeNormalMessage() -> RFBServerMessage? {
         guard let type = buffer.first else { return nil }
@@ -257,11 +385,13 @@ nonisolated final class RFBMessageAssembler {
         case 2:  // Bell
             _ = take(1)
             return .bell
-        case 3:  // ServerCutText：填充 3 + u32 长度 + 文本
+        case 3:  // ServerCutText：填充 3 + s32 长度 + 文本。
+            // 负长度 = qemu 剪贴板扩展帧（dump_1 实证 -8/8 字节），取绝对值消费
             guard buffer.count >= 8,
-                  let lengthValue = RFBBytes.u32(buffer.subdata(
+                  let raw = RFBBytes.u32(buffer.subdata(
                     in: (buffer.startIndex + 4)..<(buffer.startIndex + 8))) else { return nil }
-            let length = Int(lengthValue & 0x7fffffff)
+            let signed = Int32(bitPattern: raw)
+            let length = signed < 0 ? Int(-signed) : Int(signed)
             guard length <= 1_048_576, let text = take(8 + length) else {
                 if length > 1_048_576 { failure = "ServerCutText too long: \(length)" }
                 return nil

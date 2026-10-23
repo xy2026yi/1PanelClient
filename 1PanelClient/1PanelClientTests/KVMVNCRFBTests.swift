@@ -48,8 +48,12 @@ struct KVMVNCRFBTests {
         #expect(pf.hasPrefix("00000000"))          // 类型 + 填充
         #expect(pf.contains("2018000100ff00ff00ff000810"))  // 32/24/LE/真彩/255³/0-8-16（网页端同款）
 
+        // hextile 优先（qemu 从客户端集合选）+ 伪编码（-258/-261 为面板要求，dump 实证）
         let encodings = hex(RFBClientEncoder.setEncodings())
-        #expect(encodings == "020000" + "0003" + "00000000" + "00000001" + "ffffff21")
+        #expect(encodings == "020000" + "0008"
+            + "00000005" + "00000000" + "00000001"      // hextile / raw / copyrect
+            + "ffffff21" + "ffffff20"                    // desktopsize / lastrect
+            + "ffffff11" + "fffffefe" + "fffffefb")     // cursor / qemu ext key / led
     }
 
     // MARK: ServerInit（抓包帧 7）
@@ -154,6 +158,60 @@ struct KVMVNCRFBTests {
         _ = assembler.feed(stream)
         #expect(assembler.failure?.contains("16") == true)
         #expect(assembler.feed(Data([0x02])).isEmpty)
+    }
+
+
+    @Test("Hextile 瓦片展开：背景/前景/子矩形，产出 RAW 像素")
+    func hextileExpansion() {
+        let assembler = RFBMessageAssembler()
+        var messages: [RFBServerMessage] = []
+        // 16×16 hextile：控制位 2|4|8（指定背景+前景+1 个子矩形）
+        // bg=(11,22,33)，fg=(44,55,66)，子矩形 @ (1,2) 尺寸 2×2
+        var stream = Data([0x00, 0x00]) + RFBBytes.be16(1)
+        stream.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
+                       + RFBBytes.be16(16) + RFBBytes.be16(16) + RFBBytes.be32(5))
+        stream.append(contentsOf: [0x0e, 11, 22, 33, 0, 44, 55, 66, 0, 1, 0x12, 0x11])
+        messages.append(contentsOf: assembler.feed(stream))
+
+        guard case .rawRect(_, _, 16, 16, let pixels)? = messages.first else {
+            Issue.record("应展开为 rawRect，实际 \(messages)")
+            return
+        }
+        #expect(pixels.count == 16 * 16 * 4)
+        // 背景像素
+        #expect([UInt8](pixels.prefix(4)) == [11, 22, 33, 0])
+        // 子矩形 (1,2) 前景色
+        let subPixelStart = (2 * 16 + 1) * 4
+        #expect([UInt8](pixels[subPixelStart..<(subPixelStart + 4)]) == [44, 55, 66, 0])
+        // 邻近像素仍是背景
+        let nextStart = (0 * 16 + 0) * 4
+        #expect([UInt8](pixels[nextStart..<(nextStart + 4)]) == [11, 22, 33, 0])
+        #expect(messages.last == .updateComplete)
+    }
+
+    @Test("光标伪编码与 ServerCutText 负长度（qemu 剪贴板扩展帧）消费不报错")
+    func pseudoAndNegativeCutText() {
+        let assembler = RFBMessageAssembler()
+        var messages: [RFBServerMessage] = []
+        // 2×2 光标：2*2*4 像素 + 1 字节掩码行
+        var cursor = Data([0x00, 0x00]) + RFBBytes.be16(1)
+        cursor.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
+                       + RFBBytes.be16(2) + RFBBytes.be16(2) + RFBBytes.be32(UInt32(bitPattern: -239)))
+        cursor.append(contentsOf: [UInt8](repeating: 7, count: 2 * 2 * 4 + 2))  // 16 像素 + 2 行掩码
+        messages.append(contentsOf: assembler.feed(cursor))
+        #expect(messages.first == .ignored)
+        #expect(messages.last == .updateComplete)
+
+        // cuttext 长度 -8（dump_1 实证 qemu 扩展帧）
+        messages = []
+        var cut = Data([0x03, 0x00, 0x00, 0x00])
+        cut.append(contentsOf: RFBBytes.be32(UInt32(bitPattern: -8)))
+        cut.append(contentsOf: [UInt8](repeating: 9, count: 8))
+        messages = assembler.feed(cut)
+        guard case .serverCutText? = messages.first else {
+            Issue.record("负长度 cuttext 应被消费为 serverCutText，实际 \(messages)")
+            return
+        }
     }
 
     // MARK: 帧缓冲
