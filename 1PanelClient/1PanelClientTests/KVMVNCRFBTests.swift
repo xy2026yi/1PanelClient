@@ -39,6 +39,19 @@ struct KVMVNCRFBTests {
         // 标准 KeyEvent：'l'（keysym 0x6c）按下 / 释放
         #expect(hex(RFBClientEncoder.keyEvent(down: true, keysym: 0x6c)) == "040100000000006c")
         #expect(hex(RFBClientEncoder.keyEvent(down: false, keysym: 0x6c)) == "040000000000006c")
+
+        // QEMU 扩展键盘事件（抓包帧 166/169 逐字节：'l' 按下/释放，键码 0x26）
+        #expect(hex(RFBClientEncoder.qemuExtKeyEvent(down: true, keysym: 0x6c, keycode: 0x26))
+                == "ff0000010000006c00000026")
+        #expect(hex(RFBClientEncoder.qemuExtKeyEvent(down: false, keysym: 0x6c, keycode: 0x26))
+                == "ff0000000000006c00000026")
+
+        // 专用键 XT set-1 键码
+        #expect(RFBKeysym.keycode(for: RFBKeysym.backspace) == 0x0e)
+        #expect(RFBKeysym.keycode(for: RFBKeysym.enter) == 0x1c)
+        #expect(RFBKeysym.keycode(for: RFBKeysym.left) == 0x4b)
+        #expect(RFBKeysym.keycode(for: RFBKeysym.escape) == 0x01)
+        #expect(RFBKeysym.keycode(for: 0x61) == nil)  // 字母走标准 KeyEvent
     }
 
     @Test("像素格式与编码集：BGRA 原生格式 + RAW/CopyRect/DesktopSize")

@@ -106,6 +106,16 @@ nonisolated enum RFBClientEncoder {
         data.append(contentsOf: RFBBytes.be32(keysym))
         return data
     }
+
+    /// QEMU 扩展键盘事件（消息 0xFF，携 keysym + XT set-1 键码；需客户端宣告
+    /// -258 伪编码——抓包帧 166/169：按下 'l' = ff0000010000006c00000026）。
+    /// 专用键（退格/回车/方向等）走此通道，纯 keysym 在部分客户机内不生效
+    static func qemuExtKeyEvent(down: Bool, keysym: UInt32, keycode: UInt32) -> Data {
+        var data = Data([0xff, 0x00, 0x00, down ? 0x01 : 0x00])
+        data.append(contentsOf: RFBBytes.be32(keysym))
+        data.append(contentsOf: RFBBytes.be32(keycode))
+        return data
+    }
 }
 
 // MARK: - ServerInit 解析（抓包帧 7 样本见单测）
@@ -502,6 +512,25 @@ nonisolated enum RFBKeysym {
     static let control: UInt32 = 0xffe3
     static let alt: UInt32 = 0xffe9
 
+    /// XT set-1 键码（QEMU 扩展键盘事件用；专用键与修饰键，
+    /// 网页端抓包实证该通道：'l' 的键码 0x26）
+    static func keycode(for keysym: UInt32) -> UInt32? {
+        switch keysym {
+        case escape: return 0x01
+        case backspace: return 0x0e
+        case tab: return 0x0f
+        case enter: return 0x1c
+        case control: return 0x1d
+        case shift: return 0x2a
+        case alt: return 0x38
+        case left: return 0x4b
+        case up: return 0x48
+        case right: return 0x4d
+        case down: return 0x50
+        default: return nil
+        }
+    }
+
     /// 字符 → keysym：Latin-1 区间（0x20...0xff）码点即 keysym；
     /// 换行归一为 Return；中文 / emoji 等 IME 字符无法映射返回 nil
     static func keysym(for character: Character) -> UInt32? {
@@ -829,13 +858,22 @@ final class KVMVNCSession: ObservableObject {
         send(RFBClientEncoder.pointerEvent(buttonMask: buttonMask, x: x, y: y))
     }
 
-    /// 带修饰的按键：先按下激活修饰，再击键，最后逆序释放修饰
-    func sendKey(keysym: UInt32, modifiers: [UInt32] = []) {
+    /// 带修饰的按键：先按下激活修饰，再击键，最后逆序释放修饰。
+    /// keycode 非 nil 时走 QEMU 扩展键盘事件（专用键必需，纯 keysym 在部分
+    /// 客户机不生效——⌫/回车实测无效即此因），否则标准 KeyEvent
+    func sendKey(keysym: UInt32, keycode: UInt32? = nil, modifiers: [UInt32] = []) {
+        func press(_ keysym: UInt32, _ down: Bool) {
+            if let keycode {
+                send(RFBClientEncoder.qemuExtKeyEvent(down: down, keysym: keysym, keycode: keycode))
+            } else {
+                send(RFBClientEncoder.keyEvent(down: down, keysym: keysym))
+            }
+        }
         for modifier in modifiers where modifier != keysym {
             send(RFBClientEncoder.keyEvent(down: true, keysym: modifier))
         }
-        send(RFBClientEncoder.keyEvent(down: true, keysym: keysym))
-        send(RFBClientEncoder.keyEvent(down: false, keysym: keysym))
+        press(keysym, true)
+        press(keysym, false)
         for modifier in modifiers.reversed() where modifier != keysym {
             send(RFBClientEncoder.keyEvent(down: false, keysym: modifier))
         }
@@ -1116,25 +1154,36 @@ struct KVMVNCConsoleView: View {
     private var keyboardBar: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
+                // 组合缓冲：逐字符显示，按键即转发（只发增量——编辑/删除不回发）；
+                // 键盘回车 = 发送 Enter 并清空；IME 中文/emoji 无法映射 keysym，
+                // 入缓冲但不转发（占位注明仅英文与符号）
                 TextField(L10n.t("键盘输入（仅英文与符号）"), text: $keyboardInput)
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .focused($keyboardFocused)
                     .submitLabel(.send)
-                    .onChange(of: keyboardInput) { _, newValue in
-                        // 逐字符发送可映射内容后清空（IME 组字的中文/emoji 无法映射 keysym，
-                        // 直接丢弃——占位文案已注明仅英文与符号）
-                        let sendable = newValue.filter { RFBKeysym.keysym(for: $0) != nil }
-                        if !sendable.isEmpty {
-                            console.sendText(String(sendable), modifiers: activeModifiers)
+                    .onChange(of: keyboardInput) { previous, current in
+                        let commonLength = zip(previous, current).prefix { $0.0 == $0.1 }.count
+                        let appended = String(current.dropFirst(min(commonLength, current.count)))
+                        if !appended.isEmpty {
+                            console.sendText(appended, modifiers: activeModifiers)
                             resetModifiers()
                         }
-                        keyboardInput = ""
                     }
+                    .onSubmit { sendEnterFromKeyboard() }
+                if !keyboardInput.isEmpty {
+                    Button {
+                        keyboardInput = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(L10n.t("清空"))
+                }
                 Button {
-                    console.sendKey(keysym: RFBKeysym.enter, modifiers: activeModifiers)
-                    resetModifiers()
+                    sendEnterFromKeyboard()
                 } label: {
                     Image(systemName: "return")
                 }
@@ -1153,6 +1202,7 @@ struct KVMVNCConsoleView: View {
                     specialKey("↓", keysym: RFBKeysym.down)
                     specialKey("→", keysym: RFBKeysym.right)
                     specialKey("⌫", keysym: RFBKeysym.backspace)
+                    specialKey("Del", keysym: 0xffff)
                 }
                 .padding(.horizontal, 2)
             }
@@ -1161,6 +1211,15 @@ struct KVMVNCConsoleView: View {
         .padding(.horizontal, 12)
         .padding(.top, 8)
         .background(.regularMaterial)
+    }
+
+    /// 键盘回车 / 回车按钮：发送 Enter（QEMU 扩展键码）并清空组合缓冲
+    private func sendEnterFromKeyboard() {
+        console.sendKey(keysym: RFBKeysym.enter,
+                        keycode: RFBKeysym.keycode(for: RFBKeysym.enter),
+                        modifiers: activeModifiers)
+        resetModifiers()
+        keyboardInput = ""
     }
 
     private func stickyModifier(_ label: String, keysym: UInt32, isOn: Binding<Bool>) -> some View {
@@ -1181,7 +1240,9 @@ struct KVMVNCConsoleView: View {
 
     private func specialKey(_ label: String, keysym: UInt32) -> some View {
         Button {
-            console.sendKey(keysym: keysym, modifiers: activeModifiers)
+            console.sendKey(keysym: keysym,
+                            keycode: RFBKeysym.keycode(for: keysym),
+                            modifiers: activeModifiers)
             resetModifiers()
         } label: {
             Text(label)
