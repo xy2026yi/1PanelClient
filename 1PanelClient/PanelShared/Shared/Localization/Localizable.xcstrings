@@ -1,9 +1,7 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {
-
-    },
+    "" : {},
     "-" : {
       "localizations" : {
         "en" : {
@@ -39221,6 +39219,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Connection"
+          }
+        }
+      }
+    },
+    "控制台连接超时，请重试；若持续失败请在面板网页端打开控制台确认虚拟机已在运行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Console connection timed out; if it keeps failing, open the console in the web panel to confirm the VM is running"
+          }
+        }
+      }
+    },
+    "连接中… 已收 %ld 字节" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting… received %ld bytes"
           }
         }
       }

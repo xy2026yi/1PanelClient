@@ -387,6 +387,8 @@ final class KVMVNCSession: ObservableObject {
     @Published private(set) var serverName: String = ""
     /// 收到的帧更新批次数（状态条显示）
     @Published private(set) var updateBatches = 0
+    /// 已接收字节（握手诊断：卡「连接中」时可判断服务端是否回话）
+    @Published private(set) var receivedBytes = 0
 
     let server: ServerConfig
     let vmName: String
@@ -400,6 +402,7 @@ final class KVMVNCSession: ObservableObject {
     }()
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
+    private var watchdogTask: Task<Void, Never>?
     private var framebuffer: RFBFramebuffer?
     private let assembler = RFBMessageAssembler()
     /// 握手阶段字节缓存（版本 → 安全类型 → 结果 → ServerInit）
@@ -422,12 +425,13 @@ final class KVMVNCSession: ObservableObject {
     deinit {
         receiveTask?.cancel()
         pingTask?.cancel()
+        watchdogTask?.cancel()
         task?.cancel(with: .goingAway, reason: nil)
     }
 
     // MARK: 连接（鉴权与 URL 构造与终端同款）
 
-    func connect() {
+    func connect() async {
         guard state != .connecting, state != .connected else { return }
         state = .connecting
         handshakePhase = .version
@@ -436,12 +440,22 @@ final class KVMVNCSession: ObservableObject {
         framebuffer = nil
         framebufferImage = nil
         updateBatches = 0
+        receivedBytes = 0
 
         generation += 1
         receiveTask?.cancel()
         pingTask?.cancel()
+        watchdogTask?.cancel()
         task?.cancel(with: .goingAway, reason: nil)
 
+        // 对齐网页端流程：先 POST console {name} 挂起 qemu VNC 会话再开 WS
+        //（抓包中网页端开 WS 前必调；结果仅作启动引导，失败不阻断——继续试 WS）
+        let client = APIClient.shared(for: server)
+        _ = try? await client.send(path: APIEndpoint.kvmConsole.path,
+                                   body: KVMNameRequest(name: vmName),
+                                   as: KVMGraphics.self)
+
+        guard generation == self.generation else { return }  // 期间已断开/重连
         guard let url = makeWebSocketURL() else {
             fail(L10n.t("无法构造控制台连接地址"))
             return
@@ -453,16 +467,24 @@ final class KVMVNCSession: ObservableObject {
 
         let gen = generation
         let ws = urlSession.webSocketTask(with: request)
+        // 全屏 RAW 更新一帧可达数 MB（1024×768×4≈3MB），默认 1MB 上限会把连接打死
+        ws.maximumMessageSize = 64 * 1024 * 1024
         ws.resume()
         task = ws
         receiveTask = Task { [weak self] in await self?.receiveLoop(gen: gen) }
         pingTask = Task { [weak self] in await self?.pingLoop(gen: gen) }
+        watchdogTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(15))
+            guard let self, gen == self.generation, self.state == .connecting else { return }
+            self.fail(L10n.t("控制台连接超时，请重试；若持续失败请在面板网页端打开控制台确认虚拟机已在运行"))
+        }
     }
 
     func disconnect() {
         generation += 1
         receiveTask?.cancel()
         pingTask?.cancel()
+        watchdogTask?.cancel()
         task?.cancel(with: .normalClosure, reason: nil)
         task = nil
         state = .idle
@@ -522,6 +544,7 @@ final class KVMVNCSession: ObservableObject {
     // MARK: 握手与消息分发
 
     private func ingest(_ data: Data) {
+        receivedBytes += data.count
         switch handshakePhase {
         case .version:
             handshakeBuffer.append(data)
@@ -679,6 +702,7 @@ final class KVMVNCSession: ObservableObject {
         generation += 1
         receiveTask?.cancel()
         pingTask?.cancel()
+        watchdogTask?.cancel()
         task?.cancel(with: .goingAway, reason: nil)
         task = nil
         state = .failed(reason)
@@ -735,7 +759,7 @@ struct KVMVNCConsoleView: View {
                 .accessibilityLabel(L10n.t("键盘"))
             }
         }
-        .task { console.connect() }
+        .task { await console.connect() }
         .onDisappear { console.disconnect() }
     }
 
@@ -841,7 +865,11 @@ struct KVMVNCConsoleView: View {
                 EmptyView()
             case .connecting:
                 ProgressView().scaleEffect(0.7)
-                Text(L10n.t("连接中…"))
+                if console.receivedBytes > 0 {
+                    Text(L10n.f("连接中… 已收 %ld 字节", console.receivedBytes))
+                } else {
+                    Text(L10n.t("连接中…"))
+                }
             case .connected:
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                 Text(console.serverName.isEmpty ? L10n.t("已连接") : console.serverName)
@@ -853,7 +881,7 @@ struct KVMVNCConsoleView: View {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 Text(reason).lineLimit(2)
                 Spacer()
-                Button(L10n.t("重连")) { console.connect() }
+                Button(L10n.t("重连")) { Task { await console.connect() } }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
             }
