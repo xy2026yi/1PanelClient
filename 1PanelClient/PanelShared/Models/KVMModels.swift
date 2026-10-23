@@ -635,6 +635,34 @@ nonisolated struct KVMTemplateDeleteRequest: Encodable {
     let deleteDisk: Bool
 }
 
+// MARK: - 网桥 / 宿主机网卡（创建表单下拉源）
+
+/// GET /xpack/vms/networks/bridges 项：recommended=true 才可被选为桥接名称
+///（服务端只推荐由 1Panel 管理的网桥，docker0 / virbr0 等外来网桥不可选）
+nonisolated struct KVMBridge: Decodable, Identifiable, Hashable {
+    let name: String?
+    let recommended: Bool?
+    let description: String?
+
+    var id: String { name ?? "" }
+    var isSelectable: Bool { recommended == true }
+    /// 下拉显示名：带来源说明（如 "docker0 · docker"）
+    var displayLabel: String {
+        if let description, !description.isEmpty {
+            return "\(name ?? "-") · \(description)"
+        }
+        return name ?? "-"
+    }
+}
+
+/// GET /xpack/vms/networks/interfaces 项（Macvtap 宿主机网卡）
+nonisolated struct KVMHostInterface: Decodable, Identifiable, Hashable {
+    let name: String?
+    let addresses: [String]?
+
+    var id: String { name ?? "" }
+}
+
 // MARK: - 网络
 
 nonisolated struct KVMResourceRef: Decodable, Hashable {

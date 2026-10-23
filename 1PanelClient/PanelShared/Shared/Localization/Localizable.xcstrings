@@ -1416,17 +1416,6 @@
         }
       }
     },
-    "Bridge：虚拟机桥接到宿主机网桥，与宿主机同网段。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bridge: virtual machines attach to a host bridge and share the host's subnet."
-          }
-        }
-      }
-    },
     "CDN" : {
       "localizations" : {
         "en" : {
@@ -26421,17 +26410,6 @@
         }
       }
     },
-    "源接口" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Source interface"
-          }
-        }
-      }
-    },
     "源文" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39155,6 +39133,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld GB"
+          }
+        }
+      }
+    },
+    "宿主机网卡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host interface"
+          }
+        }
+      }
+    },
+    "Bridge：虚拟机桥接到宿主机网桥，与宿主机同网段。仅标记为推荐的网桥可选择。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bridge: VMs attach to a host bridge on the same subnet. Only bridges marked as recommended can be selected."
           }
         }
       }

@@ -741,6 +741,8 @@ enum APIEndpoint {
     case kvmTemplateList           // POST 模版列表（无 body）
     case kvmTemplateDelete         // POST 删除模版 {taskID, id, deleteDisk}
     case kvmNetworkList            // POST 网络列表（无 body）
+    case kvmNetworkBridges         // GET  可用网桥（name/recommended/description；recommended=false 不可选）
+    case kvmNetworkInterfaces      // GET  宿主机网卡（name/addresses；Macvtap 源接口用）
     case kvmNetworkCreate          // POST 创建网络 {id:0, name, type, bridgeName, sourceInterface, cidr, gateway, dhcpStart, dhcpEnd, autoStart, description}
     case kvmNetworkUpdate          // POST 启停 {id, status: running|inactive} / 自启 {id, autoStart}
     case kvmNetworkDelete          // POST 删除网络 {id, force}（关联虚拟机时不可删）
@@ -1364,6 +1366,8 @@ enum APIEndpoint {
         case .kvmTemplateList:       return "/api/v2/xpack/vms/templates/list"
         case .kvmTemplateDelete:     return "/api/v2/xpack/vms/templates/del"
         case .kvmNetworkList:        return "/api/v2/xpack/vms/networks/list"
+        case .kvmNetworkBridges:     return "/api/v2/xpack/vms/networks/bridges"
+        case .kvmNetworkInterfaces:  return "/api/v2/xpack/vms/networks/interfaces"
         case .kvmNetworkCreate:      return "/api/v2/xpack/vms/networks"
         case .kvmNetworkUpdate:      return "/api/v2/xpack/vms/networks/update"
         case .kvmNetworkDelete:      return "/api/v2/xpack/vms/networks/del"
@@ -1379,6 +1383,7 @@ enum APIEndpoint {
         case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
              .monitorNetOptions, .backupAccountsClientInfo, .containersDaemonjson,
              .kvmEnvironment,
+             .kvmNetworkBridges, .kvmNetworkInterfaces,
              .appsIgnoredList, .appsStoreDetail,
              .appsTags,
              .disksList,

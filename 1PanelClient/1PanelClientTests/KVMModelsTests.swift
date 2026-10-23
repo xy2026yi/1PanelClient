@@ -372,6 +372,30 @@ struct KVMModelsTests {
         #expect(obj["checkDisks"] as? Bool == true)
     }
 
+    @Test("网桥 / 宿主机网卡解码：recommended 门禁与地址列表")
+    func decodeBridgesAndInterfaces() throws {
+        let bridgesJSON = """
+        [{"name":"nat0","recommended":true,"description":""},
+         {"name":"br-ac5b02204a32","recommended":false,"description":"docker"},
+         {"name":"docker0","recommended":false,"description":"docker"},
+         {"name":"virbr0","recommended":false,"description":"libvirt"}]
+        """
+        let bridges = try JSONDecoder().decode([KVMBridge].self, from: Data(bridgesJSON.utf8))
+        #expect(bridges.count == 4)
+        #expect(bridges.filter(\.isSelectable).count == 1)
+        #expect(bridges[0].isSelectable)
+        #expect(bridges[1].displayLabel == "br-ac5b02204a32 · docker")
+        #expect(bridges[0].displayLabel == "nat0")   // 无描述回退纯名称
+
+        let interfacesJSON = """
+        [{"name":"ens32","addresses":["192.168.50.21/24","fd4d:bdb8:9948:0:20c:29ff:fe0f:e394/64"]},
+         {"name":"ens34","addresses":["fe80::20c:29ff:fe0f:e39e/64"]}]
+        """
+        let interfaces = try JSONDecoder().decode([KVMHostInterface].self, from: Data(interfacesJSON.utf8))
+        #expect(interfaces.count == 2)
+        #expect(interfaces[0].addresses?.first == "192.168.50.21/24")
+    }
+
     // MARK: 端点
 
     @Test("KVM 端点路径与方法（environment 为 GET，其余 POST）")
@@ -393,6 +417,10 @@ struct KVMModelsTests {
         #expect(APIEndpoint.kvmTemplateCreate.path == "/api/v2/xpack/vms/templates")
         #expect(APIEndpoint.kvmTemplateDelete.path == "/api/v2/xpack/vms/templates/del")
         #expect(APIEndpoint.kvmNetworkUpdate.path == "/api/v2/xpack/vms/networks/update")
+        #expect(APIEndpoint.kvmNetworkBridges.path == "/api/v2/xpack/vms/networks/bridges")
+        #expect(APIEndpoint.kvmNetworkBridges.method == "GET")
+        #expect(APIEndpoint.kvmNetworkInterfaces.path == "/api/v2/xpack/vms/networks/interfaces")
+        #expect(APIEndpoint.kvmNetworkInterfaces.method == "GET")
         #expect(APIEndpoint.kvmStorageCreate.path == "/api/v2/xpack/vms/storages")
         #expect(APIEndpoint.kvmOperate.method == "POST")
         #expect(APIEndpoint.kvmSync.method == "POST")

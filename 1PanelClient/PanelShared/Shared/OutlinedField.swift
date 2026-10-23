@@ -539,12 +539,14 @@ struct OutlinedTimeField: View {
 
 /// 描边包裹式单选菜单（外观与文本输入一致，右侧 chevron）。
 /// options 为选项值；显示名与值不同时传 optionLabels（值 → 显示名，
-/// 如数据库服务值 mysql → 显示「本地 MySQL」），未命中回退值本身
+/// 如数据库服务值 mysql → 显示「本地 MySQL」），未命中回退值本身；
+/// disabledOptions 为不可选中的选项（菜单中置灰，如网桥 recommended=false）
 struct OutlinedPicker: View {
     let label: String
     let options: [String]
     @Binding var selection: String
     var optionLabels: [String: String] = [:]
+    var disabledOptions: Set<String> = []
 
     private func display(_ option: String) -> String {
         optionLabels[option] ?? option
@@ -552,11 +554,13 @@ struct OutlinedPicker: View {
 
     /// 值/显示名分离版（自定义 init 会隐藏 memberwise，显式补回）
     init(label: String, options: [String], selection: Binding<String>,
-         optionLabels: [String: String] = [:]) {
+         optionLabels: [String: String] = [:],
+         disabledOptions: Set<String> = []) {
         self.label = label
         self.options = options
         self._selection = selection
         self.optionLabels = optionLabels
+        self.disabledOptions = disabledOptions
     }
 
     /// 枚举便利初始化：String-rawValue 枚举直接传入，display 提供显示名
@@ -576,6 +580,7 @@ struct OutlinedPicker: View {
         self.optionLabels = Dictionary(uniqueKeysWithValues: options.map {
             ($0.rawValue, display($0))
         })
+        self.disabledOptions = []
     }
 
     var body: some View {
@@ -590,6 +595,7 @@ struct OutlinedPicker: View {
                         Text(display(option))
                     }
                 }
+                .disabled(disabledOptions.contains(option))
             }
         } label: {
             OutlinedShape(label: label, isFocused: false, hasValue: true,

@@ -5,9 +5,10 @@
 //  虚拟机资源三段（logs/高级功能-KVM.md 抓包 2026-10-23）：
 //  - 模版：列表 / 删除（默认连同删除磁盘文件，任务式；弹窗确认展示磁盘路径）
 //    模版由虚拟机「转为模版」产生，无独立创建
-//  - 网络：卡片列表（每网络一卡：类型 / CIDR·网关 / DHCP / 桥接 / 关联数 + 启停·自启·
-//    删除按钮行）/ 创建（NAT·Bridge·Macvtap，CIDR·网关·DHCP 范围）；删除走半屏弹窗
-//    （强制删除开关 + 输入名称确认）
+//  - 网络：卡片列表（每网络一卡：类型 / CIDR·网关 / DHCP / 桥接或源接口 / 关联数 +
+//    启停·自启·删除按钮行）/ 创建（NAT·Bridge·Macvtap；Bridge 桥接名称下拉 GET bridges
+//    仅 recommended 可选、Macvtap 宿主机网卡下拉 GET interfaces；地址分配仅 NAT 显示）；
+//    删除走半屏弹窗（强制删除开关 + 输入名称确认）
 //  - 存储池：卡片列表（路径 + 容量条 + 启停·自启·删除按钮行）/ 创建（本地目录），删除同网络
 //  网络与存储池的启停 / 自启走各自 update 端点单字段提交 {id, status} / {id, autoStart}。
 //
@@ -218,6 +219,8 @@ struct KVMNetworkListView: View {
                     HStack(spacing: 8) {
                         if let bridge = network.bridgeName, !bridge.isEmpty {
                             Text(bridge)
+                        } else if let iface = network.sourceInterface, !iface.isEmpty {
+                            Text(iface)
                         }
                         Text(L10n.f("%ld 台虚拟机", network.vmCount ?? 0))
                         if network.autoStart == true {
@@ -273,7 +276,11 @@ struct KVMNetworkListView: View {
     }
 }
 
-/// 创建网络：名称 / 类型 / 类型相关字段（Bridge 桥接名、Macvtap 源接口）/ CIDR / 网关 / DHCP 范围 / 自启 / 描述
+/// 创建网络：名称 / 类型 / 类型相关字段（Bridge 桥接名称下拉——GET bridges，
+/// recommended=false 置灰不可选；Macvtap 宿主机网卡下拉——GET interfaces）/ 
+/// 地址分配（仅 NAT 显示）/ 自启 / 描述。
+/// Bridge / Macvtap 不显示地址区，但请求体仍带网页端同款默认值
+/// （抓包两次提交一致；服务端对非 NAT 类型忽略并清空存储——列表返回 cidr:""）。
 struct KVMNetworkFormView: View {
     @ObservedObject var vm: KVMViewModel
     @Environment(\.dismiss) private var dismiss
@@ -290,6 +297,12 @@ struct KVMNetworkFormView: View {
     @State private var description = ""
     @State private var isSubmitting = false
 
+    /// Bridge / Macvtap 隐藏地址区的请求体默认值（对齐网页端抓包）
+    private static let hiddenCIDR = "192.168.100.0/24"
+    private static let hiddenGateway = "192.168.100.1"
+    private static let hiddenDHCPStart = "192.168.100.2"
+    private static let hiddenDHCPEnd = "192.168.100.254"
+
     var body: some View {
         Form {
             Section {
@@ -297,32 +310,46 @@ struct KVMNetworkFormView: View {
                 OutlinedPicker(label: L10n.t("类型"), options: KVMNetworkType.allCases,
                                selection: $type) { $0.displayName }
                 if type == .bridge {
-                    OutlinedTextField(label: L10n.t("桥接名称"), prompt: "br0", text: $bridgeName)
+                    OutlinedPicker(label: L10n.t("桥接名称"),
+                                   options: vm.bridges.compactMap(\.name),
+                                   selection: $bridgeName,
+                                   optionLabels: bridgeLabels,
+                                   disabledOptions: unselectableBridges)
                 }
                 if type == .macvtap {
-                    OutlinedTextField(label: L10n.t("源接口"), prompt: "eth0", text: $sourceInterface)
+                    OutlinedPicker(label: L10n.t("宿主机网卡"),
+                                   options: vm.hostInterfaces.compactMap(\.name),
+                                   selection: $sourceInterface)
+                    if let addresses = selectedInterface?.addresses, !addresses.isEmpty {
+                        Text(addresses.joined(separator: "\n"))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
                 }
             } header: {
                 SectionLabel(title: L10n.t("基本信息"), systemImage: "network")
             } footer: {
                 switch type {
                 case .nat: Text(L10n.t("NAT：虚拟机经宿主机地址转换访问外网，由 libvirt 分配独立网段。"))
-                case .bridge: Text(L10n.t("Bridge：虚拟机桥接到宿主机网桥，与宿主机同网段。"))
+                case .bridge: Text(L10n.t("Bridge：虚拟机桥接到宿主机网桥，与宿主机同网段。仅标记为推荐的网桥可选择。"))
                 case .macvtap: Text(L10n.t("Macvtap：虚拟机直接挂到宿主机物理接口，宿主机与虚拟机互不可达。"))
                 }
             }
 
-            Section {
-                OutlinedTextField(label: L10n.t("网络 CIDR"), prompt: "192.168.100.0/24", text: $cidr,
-                                  keyboardType: .numbersAndPunctuation)
-                OutlinedTextField(label: L10n.t("网关"), prompt: "192.168.100.1", text: $gateway,
-                                  keyboardType: .numbersAndPunctuation)
-                OutlinedTextField(label: L10n.t("DHCP 起始地址"), prompt: "192.168.100.2", text: $dhcpStart,
-                                  keyboardType: .numbersAndPunctuation)
-                OutlinedTextField(label: L10n.t("DHCP 结束地址"), prompt: "192.168.100.254", text: $dhcpEnd,
-                                  keyboardType: .numbersAndPunctuation)
-            } header: {
-                SectionLabel(title: L10n.t("地址分配"), systemImage: "number")
+            if type == .nat {
+                Section {
+                    OutlinedTextField(label: L10n.t("网络 CIDR"), prompt: "192.168.100.0/24", text: $cidr,
+                                      keyboardType: .numbersAndPunctuation)
+                    OutlinedTextField(label: L10n.t("网关"), prompt: "192.168.100.1", text: $gateway,
+                                      keyboardType: .numbersAndPunctuation)
+                    OutlinedTextField(label: L10n.t("DHCP 起始地址"), prompt: "192.168.100.2", text: $dhcpStart,
+                                      keyboardType: .numbersAndPunctuation)
+                    OutlinedTextField(label: L10n.t("DHCP 结束地址"), prompt: "192.168.100.254", text: $dhcpEnd,
+                                      keyboardType: .numbersAndPunctuation)
+                } header: {
+                    SectionLabel(title: L10n.t("地址分配"), systemImage: "number")
+                }
             }
 
             Section {
@@ -342,13 +369,59 @@ struct KVMNetworkFormView: View {
                 .disabled(!isValid || isSubmitting)
             }
         }
+        .task { await vm.loadNetworkOptions() }
+        .onChange(of: type) { _, _ in
+            normalizeSelections()
+        }
+        .onChange(of: vm.bridges) { _, _ in
+            normalizeSelections()
+        }
+        .onChange(of: vm.hostInterfaces) { _, _ in
+            normalizeSelections()
+        }
     }
+
+    // MARK: 下拉数据
+
+    /// 网桥下拉显示名：name · 来源说明（docker / libvirt）
+    private var bridgeLabels: [String: String] {
+        Dictionary(uniqueKeysWithValues: vm.bridges.compactMap { bridge in
+            bridge.name.map { ($0, bridge.displayLabel) }
+        })
+    }
+
+    /// recommended=false 的网桥（菜单置灰不可选）
+    private var unselectableBridges: Set<String> {
+        Set(vm.bridges.filter { !$0.isSelectable }.compactMap(\.name))
+    }
+
+    private var selectedInterface: KVMHostInterface? {
+        vm.hostInterfaces.first { $0.name == sourceInterface }
+    }
+
+    /// 选中值失效（未加载 / 切类型 / 不在可选集）时回填默认：网桥取首个推荐、网卡取首个
+    private func normalizeSelections() {
+        if type == .bridge {
+            let selectable = vm.bridges.filter(\.isSelectable).compactMap(\.name)
+            if !selectable.contains(bridgeName) {
+                bridgeName = selectable.first ?? ""
+            }
+        }
+        if type == .macvtap {
+            let names = vm.hostInterfaces.compactMap(\.name)
+            if !names.contains(sourceInterface) {
+                sourceInterface = names.first ?? ""
+            }
+        }
+    }
+
+    // MARK: 校验与提交
 
     private var isValid: Bool {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
         switch type {
         case .nat: return !cidr.isEmpty
-        case .bridge: return !bridgeName.isEmpty
+        case .bridge: return !bridgeName.isEmpty && !unselectableBridges.contains(bridgeName)
         case .macvtap: return !sourceInterface.isEmpty
         }
     }
@@ -356,15 +429,17 @@ struct KVMNetworkFormView: View {
     private func submit() async {
         isSubmitting = true
         defer { isSubmitting = false }
+        // 非 NAT 类型地址区隐藏，请求体仍带网页端同款默认值（见类型注释）
+        let isNAT = type == .nat
         let request = KVMNetworkCreateRequest(
             name: name.trimmingCharacters(in: .whitespaces),
             type: type.rawValue,
-            bridgeName: bridgeName,
-            sourceInterface: sourceInterface,
-            cidr: cidr,
-            gateway: gateway,
-            dhcpStart: dhcpStart,
-            dhcpEnd: dhcpEnd,
+            bridgeName: type == .bridge ? bridgeName : "",
+            sourceInterface: type == .macvtap ? sourceInterface : "",
+            cidr: isNAT ? cidr : Self.hiddenCIDR,
+            gateway: isNAT ? gateway : Self.hiddenGateway,
+            dhcpStart: isNAT ? dhcpStart : Self.hiddenDHCPStart,
+            dhcpEnd: isNAT ? dhcpEnd : Self.hiddenDHCPEnd,
             autoStart: autoStart,
             description: description)
         if await vm.createNetwork(request) {

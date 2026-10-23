@@ -50,6 +50,9 @@ final class KVMViewModel: ObservableObject {
     @Published private(set) var templates: [KVMTemplate] = []
     @Published private(set) var networks: [KVMNetwork] = []
     @Published private(set) var storages: [KVMStoragePool] = []
+    /// 创建网络下拉源：可用网桥（Bridge）/ 宿主机网卡（Macvtap），GET 拉取
+    @Published private(set) var bridges: [KVMBridge] = []
+    @Published private(set) var hostInterfaces: [KVMHostInterface] = []
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
@@ -369,6 +372,26 @@ final class KVMViewModel: ObservableObject {
     }
 
     // MARK: 网络
+
+    /// 创建表单下拉源（GET bridges / interfaces；失败静默保留旧值，表单按空列表禁提交）
+    func loadNetworkOptions() async {
+        do {
+            let bridgeList: [KVMBridge] = try await client.send(
+                path: APIEndpoint.kvmNetworkBridges.path,
+                method: APIEndpoint.kvmNetworkBridges.method, as: [KVMBridge].self)
+            bridges = bridgeList
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+        }
+        do {
+            let interfaceList: [KVMHostInterface] = try await client.send(
+                path: APIEndpoint.kvmNetworkInterfaces.path,
+                method: APIEndpoint.kvmNetworkInterfaces.method, as: [KVMHostInterface].self)
+            hostInterfaces = interfaceList
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+        }
+    }
 
     func createNetwork(_ request: KVMNetworkCreateRequest) async -> Bool {
         let ok = await sendEmpty(.kvmNetworkCreate, body: request, failure: { L10n.f("创建失败：%@", $0) })
