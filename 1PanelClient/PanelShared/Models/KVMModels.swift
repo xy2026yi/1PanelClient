@@ -10,7 +10,7 @@
 //  抓包来源：logs/高级功能-KVM.md（2026-10-23）。任务类操作（创建/编辑/重命名/
 //  转模版/删除/快照/模版删除/磁盘扩容）返回 {taskID}，进度走 logs/tasks/read
 //  （operateNode=local）；即时操作（电源/同步/网络·存储启停自启/ISO 增删改）返回 success。
-//  ISO 类型 rawValue 仅 debian / archlinux 抓到，其余按命名规律推定并标 [推测]。
+//  ISO 类型 rawValue 见 KVMISOType（oraclelinux 经网页请求确认修正，仅 ubuntu [推测]）。
 //
 
 import Foundation
@@ -507,9 +507,11 @@ nonisolated struct KVMISOImage: Decodable, Identifiable, Hashable {
     var isReady: Bool { (status ?? "").lowercased() == "ready" }
 }
 
-/// 镜像类型（表单形态 3；rawValue 仅 debian / archlinux 抓到，其余 [推测]）
+/// 镜像类型（表单形态 3）。rawValue 除 ubuntu 外均经网页请求确认
+///（2026-10-23：centos / rocky / almalinux / fedora / opensuse / rhel /
+/// oraclelinux / archlinux / windows / freebsd；debian 见本文件抓包），ubuntu 标 [推测]
 nonisolated enum KVMISOType: String, CaseIterable, Identifiable {
-    case debian, ubuntu, centos, rocky, almalinux, fedora, opensuse, rhel, oracle, archlinux, windows, freebsd
+    case debian, ubuntu, centos, rocky, almalinux, fedora, opensuse, rhel, oraclelinux, archlinux, windows, freebsd
 
     var id: String { rawValue }
     var displayName: String {
@@ -522,7 +524,7 @@ nonisolated enum KVMISOType: String, CaseIterable, Identifiable {
         case .fedora: return "Fedora"
         case .opensuse: return "openSUSE"
         case .rhel: return "RHEL"
-        case .oracle: return "Oracle Linux"
+        case .oraclelinux: return "Oracle Linux"
         case .archlinux: return "Arch Linux"
         case .windows: return "Windows"
         case .freebsd: return "FreeBSD"

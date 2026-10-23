@@ -258,7 +258,7 @@ struct KVMModelsTests {
         #expect(pool.hasVMs)
     }
 
-    @Test("镜像解码与类型显示（未知类型回退原值）")
+    @Test("镜像解码与类型显示（未知类型回退原值；oraclelinux 为网页确认 rawValue）")
     func decodeISO() throws {
         let json = """
         {"id":1,"type":"archlinux","name":"alpine-virt-3.21.3-x86_64.iso",
@@ -271,6 +271,10 @@ struct KVMModelsTests {
         #expect(iso.size == 66_060_288)
         #expect(KVMISOType.display("archlinux") == "Arch Linux")
         #expect(KVMISOType.display("debian") == "Debian")
+        // 网页请求确认的 rawValue（2026-10-23）：oraclelinux 而非 oracle
+        #expect(KVMISOType(rawValue: "oraclelinux") == .oraclelinux)
+        #expect(KVMISOType.display("oraclelinux") == "Oracle Linux")
+        #expect(KVMISOType(rawValue: "oracle") == nil)
         #expect(KVMISOType.display("someNewDistro") == "someNewDistro")
         #expect(KVMISOType.display(nil) == "-")
     }
