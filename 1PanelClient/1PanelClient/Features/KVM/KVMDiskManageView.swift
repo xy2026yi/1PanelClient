@@ -215,7 +215,7 @@ struct KVMDiskManageView: View {
     }
 
     private var isValid: Bool {
-        guard let disk = selectedDisk, let size = Int(sizeText), size >= 1 else { return false }
+        guard selectedDisk != nil, let size = Int(sizeText), size >= 1 else { return false }
         return currentGiB.map { size > $0 } ?? true
     }
 

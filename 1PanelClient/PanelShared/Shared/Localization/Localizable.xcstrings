@@ -1,7 +1,9 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {},
+    "" : {
+
+    },
     "-" : {
       "localizations" : {
         "en" : {
@@ -453,6 +455,16 @@
         }
       }
     },
+    "%@.uppercased() %@:%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@.uppercased() %2$@:%3$@"
+          }
+        }
+      }
+    },
     "%@（动态模块）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -493,6 +505,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@%%  %2$@ / %3$@"
+          }
+        }
+      }
+    },
+    "%@×%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@×%2$@"
           }
         }
       }
@@ -592,6 +614,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld / 256"
+          }
+        }
+      }
+    },
+    "%ld GB" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld GB"
           }
         }
       }
@@ -1412,6 +1445,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bots · %d"
+          }
+        }
+      }
+    },
+    "Bridge：虚拟机桥接到宿主机网桥，与宿主机同网段。仅标记为推荐的网桥可选择。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bridge: VMs attach to a host bridge on the same subnet. Only bridges marked as recommended can be selected."
           }
         }
       }
@@ -3059,6 +3103,17 @@
         }
       }
     },
+    "ServerInit 解析失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to parse ServerInit"
+          }
+        }
+      }
+    },
     "Shell 脚本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3571,6 +3626,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "vLLM"
+          }
+        }
+      }
+    },
+    "VNC 安全握手失败" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VNC security handshake failed"
           }
         }
       }
@@ -4311,6 +4377,17 @@
         }
       }
     },
+    "不可扩容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not expandable"
+          }
+        }
+      }
+    },
     "不可用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5011,6 +5088,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Predefined commands only"
+          }
+        }
+      }
+    },
+    "仅关机状态可扩容；挂有快照链（backing 文件）或只读磁盘不可扩容。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disks can be expanded only while the VM is shut off; disks on a snapshot chain (backing file) or read-only disks cannot be expanded."
           }
         }
       }
@@ -6100,6 +6188,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Depends on the partprobe command; parted must be installed"
+          }
+        }
+      }
+    },
+    "依赖检查" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dependency check"
+          }
+        }
+      }
+    },
+    "依赖检查未通过，功能不可用；请在面板网页端完成依赖安装后重新检测。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dependency check failed; the feature is unavailable. Install dependencies from the web console, then retry."
           }
         }
       }
@@ -9415,6 +9525,28 @@
         }
       }
     },
+    "删除模版 %@（%@），该操作不可回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete template %@ (%@)? This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "删除源文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete source file"
+          }
+        }
+      }
+    },
     "删除用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10687,6 +10819,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Destination"
+          }
+        }
+      }
+    },
+    "原因：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reason: %@"
           }
         }
       }
@@ -13738,6 +13881,17 @@
         }
       }
     },
+    "存在快照链（backing 文件）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "snapshot chain (backing file)"
+          }
+        }
+      }
+    },
     "孤立策略" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14317,6 +14471,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Host Directory"
+          }
+        }
+      }
+    },
+    "宿主机网卡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host interface"
           }
         }
       }
@@ -15047,6 +15212,17 @@
         }
       }
     },
+    "将删除存储池「%@」（不删除目录内文件），该操作不可回滚。如果确认操作，请手动输入 %@。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage pool “%@” will be deleted (files inside the directory are kept); this cannot be undone. If you confirm, type %@ manually."
+          }
+        }
+      }
+    },
     "将删除实例「%@」的全部历史监控数据，该操作无法回滚，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15065,6 +15241,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes the model directory \"%@\" and its files on the server and cannot be undone. Type the model name to confirm."
+          }
+        }
+      }
+    },
+    "将删除网络「%@」，该操作不可回滚。如果确认操作，请手动输入 %@。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network “%@” will be deleted; this cannot be undone. If you confirm, type %@ manually."
           }
         }
       }
@@ -15098,6 +15285,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes the %ld selected websites and their configs. This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "将删除镜像「%@」，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete image “%@”?"
           }
         }
       }
@@ -15850,6 +16048,17 @@
         }
       }
     },
+    "已关闭开机自启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autostart disabled"
+          }
+        }
+      }
+    },
     "已关闭流量限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16312,6 +16521,17 @@
         }
       }
     },
+    "已开启开机自启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autostart enabled"
+          }
+        }
+      }
+    },
     "已开启流量限制" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16418,6 +16638,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open Tables"
+          }
+        }
+      }
+    },
+    "已执行「%@」" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” issued"
           }
         }
       }
@@ -17309,6 +17540,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "When enabled, opening the terminal page auto-connects to the current node terminal"
+          }
+        }
+      }
+    },
+    "开启后连同服务器上的源文件一并删除；关闭则仅删除镜像记录，保留源文件。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When on, the source file on the server is deleted as well; when off, only the image record is removed and the source file is kept."
           }
         }
       }
@@ -18864,6 +19106,61 @@
         }
       }
     },
+    "扩容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand"
+          }
+        }
+      }
+    },
+    "扩容后总容量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total size after expansion"
+          }
+        }
+      }
+    },
+    "扩容后总容量需大于当前容量；扩容只增大不缩小，提交后由后台任务执行。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total size after expansion must be greater than the current size; disks can only grow. The task runs in the background after submitting."
+          }
+        }
+      }
+    },
+    "扩容失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to expand: %@"
+          }
+        }
+      }
+    },
+    "扩容磁盘 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand disk %@"
+          }
+        }
+      }
+    },
     "扩展名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19696,6 +19993,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Console"
+          }
+        }
+      }
+    },
+    "控制台为 VNC 图形界面：轻点左键、长按右键、拖动移动指针，捏合缩放；右上角键盘可输入。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Console is a VNC graphical screen: tap for left click, long-press for right click, drag to move the pointer, pinch to zoom; keyboard available from the top-right button."
           }
         }
       }
@@ -21269,6 +21577,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unable to build the download progress connection"
+          }
+        }
+      }
+    },
+    "无法构造控制台连接地址" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to build console URL"
           }
         }
       }
@@ -23187,6 +23506,17 @@
         }
       }
     },
+    "有关联虚拟机时不可直接删除，需开启强制删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot be deleted while VMs are attached; enable force delete first."
+          }
+        }
+      }
+    },
     "有效" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23414,6 +23744,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Service Log"
+          }
+        }
+      }
+    },
+    "服务端拒绝连接：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server refused connection: %@"
           }
         }
       }
@@ -23766,6 +24107,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No GPU detected"
+          }
+        }
+      }
+    },
+    "未检测到磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No disks detected"
           }
         }
       }
@@ -32097,6 +32449,50 @@
         }
       }
     },
+    "虚拟机控制台" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VM console"
+          }
+        }
+      }
+    },
+    "虚拟机未运行" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virtual machine is not running"
+          }
+        }
+      }
+    },
+    "虚拟机管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VM Management"
+          }
+        }
+      }
+    },
+    "虚拟机运行后才有实时监控数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live monitoring data is available only when the virtual machine is running"
+          }
+        }
+      }
+    },
     "蜘蛛" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35837,6 +36233,17 @@
         }
       }
     },
+    "连接已断开" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection closed"
+          }
+        }
+      }
+    },
     "连接已断开 [code: %ld]\n%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37267,6 +37674,17 @@
         }
       }
     },
+    "重连" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnect"
+          }
+        }
+      }
+    },
     "钉钉" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37329,6 +37747,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Error Log"
+          }
+        }
+      }
+    },
+    "键盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard"
+          }
+        }
+      }
+    },
+    "键盘输入（仅英文与符号）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type here (English & symbols only)"
           }
         }
       }
@@ -37901,6 +38341,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Static site"
+          }
+        }
+      }
+    },
+    "非 RFB 协议：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not an RFB protocol: %@"
           }
         }
       }
@@ -38770,435 +39221,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Connection"
-          }
-        }
-      }
-    },
-    "虚拟机管理" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "VM Management"
-          }
-        }
-      }
-    },
-    "已执行「%@」" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“%@” issued"
-          }
-        }
-      }
-    },
-    "虚拟机未运行" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Virtual machine is not running"
-          }
-        }
-      }
-    },
-    "虚拟机运行后才有实时监控数据" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live monitoring data is available only when the virtual machine is running"
-          }
-        }
-      }
-    },
-    "未检测到磁盘" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No disks detected"
-          }
-        }
-      }
-    },
-    "仅关机状态可扩容；挂有快照链（backing 文件）或只读磁盘不可扩容。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disks can be expanded only while the VM is shut off; disks on a snapshot chain (backing file) or read-only disks cannot be expanded."
-          }
-        }
-      }
-    },
-    "不可扩容" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not expandable"
-          }
-        }
-      }
-    },
-    "原因：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reason: %@"
-          }
-        }
-      }
-    },
-    "扩容" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expand"
-          }
-        }
-      }
-    },
-    "扩容后总容量" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total size after expansion"
-          }
-        }
-      }
-    },
-    "扩容后总容量需大于当前容量；扩容只增大不缩小，提交后由后台任务执行。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total size after expansion must be greater than the current size; disks can only grow. The task runs in the background after submitting."
-          }
-        }
-      }
-    },
-    "扩容磁盘 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expand disk %@"
-          }
-        }
-      }
-    },
-    "扩容失败：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to expand: %@"
-          }
-        }
-      }
-    },
-    "存在快照链（backing 文件）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "snapshot chain (backing file)"
-          }
-        }
-      }
-    },
-    "将删除镜像「%@」，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete image “%@”?"
-          }
-        }
-      }
-    },
-    "删除源文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete source file"
-          }
-        }
-      }
-    },
-    "开启后连同服务器上的源文件一并删除；关闭则仅删除镜像记录，保留源文件。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When on, the source file on the server is deleted as well; when off, only the image record is removed and the source file is kept."
-          }
-        }
-      }
-    },
-    "将删除网络「%@」，该操作不可回滚。如果确认操作，请手动输入 %@。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Network “%@” will be deleted; this cannot be undone. If you confirm, type %@ manually."
-          }
-        }
-      }
-    },
-    "将删除存储池「%@」（不删除目录内文件），该操作不可回滚。如果确认操作，请手动输入 %@。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Storage pool “%@” will be deleted (files inside the directory are kept); this cannot be undone. If you confirm, type %@ manually."
-          }
-        }
-      }
-    },
-    "有关联虚拟机时不可直接删除，需开启强制删除。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cannot be deleted while VMs are attached; enable force delete first."
-          }
-        }
-      }
-    },
-    "删除模版 %@（%@），该操作不可回滚，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete template %@ (%@)? This cannot be undone. Continue?"
-          }
-        }
-      }
-    },
-    "已开启开机自启" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autostart enabled"
-          }
-        }
-      }
-    },
-    "已关闭开机自启" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autostart disabled"
-          }
-        }
-      }
-    },
-    "%ld GB" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld GB"
-          }
-        }
-      }
-    },
-    "宿主机网卡" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Host interface"
-          }
-        }
-      }
-    },
-    "Bridge：虚拟机桥接到宿主机网桥，与宿主机同网段。仅标记为推荐的网桥可选择。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bridge: VMs attach to a host bridge on the same subnet. Only bridges marked as recommended can be selected."
-          }
-        }
-      }
-    },
-    "依赖检查" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dependency check"
-          }
-        }
-      }
-    },
-    "依赖检查未通过，功能不可用；请在面板网页端完成依赖安装后重新检测。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dependency check failed; the feature is unavailable. Install dependencies from the web console, then retry."
-          }
-        }
-      }
-    },
-    "虚拟机控制台" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "VM console"
-          }
-        }
-      }
-    },
-    "键盘" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keyboard"
-          }
-        }
-      }
-    },
-    "重连" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reconnect"
-          }
-        }
-      }
-    },
-    "连接已断开" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connection closed"
-          }
-        }
-      }
-    },
-    "无法构造控制台连接地址" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unable to build console URL"
-          }
-        }
-      }
-    },
-    "非 RFB 协议：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not an RFB protocol: %@"
-          }
-        }
-      }
-    },
-    "服务端拒绝连接：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server refused connection: %@"
-          }
-        }
-      }
-    },
-    "VNC 安全握手失败" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "VNC security handshake failed"
-          }
-        }
-      }
-    },
-    "ServerInit 解析失败" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to parse ServerInit"
-          }
-        }
-      }
-    },
-    "键盘输入（仅英文与符号）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type here (English & symbols only)"
-          }
-        }
-      }
-    },
-    "控制台为 VNC 图形界面：轻点左键、长按右键、拖动移动指针，捏合缩放；右上角键盘可输入。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Console is a VNC graphical screen: tap for left click, long-press for right click, drag to move the pointer, pinch to zoom; keyboard available from the top-right button."
           }
         }
       }
