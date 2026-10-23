@@ -46,7 +46,7 @@ struct KVMVNCRFBTests {
         let pf = hex(RFBClientEncoder.setPixelFormat())
         #expect(pf.count == 40)
         #expect(pf.hasPrefix("00000000"))          // 类型 + 填充
-        #expect(pf.contains("2018000100ff00ff00ff100800"))  // 32/24/LE/真彩/255³/16-8-0
+        #expect(pf.contains("2018000100ff00ff00ff000810"))  // 32/24/LE/真彩/255³/0-8-16（网页端同款）
 
         let encodings = hex(RFBClientEncoder.setEncodings())
         #expect(encodings == "020000" + "0003" + "00000000" + "00000001" + "ffffff21")
@@ -158,14 +158,14 @@ struct KVMVNCRFBTests {
 
     // MARK: 帧缓冲
 
-    @Test("RAW 落位与读取（BGRA 字节序）、CopyRect 搬移、resize 清零")
+    @Test("RAW 落位与读取（RGBA 字节序，按送达原样存储）、CopyRect 搬移、resize 清零")
     func framebuffer() {
         let fb = RFBFramebuffer(width: 4, height: 4)
-        // 1×2 竖条 @ (1,0)：蓝绿红顺序验证 BGRA
-        var pixels = Data([0xff, 0x00, 0x00, 0x00])   // (1,0) 蓝
-        pixels.append(contentsOf: [0x00, 0xff, 0x00, 0x00])  // (1,1) 绿
+        // 1×2 竖条 @ (1,0)：按网页端同款格式首字节为 R
+        var pixels = Data([0xff, 0x00, 0x00, 0x00])   // (1,0) R=255
+        pixels.append(contentsOf: [0x00, 0xff, 0x00, 0x00])  // (1,1) G=255
         fb.applyRaw(x: 1, y: 0, width: 1, height: 2, pixels: pixels)
-        #expect(fb.pixel(x: 1, y: 0)!.0 == 0xff)   // B
+        #expect(fb.pixel(x: 1, y: 0)!.0 == 0xff)   // R
         #expect(fb.pixel(x: 1, y: 1)!.1 == 0xff)   // G
         #expect(fb.pixel(x: 0, y: 0)!.0 == 0x00)   // 未动区域为黑
 

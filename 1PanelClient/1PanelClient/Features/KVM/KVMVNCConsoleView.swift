@@ -5,8 +5,9 @@
 //  虚拟机 VNC 控制台（MVP）：WS /xpack/vms/console/ws?name=&operateNode=local 承载
 //  裸 RFB 3.8 字节流（logs/vnc_ws_dump.txt 抓包为联调 ground truth）。
 //  - 鉴权在 WS/HTTP 层（1Panel-Token，与终端同款），RFB 安全类型 None（抓包实证）；
-//  - 像素格式固定 32bpp/24bit 真彩小端、shifts 16/8/0（服务端原生 BGRA，
-//    直接写入 byteOrder32Little + noneSkipFirst 位图，零逐像素转换）；
+//  - 像素格式 32bpp/24bit 真彩小端、shifts 0/8/16（逐字节对齐网页端——面板
+//    代理不接受服务端原生回显；字节序 RGBA，直接落 byteOrder32Little +
+//    noneSkipLast 位图，零逐像素转换）；
 //  - 编码只宣告 RAW + CopyRect + DesktopSize 伪编码（服务端只能从客户端集合里选），
 //    不宣告光标伪编码——qemu 会把客户机光标画进帧缓冲；压缩编码留二期；
 //  - 键盘用标准 KeyEvent（keysym），QEMU 扩展键码留二期；
@@ -53,12 +54,14 @@ nonisolated enum RFBClientEncoder {
     static func clientInit() -> Data { Data([0x01]) }
 
     /// SetPixelFormat：32bpp / 24bit / 小端 / 真彩 / max 255·255·255 /
-    /// shifts R=16 G=8 B=0（服务端原生 BGRA 字节序，帧缓冲可直接落位）
+    /// shifts R=0 G=8 B=16 —— 逐字节对齐网页端（dump_3/4：回显服务端原生的
+    /// 16/8/0 同样合规，但面板代理只放行网页端同款，其余断线）。
+    /// 该格式像素内存字节序为 R,G,B,0（RGBA）
     static func setPixelFormat() -> Data {
         Data([0x00, 0x00, 0x00, 0x00,             // 类型 0 + 3 字节填充
               0x20, 0x18, 0x00, 0x01,             // 32bpp / 24bit / 小端 / 真彩
               0x00, 0xff, 0x00, 0xff, 0x00, 0xff, // max 255·255·255
-              0x10, 0x08, 0x00,                   // shifts R=16 G=8 B=0
+              0x00, 0x08, 0x10,                   // shifts R=0 G=8 B=16
               0x00, 0x00, 0x00])                  // 3 字节填充
     }
 
@@ -273,12 +276,12 @@ nonisolated final class RFBMessageAssembler {
 
 // MARK: - 帧缓冲（BGRA 32bpp）
 
-/// 服务端原生字节序（shifts 16/8/0 小端 = BGRA）直接落位，
-/// CGImage 用 byteOrder32Little + noneSkipFirst 零转换成像
+/// 客户端像素格式（网页端同款 shifts 0/8/16 小端）下，像素内存字节序为
+/// R,G,B,0（RGBA），CGImage 用 byteOrder32Little + noneSkipLast 零转换成像
 nonisolated final class RFBFramebuffer {
     private(set) var width: Int
     private(set) var height: Int
-    /// BGRA 逐行存储
+    /// RGBA 逐行存储（按服务端送达字节序原样落位）
     private(set) var pixels: [UInt8]
 
     init(width: Int, height: Int) {
@@ -329,7 +332,7 @@ nonisolated final class RFBFramebuffer {
         pixels = [UInt8](repeating: 0, count: self.width * self.height * 4)
     }
 
-    /// 指定坐标像素（BGRA 四字节；单测用）
+    /// 指定坐标像素（R,G,B,0 四字节；单测用）
     func pixel(x: Int, y: Int) -> (UInt8, UInt8, UInt8, UInt8)? {
         guard x >= 0, y >= 0, x < width, y < height else { return nil }
         let start = (y * width + x) * 4
@@ -345,7 +348,7 @@ nonisolated final class RFBFramebuffer {
                 data: base, width: width, height: height,
                 bitsPerComponent: 8, bytesPerRow: width * 4,
                 space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
                     | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
             return context.makeImage()
         }
