@@ -85,11 +85,10 @@ struct KVMVNCRFBTests {
         return data
     }
 
-    @Test("RAW 矩形按任意切块拼装 + 批次完成回调")
+    @Test("RAW 矩形按任意切块拼装 + 批次完成消息")
     func assemblerRawChunked() {
         let assembler = RFBMessageAssembler()
         var messages: [RFBServerMessage] = []
-        assembler.onMessage = { messages.append($0) }
         let pixels: [UInt8] = (0..<2 * 3 * 4).map { UInt8($0) }   // 2×3 像素
         let stream = makeRawBatch(x: 1, y: 2, width: 2, height: 3, pixel: pixels)
 
@@ -97,7 +96,7 @@ struct KVMVNCRFBTests {
         var index = stream.startIndex
         while index < stream.endIndex {
             let end = stream.index(index, offsetBy: 7, limitedBy: stream.endIndex) ?? stream.endIndex
-            assembler.feed(Data(stream[index..<end]))
+            messages.append(contentsOf: assembler.feed(Data(stream[index..<end])))
             index = end
         }
 
@@ -114,7 +113,6 @@ struct KVMVNCRFBTests {
     func assemblerVariants() {
         let assembler = RFBMessageAssembler()
         var messages: [RFBServerMessage] = []
-        assembler.onMessage = { messages.append($0) }
 
         // 一批两矩形：CopyRect + 1×1 RAW
         var stream = Data([0x00, 0x00]) + RFBBytes.be16(2)
@@ -122,7 +120,7 @@ struct KVMVNCRFBTests {
                        + RFBBytes.be16(2) + RFBBytes.be16(2) + RFBBytes.be32(1)   // CopyRect @5,6 2×2
                        + RFBBytes.be16(0) + RFBBytes.be16(0))                     // src 0,0
         stream.append(contentsOf: makeRawBatch(x: 0, y: 0, width: 1, height: 1, pixel: [9, 9, 9, 9]).dropFirst(4))
-        assembler.feed(stream)
+        messages.append(contentsOf: assembler.feed(stream))
         #expect(messages.count == 3)   // copyRect + rawRect + updateComplete
 
         // DesktopSize 伪编码（重设 800×600）
@@ -130,13 +128,12 @@ struct KVMVNCRFBTests {
         var resize = Data([0x00, 0x00]) + RFBBytes.be16(1)
         resize.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
                        + RFBBytes.be16(800) + RFBBytes.be16(600) + RFBBytes.be32(UInt32(bitPattern: -223)))
-        assembler.feed(resize)
+        messages.append(contentsOf: assembler.feed(resize))
         #expect(messages.contains(.desktopSize(width: 800, height: 600)))
         #expect(messages.last == .updateComplete)
 
         // Bell
-        messages.removeAll()
-        assembler.feed(Data([0x02]))
+        messages = assembler.feed(Data([0x02]))
         #expect(messages == [.bell])
 
         // ServerCutText
@@ -144,20 +141,19 @@ struct KVMVNCRFBTests {
         var cut = Data([0x03, 0x00, 0x00, 0x00])
         cut.append(contentsOf: RFBBytes.be32(2))
         cut.append(contentsOf: Data("hi".utf8))
-        assembler.feed(cut)
+        messages = assembler.feed(cut)
         #expect(messages == [.serverCutText("hi")])
     }
 
-    @Test("未宣告编码触发致命错误")
+    @Test("未宣告编码触发致命错误（failure 置位，后续 feed 返回空）")
     func assemblerUnknownEncoding() {
         let assembler = RFBMessageAssembler()
-        var error: String?
-        assembler.onError = { error = $0 }
         var stream = Data([0x00, 0x00]) + RFBBytes.be16(1)
         stream.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
                        + RFBBytes.be16(1) + RFBBytes.be16(1) + RFBBytes.be32(16))  // ZRLE 未宣告
-        assembler.feed(stream)
-        #expect(error?.contains("16") == true)
+        _ = assembler.feed(stream)
+        #expect(assembler.failure?.contains("16") == true)
+        #expect(assembler.feed(Data([0x02])).isEmpty)
     }
 
     // MARK: 帧缓冲

@@ -142,9 +142,9 @@ nonisolated enum RFBServerMessage: Equatable {
 /// RFB 字节流 → 服务端消息。WS 帧边界与消息边界不对齐（代理按 TCP 块切分），
 /// 内部缓存拼装；feed 可任意切块（单测按乱块喂入验证）
 nonisolated final class RFBMessageAssembler {
-    /// 解析出错（未知消息类型 / 未宣告的编码 / 非法长度）——连接应断开
-    var onError: ((String) -> Void)?
-    var onMessage: ((RFBServerMessage) -> Void)?
+    /// 首个致命错误（未知消息类型 / 未宣告的编码 / 非法长度）；出错后 feed 恒返回空。
+    /// 出连接应断开
+    private(set) var failure: String?
 
     private var buffer = Data()
     /// 当前帧更新批次剩余矩形数（跨 feed 保存）
@@ -154,26 +154,31 @@ nonisolated final class RFBMessageAssembler {
     func reset() {
         buffer.removeAll()
         pendingRects = 0
+        failure = nil
     }
 
-    func feed(_ data: Data) {
+    /// 喂入并按序取回本段解析出的全部消息（回调式无法保证消费顺序，
+    /// 出站消息顺序敏感——SetPixelFormat 必须先于帧更新请求，见 dump_3 抓包）
+    func feed(_ data: Data) -> [RFBServerMessage] {
+        guard failure == nil else { return [] }
         buffer.append(data)
+        var messages: [RFBServerMessage] = []
         while true {
             if pendingRects > 0 {
-                guard let message = tryTakeRect() else { return }
+                guard let message = tryTakeRect() else { return messages }
                 var isDesktopSize = false
                 if case .desktopSize = message { isDesktopSize = true }
-                onMessage?(message)
+                messages.append(message)
                 if isDesktopSize || pendingRects == 0 {
-                    onMessage?(.updateComplete)
+                    messages.append(.updateComplete)
                 }
             } else if let rectCount = tryTakeUpdateHeader() {
                 pendingRects = rectCount
-                if rectCount == 0 { onMessage?(.updateComplete) }
+                if rectCount == 0 { messages.append(.updateComplete) }
             } else if let message = tryTakeNormalMessage() {
-                onMessage?(message)
+                messages.append(message)
             } else {
-                return  // 字节不足，等下一帧
+                return messages  // 字节不足，等下一帧
             }
         }
     }
@@ -214,7 +219,7 @@ nonisolated final class RFBMessageAssembler {
         case 0:  // RAW
             let byteCount = width * height * 4
             guard width > 0, height > 0, byteCount <= 64 * 1024 * 1024 else {
-                onError?(String(format: "Illegal RAW rect %dx%d", width, height))
+                failure = String(format: "Illegal RAW rect %dx%d", width, height)
                 return nil
             }
             guard let payload = take(12 + byteCount) else { return nil }
@@ -232,8 +237,8 @@ nonisolated final class RFBMessageAssembler {
             pendingRects = 0
             return .desktopSize(width: width, height: height)
         default:
-            onError?(String(format: "Unannounced encoding %d (%dx%d@%d,%d)",
-                            encoding, width, height, x, y))
+            failure = String(format: "Unannounced encoding %d (%dx%d@%d,%d)",
+                             encoding, width, height, x, y)
             return nil
         }
     }
@@ -255,12 +260,12 @@ nonisolated final class RFBMessageAssembler {
                     in: (buffer.startIndex + 4)..<(buffer.startIndex + 8))) else { return nil }
             let length = Int(lengthValue & 0x7fffffff)
             guard length <= 1_048_576, let text = take(8 + length) else {
-                if length > 1_048_576 { onError?("ServerCutText too long: \(length)") }
+                if length > 1_048_576 { failure = "ServerCutText too long: \(length)" }
                 return nil
             }
             return .serverCutText(String(data: text.suffix(length), encoding: .utf8) ?? "")
         default:
-            onError?(String(format: "Unknown message type %d", type))
+            failure = String(format: "Unknown message type %d", type)
             return nil
         }
     }
@@ -416,18 +421,13 @@ final class KVMVNCSession: ObservableObject {
     init(server: ServerConfig, vmName: String) {
         self.server = server
         self.vmName = vmName
-        assembler.onMessage = { [weak self] message in
-            Task { @MainActor in self?.handle(message) }
-        }
-        assembler.onError = { [weak self] reason in
-            Task { @MainActor in self?.fail(reason) }
-        }
     }
 
     deinit {
         receiveTask?.cancel()
         pingTask?.cancel()
         watchdogTask?.cancel()
+        outboundTask?.cancel()
         task?.cancel(with: .goingAway, reason: nil)
     }
 
@@ -449,6 +449,7 @@ final class KVMVNCSession: ObservableObject {
         pingTask?.cancel()
         watchdogTask?.cancel()
         task?.cancel(with: .goingAway, reason: nil)
+        outbound.removeAll()
 
         // 对齐网页端流程：先 POST console {name} 挂起 qemu VNC 会话再开 WS
         //（抓包中网页端开 WS 前必调；结果仅作启动引导，失败不阻断——继续试 WS）
@@ -622,7 +623,12 @@ final class KVMVNCSession: ObservableObject {
             }
 
         case .normal:
-            assembler.feed(data)
+            for message in assembler.feed(data) {
+                handle(message)
+            }
+            if let reason = assembler.failure {
+                fail(reason)
+            }
         }
     }
 
@@ -698,10 +704,23 @@ final class KVMVNCSession: ObservableObject {
         }
     }
 
+    /// 出站消息串行队列：全部经同一 drain 任务按序发出。
+    /// fire-and-forget 各起 Task 会竞速乱序（dump_3 抓包：SetPixelFormat 晚于
+    /// 帧更新请求到达，qemu 判协议违序 ABNORMAL_CLOSURE）
+    private var outbound: [Data] = []
+    private var outboundTask: Task<Void, Never>?
+
     private func send(_ data: Data) {
-        guard let task else { return }
-        Task {
-            try? await task.send(.data(data))
+        outbound.append(data)
+        guard outboundTask == nil else { return }
+        outboundTask = Task { [weak self] in
+            while let self {
+                guard !self.outbound.isEmpty else { break }
+                guard let task = self.task else { self.outbound.removeAll(); break }
+                let next = self.outbound.removeFirst()
+                try? await task.send(.data(next))
+            }
+            self?.outboundTask = nil
         }
     }
 
@@ -712,6 +731,7 @@ final class KVMVNCSession: ObservableObject {
         pingTask?.cancel()
         watchdogTask?.cancel()
         task?.cancel(with: .goingAway, reason: nil)
+        outbound.removeAll()
         task = nil
         state = .failed(reason)
     }
