@@ -194,6 +194,8 @@ struct MonitorView: View {
     @State private var showMemChart = false
     /// 监控设置页（开关/保存天数/采集间隔/清空/Swap）
     @State private var showSettings = false
+    /// 监控导出页（v2.4.0：时间范围/指标多选/设备选择/CSV·JSON·Excel）
+    @State private var showExport = false
     /// App 是否处于前台活跃（后台时暂停轮询）
     @Environment(\.scenePhase) private var scenePhase
     @State private var isSceneActive = true
@@ -238,6 +240,15 @@ struct MonitorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                // v2.4.0 网页端监控页为 监控/导出/设置 三页签，iOS 以工具栏双按钮对应
+                Button {
+                    showExport = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel(L10n.t("导出"))
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showSettings = true
                 } label: {
@@ -248,6 +259,9 @@ struct MonitorView: View {
         }
         .navigationDestination(isPresented: $showSettings) {
             MonitorSettingsView(server: server)
+        }
+        .navigationDestination(isPresented: $showExport) {
+            MonitorExportView(server: server)
         }
         // 图表/仪表盘类铺满（与容器监控一致，画布越宽采样点距越大越好读）；
         // 日志/表单类仍限宽——行长与聚焦输入是另一类诉求

@@ -1,6 +1,50 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "%@ (%%)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (%%)"
+          }
+        }
+      }
+    },
+    "%@ (B/s)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (B/s)"
+          }
+        }
+      }
+    },
+    "%@ (KB/s)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (KB/s)"
+          }
+        }
+      }
+    },
+    "%@ (ms)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (ms)"
+          }
+        }
+      }
+    },
     "%@ / %ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1231,6 +1275,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CPU Limit"
+          }
+        }
+      }
+    },
+    "CPU、内存与负载指标将合并到同一张表。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU, memory and load metrics are merged into one table."
           }
         }
       }
@@ -3244,6 +3299,28 @@
         }
       }
     },
+    "「每个接口」为逐接口明细；「合计」为所有接口求和的汇总行。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"Each interface\" exports per-interface detail; \"Combined total\" is the sum of all interfaces."
+          }
+        }
+      }
+    },
+    "「每个设备」为逐设备明细；「合计」为所有设备求和的汇总行。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"Each device\" exports per-device detail; \"Combined total\" is the sum of all devices."
+          }
+        }
+      }
+    },
     "一句话木马" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4901,6 +4978,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Token"
+          }
+        }
+      }
+    },
+    "以下指标在所选时间段内没有数据：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data in the selected time range for: %@"
+          }
+        }
+      }
+    },
+    "以下数据集已超出 Excel 行数上限被截断：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excel row limit reached; these datasets were truncated: %@"
           }
         }
       }
@@ -10460,6 +10559,17 @@
         }
       }
     },
+    "合计（所有设备求和）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combined total (all devices)"
+          }
+        }
+      }
+    },
     "同时修改子文件属性" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13672,6 +13782,17 @@
         }
       }
     },
+    "导出为单个结构化 JSON 文件。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export as a single structured JSON file."
+          }
+        }
+      }
+    },
     "导出任务" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13690,6 +13811,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export failed: %@"
+          }
+        }
+      }
+    },
+    "导出指标" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metrics"
+          }
+        }
+      }
+    },
+    "导出格式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format"
           }
         }
       }
@@ -23825,6 +23968,39 @@
         }
       }
     },
+    "每个指标生成一个独立工作表。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each metric is exported as a separate worksheet in one workbook."
+          }
+        }
+      }
+    },
+    "每个接口（逐接口明细）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each interface (per-interface detail)"
+          }
+        }
+      }
+    },
+    "每个设备（逐设备明细）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each device (per-device detail)"
+          }
+        }
+      }
+    },
     "每周" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28665,6 +28841,17 @@
         }
       }
     },
+    "结束时间需晚于开始时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End time must be later than start time."
+          }
+        }
+      }
+    },
     "结束进程" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29211,6 +29398,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gateway Configuration"
+          }
+        }
+      }
+    },
+    "网卡" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network Interface"
           }
         }
       }
@@ -32361,6 +32559,17 @@
         }
       }
     },
+    "请至少选择一个导出指标" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select at least one metric to export."
+          }
+        }
+      }
+    },
     "请输入 立即重启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32522,6 +32731,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Read/Write"
+          }
+        }
+      }
+    },
+    "读写延迟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I/O latency"
+          }
+        }
+      }
+    },
+    "读写次数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I/O operations"
           }
         }
       }
@@ -34238,6 +34469,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose Backup"
+          }
+        }
+      }
+    },
+    "选择多个指标时将分别生成 CSV 文件并打包为 ZIP。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multiple metrics are exported as separate CSV files packed into a ZIP archive."
           }
         }
       }
