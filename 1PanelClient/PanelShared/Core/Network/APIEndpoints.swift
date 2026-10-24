@@ -213,22 +213,22 @@ enum APIEndpoint {
     case firewallBase             // POST 子系统状态 {name: base|docker}（v2.2.5 契约已废弃）
     case firewallOperate          // POST 生命周期（start/stop/restart/disableBanPing/enableBanPing）
     case firewallFilterOperate    // POST 基础链操作（init-base/bind-base/unbind-base，幸存端点）
-    case firewallRulesSearch      // POST 统一规则清单（scope/families/states 筛选）
+    case firewallFamilyOperate    // POST 单地址族操作 {subsystem,backend,family,operation: initialize|repair|bind}（v2.4.0 新增，任务式）
+    case firewallRulesSearch      // POST 统一规则清单（scope/families 筛选）
     case firewallRulesCreate      // POST 批量创建规则（items[{rule}]，任务式）
-    case firewallRulesUpdate      // POST 更新规则（uuid + rule/description 互斥）
-    case firewallRulesDelete      // POST 批量删除规则 {uuids}
-    case firewallRulesSyncPreview // POST 同步预览 {subsystem,targetProvider,resetSource}
-    case firewallRulesSync         // POST 执行同步（任务式）
-    case firewallRulesReset        // POST 重置运行时规则（需输入后端名确认）
-    case firewallRulesAdopt        // POST 纳管 external/drifted 规则 {scope,instanceKey}
+    case firewallRulesUpdate      // POST 更新规则（scope+instanceKey + rule/description 互斥）
+    case firewallRulesDelete      // POST 批量删除规则 {targets[{scope,instanceKey,observed}]}
+    case firewallRulesReset        // POST 重置运行时规则 {backup,provider,withDockerRestart}（需输入后端名确认）
+    case firewallRulesBackups      // GET  规则备份文件列表 ?subsystem=system（v2.4.0 新增；初始化并恢复规则用）
     case firewallRulesReorder      // POST 调整链内位置（Web 未用，保留能力）
     case firewallNativeDetail      // POST 原生对象配置原文（zone_service/ufw_application）
     case firewallForwardBase      // POST 转发子系统状态（无请求体）
     case firewallForwardSearch    // POST 转发规则分页（PageEnvelope 信封）
-    case firewallForwardOperate   // POST 转发批量 add/remove（删除带 forceDelete）
+    case firewallForwardOperate   // POST 转发批量 add/remove（v2.4.0：forceDelete→import 导入语义）
     case firewallForwardEnable    // POST 启用转发子系统（任务式 {taskID?}）
     case firewallSettings         // GET  三组后端设置 + ping + 端口白名单
     case firewallSettingsOperate  // POST 后端操作 {subsystem,backend,operation: select|initialize|cleanup}
+    case firewallSettingsIPv6     // POST IPv6 支持开关 {status: Enable|Disable}（v2.4.0 新增，任务式）
     case firewallSettingsWhitelist // POST 白名单新增 {rule}（v2.3.1 逐条写）
     case firewallSettingsWhitelistUpdate // POST 白名单更新 {oldRule, rule}
     case firewallSettingsWhitelistDelete // POST 白名单删除 {rule}
@@ -359,6 +359,7 @@ enum APIEndpoint {
     case alertLogsSearch        // POST 分页查询告警日志
     case alertLogsClean         // POST 清理全部告警日志
     case alertDisksList         // GET  磁盘列表（磁盘告警选择挂载目录用）
+    case alertCronjobList       // POST 按任务类型查询可告警的计划任务（v2.4.0）
     case alertConfigSearch      // POST 分页查询发送方式（excludeTypes 排除 sms）
     case alertConfigInfo        // POST 查询全部配置（含 common 全局配置）
     case alertConfigTest        // POST 测试发送方式（邮箱）
@@ -372,6 +373,7 @@ enum APIEndpoint {
 
     // MARK: - 文件
     case filesSearch             // POST 文件浏览 {path, expand, page, pageSize, showHidden}
+    case filesCheck              // POST 路径存在性检查 {path, withInit} → Bool（KVM 镜像远程下载前校验目标目录）
     case filesFavorite           // POST 添加文件收藏 {path}
     case filesFavoriteSearch     // POST 文件收藏列表 {page, pageSize}
     case filesFavoriteDel        // POST 删除文件收藏 {id}
@@ -690,6 +692,11 @@ enum APIEndpoint {
     case vllmOperate            // POST 启停/重启 {id, operate, taskID}；删除同端点 operate=delete + forceDelete
     case vllmCompose            // POST 按类型获取 compose 模板 {imageType}
     case vllmCommandTemplateList // POST 启动命令模板列表 {imageType}
+    // vLLM 实例监控（v2.4.0 新增，logs/2.4.0新增vllm.md 抓包 2026-10-23）：
+    // 路径前缀为 /api/v2/ai/vllm/monitor（非 xpack），按 appInstallID 定位实例
+    case vllmMonitorCurrent     // POST 实时指标 {appInstallID}（服务端即时拉 /metrics，无 GPU 时 status=unavailable 全 null）
+    case vllmMonitorSearch      // POST 历史 {appInstallID, startTime, endTime, aggregation: avg|max, group: overview|latency|requests}
+    case vllmMonitorClean       // POST 清空该实例监控记录 {appInstallID}
 
     // MARK: - 模型下载器（logs/vLLM与下载器.md 抓包 2026-09-12；标 [推测] 的端点未抓到请求）
     case modelDownloaderSettings       // GET/POST 下载设置（模型目录 / HF 与 ModelScope 端点及令牌）
@@ -705,6 +712,46 @@ enum APIEndpoint {
     case modelDownloaderMSSearch       // POST ModelScope 仓库搜索 {query, sort, page, pageSize}
     case modelDownloaderMSInfo         // POST ModelScope 仓库详情 {repoID}
     case modelDownloaderMSDownload     // POST 从 ModelScope 下载 {repoID}
+
+    // MARK: - 虚拟机管理 KVM（logs/高级功能-KVM.md 抓包 2026-10-23；专业版，受高级功能门禁）
+    // 任务类操作返回 {taskID}，进度走 logsTasksRead（operateNode=local）
+    case kvmEnvironment            // GET  依赖检测（arch/kvm/libvirt/storage，ready 为总判定）
+    case kvmSearch                 // POST 虚拟机分页 {page, pageSize, info}
+    case kvmCreate                 // POST 创建虚拟机（全字段 + taskID；从模版启动携 templateID）
+    case kvmUpdate                 // POST 编辑 {taskID, name, cpu, memory, isoPaths, network, bootOrder, autoStart, description}（仅 shut off）
+    case kvmRename                 // POST 重命名 {taskID, name, newName}（仅 shut off）
+    case kvmDelete                 // POST 删除 {taskID, id, force}
+    case kvmOperate                // POST 电源 {name, operate: start|shutdown|reboot|suspend|resume|destroy}
+    case kvmSync                   // POST 同步 libvirt 域到面板（无 body）
+    case kvmOrphansScan            // POST 孤立数据扫描（无 body）→ 候选文件列表
+    case kvmOrphansClean           // POST 孤立数据清理 {items} → 清理后的列表
+    case kvmStats                  // POST 实时监控 {name}（累计型计数）
+    case kvmHealthCheck            // POST 健康检查 {name} → {pass, warn, fail, items}
+    case kvmConsole                // POST 控制台信息 {name} → {type, port, listen}
+    case kvmSnapshotCreate         // POST 创建快照 {taskID, name, snapshotName, description}
+    case kvmSnapshotList           // POST 快照列表 {name}
+    case kvmSnapshotRecover        // POST 恢复快照 {taskID, name, snapshotName}（仅 shut off）
+    case kvmInfo                   // POST 单台详情 {name, checkDisks}（checkDisks=true 时磁盘带 resizeBlocked 判定）
+    case kvmDiskResize             // POST 磁盘扩容 {name, target, sizeGiB, taskID}（resizeBlocked 非空不可扩容）
+    case kvmISOList                // POST 镜像列表（无 body）
+    case kvmISOCreate              // POST 登记服务器上已有镜像 {type, name, path, description}
+    case kvmISOImportStart         // POST 上传/下载登记 {type, name, path, status, tempFileID[, tempFileType], description} → {id}
+    case kvmISOImportUpdate        // POST 上传/下载状态回写 {id, status[, tempFileID, tempFileType]}
+    case kvmISOUpdate              // POST 编辑镜像 {id, type, name, path, description}
+    case kvmISODelete              // POST 删除镜像 {id, deleteFile}
+    case kvmTemplateCreate         // POST 虚拟机转模版 {taskID, name, templateName, storagePool, description}
+    case kvmTemplateList           // POST 模版列表（无 body）
+    case kvmTemplateDelete         // POST 删除模版 {taskID, id, deleteDisk}
+    case kvmNetworkList            // POST 网络列表（无 body）
+    case kvmNetworkBridges         // GET  可用网桥（name/recommended/description；recommended=false 不可选）
+    case kvmNetworkInterfaces      // GET  宿主机网卡（name/addresses；Macvtap 源接口用）
+    case kvmNetworkCreate          // POST 创建网络 {id:0, name, type, bridgeName, sourceInterface, cidr, gateway, dhcpStart, dhcpEnd, autoStart, description}
+    case kvmNetworkUpdate          // POST 启停 {id, status: running|inactive} / 自启 {id, autoStart}
+    case kvmNetworkDelete          // POST 删除网络 {id, force}（关联虚拟机时不可删）
+    case kvmStorageList            // POST 存储池列表（无 body）
+    case kvmStorageCreate          // POST 创建存储池 {id:0, name, type: dir, path, autoStart, description}
+    case kvmStorageUpdate          // POST 启停 {id, status} / 自启 {id, autoStart}
+    case kvmStorageDelete          // POST 删除存储池 {id, force}
 
     var path: String {
         switch self {
@@ -875,14 +922,13 @@ enum APIEndpoint {
         case .firewallBase:          return "/api/v2/hosts/firewall/base"
         case .firewallOperate:       return "/api/v2/hosts/firewall/operate"
         case .firewallFilterOperate: return "/api/v2/hosts/firewall/filter/operate"
+        case .firewallFamilyOperate: return "/api/v2/hosts/firewall/family/operate"
         case .firewallRulesSearch:   return "/api/v2/hosts/firewall/rules/search"
         case .firewallRulesCreate:   return "/api/v2/hosts/firewall/rules"
         case .firewallRulesUpdate:   return "/api/v2/hosts/firewall/rules/update"
         case .firewallRulesDelete:   return "/api/v2/hosts/firewall/rules/delete"
-        case .firewallRulesSyncPreview: return "/api/v2/hosts/firewall/rules/sync/preview"
-        case .firewallRulesSync:     return "/api/v2/hosts/firewall/rules/sync"
         case .firewallRulesReset:    return "/api/v2/hosts/firewall/rules/reset"
-        case .firewallRulesAdopt:    return "/api/v2/hosts/firewall/rules/adopt"
+        case .firewallRulesBackups:  return "/api/v2/hosts/firewall/rules/backups"
         case .firewallRulesReorder:  return "/api/v2/hosts/firewall/rules/reorder"
         case .firewallNativeDetail:  return "/api/v2/hosts/firewall/rules/native/detail"
         case .firewallForwardBase:   return "/api/v2/hosts/firewall/forward/base"
@@ -891,6 +937,7 @@ enum APIEndpoint {
         case .firewallForwardEnable: return "/api/v2/hosts/firewall/forward/enable"
         case .firewallSettings:      return "/api/v2/hosts/firewall/settings"
         case .firewallSettingsOperate: return "/api/v2/hosts/firewall/settings/operate"
+        case .firewallSettingsIPv6:  return "/api/v2/hosts/firewall/settings/ipv6"
         case .firewallSettingsWhitelist: return "/api/v2/hosts/firewall/settings/whitelist"
         case .firewallSettingsWhitelistUpdate: return "/api/v2/hosts/firewall/settings/whitelist/update"
         case .firewallSettingsWhitelistDelete: return "/api/v2/hosts/firewall/settings/whitelist/delete"
@@ -988,6 +1035,7 @@ enum APIEndpoint {
         case .supervisorLogRead:     return "/api/v2/files/read/supervisor"
         case .supervisordLogRead:    return "/api/v2/files/read/supervisord"
         case .filesSearch:           return "/api/v2/files/search"
+        case .filesCheck:            return "/api/v2/files/check"
         case .filesFavorite:         return "/api/v2/files/favorite"
         case .filesFavoriteSearch:   return "/api/v2/files/favorite/search"
         case .filesFavoriteDel:      return "/api/v2/files/favorite/del"
@@ -998,6 +1046,7 @@ enum APIEndpoint {
         case .alertLogsSearch:       return "/api/v2/alert/logs/search"
         case .alertLogsClean:        return "/api/v2/alert/logs/clean"
         case .alertDisksList:        return "/api/v2/alert/disks/list"
+        case .alertCronjobList:      return "/api/v2/alert/cronjob/list"
         case .alertConfigSearch:     return "/api/v2/alert/config/search"
         case .alertConfigInfo:       return "/api/v2/alert/config/info"
         case .alertConfigTest:       return "/api/v2/alert/config/test"
@@ -1277,6 +1326,9 @@ enum APIEndpoint {
         case .vllmOperate:           return "/api/v2/xpack/vllm/operate"
         case .vllmCompose:           return "/api/v2/xpack/vllm/compose"
         case .vllmCommandTemplateList: return "/api/v2/xpack/vllm/command-template/list"
+        case .vllmMonitorCurrent:    return "/api/v2/ai/vllm/monitor/current"
+        case .vllmMonitorSearch:     return "/api/v2/ai/vllm/monitor/search"
+        case .vllmMonitorClean:      return "/api/v2/ai/vllm/monitor/clean"
         case .modelDownloaderSettings:      return "/api/v2/xpack/model/downloader/settings"
         case .modelDownloaderLocalSearch:   return "/api/v2/xpack/model/downloader/local/search"
         case .modelDownloaderLocalDelete:   return "/api/v2/xpack/model/downloader/local/delete"
@@ -1290,6 +1342,43 @@ enum APIEndpoint {
         case .modelDownloaderMSSearch:      return "/api/v2/xpack/model/downloader/modelscope/search"
         case .modelDownloaderMSInfo:        return "/api/v2/xpack/model/downloader/modelscope/info"
         case .modelDownloaderMSDownload:    return "/api/v2/xpack/model/downloader/modelscope/download"
+        case .kvmEnvironment:        return "/api/v2/xpack/vms/environment"
+        case .kvmSearch:             return "/api/v2/xpack/vms/search"
+        case .kvmCreate:             return "/api/v2/xpack/vms"
+        case .kvmUpdate:             return "/api/v2/xpack/vms/update"
+        case .kvmRename:             return "/api/v2/xpack/vms/rename"
+        case .kvmDelete:             return "/api/v2/xpack/vms/del"
+        case .kvmOperate:            return "/api/v2/xpack/vms/operate"
+        case .kvmSync:               return "/api/v2/xpack/vms/sync"
+        case .kvmOrphansScan:        return "/api/v2/xpack/vms/orphans/scan"
+        case .kvmOrphansClean:       return "/api/v2/xpack/vms/orphans/clean"
+        case .kvmStats:              return "/api/v2/xpack/vms/stats"
+        case .kvmHealthCheck:        return "/api/v2/xpack/vms/health/check"
+        case .kvmConsole:            return "/api/v2/xpack/vms/console"
+        case .kvmSnapshotCreate:     return "/api/v2/xpack/vms/snapshots"
+        case .kvmSnapshotList:       return "/api/v2/xpack/vms/snapshots/list"
+        case .kvmSnapshotRecover:    return "/api/v2/xpack/vms/snapshots/recover"
+        case .kvmInfo:               return "/api/v2/xpack/vms/info"
+        case .kvmDiskResize:         return "/api/v2/xpack/vms/disks/resize"
+        case .kvmISOList:            return "/api/v2/xpack/vms/iso/list"
+        case .kvmISOCreate:          return "/api/v2/xpack/vms/iso"
+        case .kvmISOImportStart:     return "/api/v2/xpack/vms/iso/import/start"
+        case .kvmISOImportUpdate:    return "/api/v2/xpack/vms/iso/import/update"
+        case .kvmISOUpdate:          return "/api/v2/xpack/vms/iso/update"
+        case .kvmISODelete:          return "/api/v2/xpack/vms/iso/del"
+        case .kvmTemplateCreate:     return "/api/v2/xpack/vms/templates"
+        case .kvmTemplateList:       return "/api/v2/xpack/vms/templates/list"
+        case .kvmTemplateDelete:     return "/api/v2/xpack/vms/templates/del"
+        case .kvmNetworkList:        return "/api/v2/xpack/vms/networks/list"
+        case .kvmNetworkBridges:     return "/api/v2/xpack/vms/networks/bridges"
+        case .kvmNetworkInterfaces:  return "/api/v2/xpack/vms/networks/interfaces"
+        case .kvmNetworkCreate:      return "/api/v2/xpack/vms/networks"
+        case .kvmNetworkUpdate:      return "/api/v2/xpack/vms/networks/update"
+        case .kvmNetworkDelete:      return "/api/v2/xpack/vms/networks/del"
+        case .kvmStorageList:        return "/api/v2/xpack/vms/storages/list"
+        case .kvmStorageCreate:      return "/api/v2/xpack/vms/storages"
+        case .kvmStorageUpdate:      return "/api/v2/xpack/vms/storages/update"
+        case .kvmStorageDelete:      return "/api/v2/xpack/vms/storages/del"
         }
     }
 
@@ -1297,6 +1386,8 @@ enum APIEndpoint {
         switch self {
         case .dashboardOS, .dashboardBase, .dashboardCurrent, .dashboardTopCPU, .dashboardTopMem,
              .monitorNetOptions, .backupAccountsClientInfo, .containersDaemonjson,
+             .kvmEnvironment,
+             .kvmNetworkBridges, .kvmNetworkInterfaces,
              .appsIgnoredList, .appsStoreDetail,
              .appsTags,
              .disksList,

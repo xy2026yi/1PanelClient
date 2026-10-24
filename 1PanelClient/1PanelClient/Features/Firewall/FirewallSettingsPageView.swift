@@ -21,6 +21,8 @@ struct FirewallSettingsContent: View {
     @State private var pendingSwitch: BackendSwitch?
     /// 被拦截的切换（当前后端仍含运行时规则，仅提示不发请求）
     @State private var blockedSwitch: (current: String, target: String)?
+    /// 停用 IPv6 支持（高危：逐子系统解绑 IPv6 族 + 移除白名单 v6 条目，先弹窗确认）
+    @State private var pendingIPv6Off = false
 
     struct BackendSwitch: Identifiable {
         let subsystem: String
@@ -84,7 +86,17 @@ struct FirewallSettingsContent: View {
         )) {
             Button(L10n.t("好的"), role: .cancel) { blockedSwitch = nil }
         } message: {
-            Text(L10n.f("当前后端 %@ 仍存在 1Panel 运行时规则，请先重置该后端，再切换到 %@。重置仅清理运行时规则，数据库策略会保留，切换后可以重新初始化或同步。", blockedSwitch?.current ?? "", blockedSwitch?.target ?? ""))
+            Text(L10n.f("当前后端 %@ 仍存在 1Panel 运行时规则，请先重置该后端，再切换到 %@。重置仅清理运行时规则，数据库策略会保留，切换后可以重新初始化。", blockedSwitch?.current ?? "", blockedSwitch?.target ?? ""))
+        }
+        // 停用 IPv6 支持确认（开启无确认直接执行；抓包 2026-10-21 只有停用提示文案）
+        .alert(L10n.t("停用 IPv6 支持"), isPresented: $pendingIPv6Off) {
+            Button(L10n.t("取消"), role: .cancel) { }
+            Button(L10n.t("确认"), role: .destructive) {
+                Haptic.warning()
+                Task { await vm.setIPv6Enabled(false) }
+            }
+        } message: {
+            Text(L10n.t("停用 1Panel 管理的 iptables、nftables IPv6 规则。\n隐藏容器 IPv6 端口信息。\n移除白名单中的 IPv6 规则，其余已有 IPv6 规则保留。\n不会关闭服务器的 IPv6 网络功能。\n停用后，相关 IPv6 访问限制和端口转发将不再生效。"))
         }
     }
 
@@ -92,6 +104,18 @@ struct FirewallSettingsContent: View {
     @ViewBuilder
     private var settingsSections: some View {
         Section {
+            // IPv6 支持（v2.4.0 顶层开关；置于禁 Ping 之上，停用需弹窗确认）
+            Toggle(L10n.t("IPv6 支持"), isOn: Binding(
+                get: { vm.settings?.ipv6Enabled ?? vm.systemStatus?.ipv6Enabled ?? false },
+                set: { on in
+                    if on {
+                        Task { await vm.setIPv6Enabled(true) }
+                    } else {
+                        pendingIPv6Off = true
+                    }
+                }
+            ))
+            .disabled(vm.isOperating)
             Toggle(L10n.t("禁 Ping"), isOn: Binding(
                 get: { vm.settings?.pingBlocked ?? vm.systemStatus?.pingBlocked ?? false },
                 set: { on in
@@ -119,33 +143,42 @@ struct FirewallSettingsContent: View {
             Text(L10n.t("禁 Ping 后服务器不再响应 ICMP 探测；端口白名单外的高校验规则见任务日志。"))
         }
 
-        backendPickerSection(title: L10n.t("系统防火墙"), subsystem: "system",
-                             group: vm.settings?.system)
-        backendPickerSection(title: L10n.t("端口转发"), subsystem: "forwarding",
-                             group: vm.settings?.forwarding)
-        backendPickerSection(title: L10n.t("容器端口防护"), subsystem: "docker",
-                             group: vm.settings?.docker)
+        firewallBackendSection
     }
 
-    /// 单组防护后端：形态 3 描边菜单（未安装 / 不支持的选项不展示，
-    /// 当前选中不在可选列表时兜底保留，避免无效 selection）
-    private func backendPickerSection(title: String, subsystem: String,
-                                      group: FirewallBackendGroup?) -> some View {
+    /// 防火墙后端组：三组子系统后端（系统防火墙/端口转发/容器端口防护）合并为
+    /// 一组展示（组名「防火墙」），各自的选择、切换确认与拦截逻辑不变
+    private var firewallBackendSection: some View {
         Section {
-            OutlinedPicker(label: title,
-                           options: backendOptionKeys(group: group),
-                           selection: backendBinding(subsystem: subsystem, group: group),
-                           optionLabels: backendOptionLabels(group: group))
-                .disabled(vm.isOperating)
+            backendPickerRow(title: L10n.t("系统防火墙"), subsystem: "system",
+                             group: vm.settings?.system)
+            backendPickerRow(title: L10n.t("端口转发"), subsystem: "forwarding",
+                             group: vm.settings?.forwarding)
+            backendPickerRow(title: L10n.t("容器端口防护"), subsystem: "docker",
+                             group: vm.settings?.docker)
         } header: {
-            SectionLabel(title: title, systemImage: "server.rack")
+            SectionLabel(title: L10n.t("防火墙"), systemImage: "server.rack")
         } footer: {
-            if let reason = unusableReason(group: group) {
-                Text(reason)
-            } else {
+            // 各组当前后端不可用的原因合并展示（如「未安装 / 由发行版管控」）
+            let reasons = [vm.settings?.system, vm.settings?.forwarding, vm.settings?.docker]
+                .compactMap { unusableReason(group: $0) }
+            if reasons.isEmpty {
                 Text(L10n.t("切换防护后端将重建对应规则链，期间服务可能短暂中断"))
+            } else {
+                Text(reasons.joined(separator: "\n"))
             }
         }
+    }
+
+    /// 单个子系统的后端选择（形态 3 描边菜单；未安装 / 不支持的选项不展示，
+    /// 当前选中不在可选列表时兜底保留，避免无效 selection）
+    private func backendPickerRow(title: String, subsystem: String,
+                                  group: FirewallBackendGroup?) -> some View {
+        OutlinedPicker(label: title,
+                       options: backendOptionKeys(group: group),
+                       selection: backendBinding(subsystem: subsystem, group: group),
+                       optionLabels: backendOptionLabels(group: group))
+            .disabled(vm.isOperating)
     }
 
     /// 可选后端键：可用选项 + 当前选中兜底（去重）

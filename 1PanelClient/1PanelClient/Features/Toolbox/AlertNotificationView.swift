@@ -641,6 +641,8 @@ final class AlertViewModel: ObservableObject {
     @Published var sslOptions: [AlertSSLOption] = []
     @Published var websiteOptions: [AlertWebsiteOption] = []
     @Published var diskOptions: [AlertDiskOption] = []
+    /// 创建计划任务告警时的任务下拉选项（按任务类型查询，随选择切换重拉）
+    @Published var cronjobOptions: [AlertCronjobOption] = []
     @Published var isLoadingOptions = false
 
     private let client: APIClient
@@ -782,6 +784,23 @@ final class AlertViewModel: ObservableObject {
             } catch {
                 websiteOptions = []
             }
+        }
+    }
+
+    /// 按任务类型查询可告警的计划任务（alert/cronjob/list，抓包 2026-10-22：
+    /// {"type":"shell","name":"","status":""} → [{id,name,status,type}]）
+    func loadCronjobOptions(taskType: String) async {
+        isLoadingOptions = true
+        defer { isLoadingOptions = false }
+        do {
+            cronjobOptions = try await client.send(
+                path: APIEndpoint.alertCronjobList.path,
+                body: AlertCronjobListRequest(type: taskType),
+                as: [AlertCronjobOption].self
+            )
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            cronjobOptions = []
         }
     }
 

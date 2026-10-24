@@ -2,11 +2,13 @@
 //  Firewall.swift
 //  1PanelClient
 //
-//  防火墙 v2.3.0 契约（2026-09 上游整体重构后的 API）
-//  形状来源：1Panel v2.3.0 agent/app/dto/firewall.go + forwarding.go +
-//  agent/utils/firewall/filter/{model,inventory}.go 的 json tag 全量映射
-//  （doc/references/v2.3.0-upstream-diff.md §2）。L1 标准：字段全可选、宽松解码，
-//  上游字段口径漂移不整页失败。抓包验证待做（M1 收尾项）。
+//  防火墙契约（v2.4.0 对齐，2026-10；v2.3.0 整体重构 API 的后继演进）
+//  形状来源：1Panel v2.4.0 agent/app/dto/firewall.go + forwarding.go +
+//  agent/utils/firewall/filter/{model,inventory}.go 的 json tag 全量映射。
+//  v2.4.0 上游拆除「面板期望态 vs 外部规则」对账模型：清单不再有
+//  state/match/desired，sync/adopt 端点与 DTO 全数移除；增删改的操作键从
+//  uuid 换成 (scope, instanceKey, observed) 三元组（FirewallRuleOperationTarget）。
+//  L1 标准：字段全可选、宽松解码，上游字段口径漂移不整页失败。
 //
 
 import Foundation
@@ -30,7 +32,8 @@ nonisolated struct FirewallSubsystemStatus: Decodable, Sendable {
     let pingStatus: String?
     let message: String?
     let reason: String?
-    let syncError: String?
+    /// v2.4.0：子系统 IPv6 族是否启用（新增）
+    let ipv6Enabled: Bool?
     let ipv4: FirewallBackendFamilyStatus?
     let ipv6: FirewallBackendFamilyStatus?
 
@@ -42,6 +45,8 @@ nonisolated struct FirewallSubsystemStatus: Decodable, Sendable {
 }
 
 nonisolated struct FirewallBackendFamilyStatus: Decodable, Sendable {
+    /// v2.4.0 新增：族状态部分可用（如 IPv6 半初始化）
+    let partial: Bool?
     let available: Bool?
     let initialized: Bool?
     let bound: Bool?
@@ -70,6 +75,21 @@ nonisolated struct FirewallFilterOperateRequest: Encodable, Sendable {
 nonisolated struct FirewallTaskResponse: Decodable, Sendable {
     let taskID: String?
     let queued: Bool?
+}
+
+// MARK: - 单地址族操作（POST /firewall/family/operate，v2.4.0 新增）
+
+/// 按地址族初始化/修复/绑定（仅 iptables/nftables 有 1PANEL_BASIC 双栈链概念；
+/// 抓包 2026-10-21 覆盖 system+ipv6 的 initialize/bind，repair 来自 swagger 枚举）
+nonisolated struct FirewallFamilyOperateRequest: Encodable, Sendable {
+    /// system / docker（docker 为容器端口防护的族级操作，抓包 2026-10-22）
+    let subsystem: String
+    /// iptables / nftables
+    let backend: String
+    /// ipv4 / ipv6
+    let family: String
+    /// initialize / repair / bind
+    let operation: String
 }
 
 // MARK: - 规则域（filter 包）
@@ -129,62 +149,91 @@ nonisolated struct FirewallRule: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
-/// 原生规则定位信息（observed.locator：链内位置与规范化文本）
-nonisolated struct FirewallLocator: Decodable, Sendable {
-    let provider: String?
-    let scopeKey: String?
-    let nativeId: String?
-    let canonical: String?
-    let position: Int?
+/// 原生规则定位信息（observed.locator：链内位置与规范化文本；随 observed 回传）
+nonisolated struct FirewallLocator: Codable, Sendable {
+    var provider: String?
+    var scopeKey: String?
+    var nativeId: String?
+    var canonical: String?
+    var position: Int?
+
+    init(provider: String? = nil, scopeKey: String? = nil, nativeId: String? = nil,
+         canonical: String? = nil, position: Int? = nil) {
+        self.provider = provider
+        self.scopeKey = scopeKey
+        self.nativeId = nativeId
+        self.canonical = canonical
+        self.position = position
+    }
 }
 
-/// 观察到的原生规则（inventory item 的 observed 侧）
-nonisolated struct FirewallObservedRule: Decodable, Sendable {
-    let rule: FirewallRule?
-    let locator: FirewallLocator?
-    let instanceKey: String?
-    /// 1panel-rule:<uuid> 标记（面板纳管标记）
-    let marker: String?
-    let parseStatus: String?
-    let uncertainFields: [String]?
-    let raw: String?
-    let protected: Bool?
+/// 观察到的原生规则（inventory item 的 observed 侧；v2.4.0 增删改请求会把它
+/// 原样回传——服务端按它定位活规则，故 Codable 双向）
+nonisolated struct FirewallObservedRule: Codable, Sendable {
+    var rule: FirewallRule?
+    var locator: FirewallLocator?
+    var instanceKey: String?
+    /// 1panel-rule:<uuid> 标记（面板管理标记）
+    var marker: String?
+    var parseStatus: String?
+    var uncertainFields: [String]?
+    var raw: String?
+    var protected: Bool?
+    var persistence: String?
+
+    init(rule: FirewallRule? = nil, locator: FirewallLocator? = nil,
+         instanceKey: String? = nil, marker: String? = nil,
+         parseStatus: String? = nil, uncertainFields: [String]? = nil,
+         raw: String? = nil, protected: Bool? = nil, persistence: String? = nil) {
+        self.rule = rule
+        self.locator = locator
+        self.instanceKey = instanceKey
+        self.marker = marker
+        self.parseStatus = parseStatus
+        self.uncertainFields = uncertainFields
+        self.raw = raw
+        self.protected = protected
+        self.persistence = persistence
+    }
 }
 
-/// 面板期望态规则（desired 侧；uuid 是增删改的操作键）
-nonisolated struct FirewallDesiredRule: Decodable, Sendable {
-    let uuid: String?
-    let rule: FirewallRule?
-    let origin: String?
-    let protected: Bool?
+/// 规则增删改的操作目标键（v2.4.0）：上游弃 uuid，改以 (scope, instanceKey)
+/// 定位 + observed 原样回传（服务端按观察态匹配活规则，防并发漂移错删）
+nonisolated struct FirewallRuleOperationTarget: Codable, Hashable, Sendable {
+    var scope: FirewallScope
+    var instanceKey: String
+
+    init(scope: FirewallScope, instanceKey: String) {
+        self.scope = scope
+        self.instanceKey = instanceKey
+    }
 }
 
-/// 清单条目：state = managed/adopted/external/drifted/protected，
-/// match = none/exact/changed/missing/ambiguous/opaque
+/// 清单条目（v2.4.0）：上游拆除 state/match/desired 对账模型，仅剩
+/// rule + observed；白名单保护（原 protected 态）由 isWhitelist 表达
 nonisolated struct FirewallInventoryItem: Decodable, Identifiable, Sendable {
-    let incompatible: Bool?
-    let error: String?
     let rule: FirewallRule?
     let observed: FirewallObservedRule?
-    let desired: FirewallDesiredRule?
-    let state: String?
-    let match: String?
+    /// 面板端口白名单规则（原 state=protected 语义的承接字段）
+    let isWhitelist: Bool?
+    let descriptionID: String?
 
-    /// 稳定行键：managed/adopted 用 desired.uuid；external 无 uuid，
-    /// 用 observed.instanceKey 或规则内容组合（避免每次解码随机重建导致列表闪动）
+    /// 稳定行键：instanceKey 是活规则的稳定身份；缺失时回落规则内容组合
+    /// （避免每次解码随机重建导致列表闪动）
     var id: String {
-        if let u = desired?.uuid ?? rule?.uuid { return u }
+        if let u = rule?.uuid, !u.isEmpty { return u }
         if let k = observed?.instanceKey, !k.isEmpty { return k }
         let r = rule
         return "ext|\(r?.scope?.chain ?? "")|\(r?.protocolField ?? "")|\(r?.sourceAddress ?? "")|\(r?.destinationPort ?? "")|\(r?.action ?? "")"
     }
-    /// 可管理的（有 desired.uuid 才能编辑/删除）
-    var manageableUUID: String? {
-        guard let u = desired?.uuid ?? rule?.uuid, !u.isEmpty else { return nil }
-        return u
+    /// 操作目标（有 instanceKey 才能编辑/删除/排序；scope 取 rule.scope）
+    var operationTarget: FirewallRuleOperationTarget? {
+        guard let key = observed?.instanceKey, !key.isEmpty,
+              let scope = rule?.scope ?? observed?.rule?.scope else { return nil }
+        return FirewallRuleOperationTarget(scope: scope, instanceKey: key)
     }
-    /// 系统保护规则（服务端保护面板自身）：不可编辑/删除
-    var isProtected: Bool { state == "protected" }
+    /// 系统保护规则（端口白名单条目）：不可编辑/删除
+    var isProtected: Bool { isWhitelist == true }
 }
 
 nonisolated struct FirewallPositionRange: Decodable, Sendable {
@@ -202,17 +251,13 @@ nonisolated struct FirewallScopeNotice: Decodable, Sendable {
 nonisolated struct FirewallRuleSearchRequest: Encodable, Sendable {
     var page: Int
     var pageSize: Int
-    /// 管理作用域集合（抓包 2026-09-17：iptables/nftables 六链、ufw 单链 inet/incoming；
+    /// 管理作用域集合（iptables/nftables 六链、ufw 单链 inet/incoming；
     /// 由 FirewallViewModel.scopeForSearch 按后端构造）
     var scopes: [FirewallScope]?
     /// 空串 = 全部作用域
     var info: String = ""
     var families: [String]?
     var actions: [String]?
-    /// managed / adopted / external / drifted / protected
-    var states: [String]?
-    /// iptables/nftables 排除守护链本身（BEFORE/AFTER 只作定位不作展示）
-    var excludeChains: [String]?
     var all: Bool?
 }
 
@@ -221,7 +266,6 @@ nonisolated struct FirewallRuleInventoryResponse: Decodable, Sendable {
     let ipv6Range: FirewallPositionRange?
     let total: Int?
     let allTotal: Int?
-    let managedTotal: Int?
     let items: [FirewallInventoryItem]?
     let notices: [FirewallScopeNotice]?
 }
@@ -231,11 +275,15 @@ nonisolated struct FirewallRuleInventoryResponse: Decodable, Sendable {
 nonisolated struct FirewallRuleCreateItem: Encodable, Sendable {
     var rule: FirewallRule
     var sourceKind: String?
-    var sourceID: String?
 }
 
 nonisolated struct FirewallRuleCreateRequest: Encodable, Sendable {
     var items: [FirewallRuleCreateItem]
+    /// 「初始化并恢复规则」流程（抓包 2026-10-21）：true = 先建基础链再恢复
+    /// backupFile 内的规则，items 传空数组
+    var initialize: Bool? = nil
+    /// 恢复使用的备份文件名（rules/backups 返回的 name；仅 initialize=true 时携带）
+    var backupFile: String? = nil
 }
 
 nonisolated struct FirewallRuleCreateFailure: Decodable, Sendable {
@@ -254,88 +302,64 @@ nonisolated struct FirewallRuleCreateResponse: Decodable, Sendable {
     let errors: [FirewallRuleCreateFailure]?
 }
 
+// MARK: - 规则删除（v2.4.0：targets[{scope,instanceKey,observed}]，弃 uuids）
+
+nonisolated struct FirewallRuleDeleteItem: Encodable, Sendable {
+    var scope: FirewallScope
+    var instanceKey: String
+    /// 观察态原样回传：服务端按它匹配活规则（防并发漂移错删）
+    var observed: FirewallObservedRule
+}
+
 nonisolated struct FirewallRuleDeleteRequest: Encodable, Sendable {
-    var uuids: [String]
+    var targets: [FirewallRuleDeleteItem]
 }
 
-// MARK: - 规则同步（rules/sync/preview → rules/sync；抓包 2026-09-17）
+// MARK: - 规则重置（rules/reset；v2.4.0 响应含备份路径，需输入后端名确认）
 
-nonisolated struct FirewallRuleSyncRequest: Encodable, Sendable {
-    /// system / forwarding / docker
-    var subsystem: String
-    var targetProvider: String
-    var resetSource: Bool
-    var taskID: String?
-}
-
-nonisolated struct FirewallRuleSyncItem: Decodable, Sendable {
-    let sourceUUID: String?
-    let rule: FirewallRule?
-    let forwardRule: FirewallForwardRule?
-    let dockerRule: DockerGuardEndpoint?
-    /// ready（可同步）/ existing（已一致）/ remove（将被移除）/ blocked（受阻）
-    let status: String?
-    let reasonCode: String?
-    let reason: String?
-
-    /// 条目展示名（按子系统取对应规则的主标识）
-    var displayToken: String {
-        if let p = rule?.destinationPort, !p.isEmpty { return p }
-        if let a = rule?.sourceAddress, !a.isEmpty { return a }
-        if let fp = forwardRule?.port, !fp.isEmpty { return fp }
-        if let hp = dockerRule?.hostPort { return String(hp) }
-        return sourceUUID?.prefix(8).description ?? "—"
-    }
-}
-
-nonisolated struct FirewallRuleSyncPreview: Decodable, Sendable {
-    let subsystem: String?
-    let sourceProvider: String?
-    let targetProvider: String?
-    let total: Int?
-    let ready: Int?
-    let existing: Int?
-    let removed: Int?
-    let blocked: Int?
-    let items: [FirewallRuleSyncItem]?
-}
-
-nonisolated struct FirewallRuleSyncResult: Decodable, Sendable {
-    let subsystem: String?
-    let targetProvider: String?
-    let total: Int?
-    let succeeded: Int?
-    let skipped: Int?
-    let removed: Int?
-    let failed: Int?
-    let taskID: String?
-    let queued: Bool?
-}
-
-// MARK: - 规则重置（rules/reset；抓包 2026-09-17：{removed, disabled}，需输入后端名确认）
-
+/// 抓包 2026-10-21：{"backup":true,"provider":"iptables","withDockerRestart":false}；
+/// backup=true 时响应带 backupFile 保存路径（弹窗提醒）
 nonisolated struct FirewallRuleResetRequest: Encodable, Sendable {
+    /// system（缺省，请求省略）/ docker / forwarding（抓包 2026-10-22：
+    /// {"subsystem":"docker"|"forwarding","provider":"iptables","backup":true|false}，
+    /// 子系统请求不携带 withDockerRestart）
+    var subsystem: String?
+    var backup: Bool = true
     var provider: String?
-    var withDockerRestart: Bool
+    var withDockerRestart: Bool?
 }
 
 nonisolated struct FirewallRuleResetResponse: Decodable, Sendable {
+    let backupPath: String?
     let removed: Int?
     let disabled: Bool?
 }
 
-// MARK: - 纳管 / 排序 / 原文查看（规则清单低频操作）
+// MARK: - 规则备份（GET rules/backups?subsystem=system；v2.4.0 新增，抓包 2026-10-21）
 
-/// POST /firewall/rules/adopt：把 external/drifted 规则纳入面板管理
-nonisolated struct FirewallRuleAdoptRequest: Encodable, Sendable {
-    var scope: FirewallScope
-    var instanceKey: String
+nonisolated struct FirewallRuleBackupFile: Decodable, Identifiable, Sendable {
+    let name: String?
+    let provider: String?
+    let ruleCount: Int?
+    /// 毫秒级修改时间（如 1792584345384）
+    let modifiedAt: Int64?
+    /// 行键：name 缺失时回落时间戳（避免随机重建导致列表闪动）
+    var id: String { name ?? "backup-\(modifiedAt ?? 0)" }
 }
 
-/// POST /firewall/rules/reorder：调整链内位置（Web 端排序走 update.orderIndex，
-/// 本端点为上游保留能力，语义未经抓包验证——失败会以错误 alert 呈现）
+nonisolated struct FirewallRuleBackupsResponse: Decodable, Sendable {
+    /// 备份目录（服务器路径，如 /opt/1panel/backup/firewall/host）
+    let directory: String?
+    let files: [FirewallRuleBackupFile]?
+}
+
+// MARK: - 排序 / 原文查看（规则清单低频操作）
+
+/// POST /firewall/rules/reorder：调整链内位置（v2.4.0 操作键 =
+/// scope+instanceKey；Web 端排序走 update.orderIndex，本端点为上游保留能力）
 nonisolated struct FirewallRuleReorderRequest: Encodable, Sendable {
-    var uuid: String
+    var scope: FirewallScope
+    var instanceKey: String
     var targetPosition: Int64?
     var priority: Int?
 }
@@ -351,33 +375,37 @@ nonisolated struct FirewallNativeDetailRequest: Encodable, Sendable {
 
 nonisolated struct FirewallRuleDeleteFailure: Decodable, Sendable {
     let index: Int?
-    let uuid: String?
+    let instanceKey: String?
     let error: String?
 }
 
 nonisolated struct FirewallRuleDeleteResponse: Decodable, Sendable {
+    let taskID: String?
+    let queued: Bool?
     let succeeded: Int?
     let failed: Int?
     let errors: [FirewallRuleDeleteFailure]?
 }
 
 /// 部分更新：rule（整规则替换）/ description / orderIndex（仅改优先级）互斥。
-/// 抓包 2026-09-17：优先级单改走 {"uuid","orderIndex"}，整规则替换时 rule 内也带 orderIndex
+/// v2.4.0 操作键 = scope+instanceKey（弃 uuid）；整规则替换时 rule 内也带 orderIndex
 nonisolated struct FirewallRuleUpdateRequest: Encodable, Sendable {
-    var uuid: String
+    var scope: FirewallScope
+    var instanceKey: String
     var rule: FirewallRule?
     var descriptionText: String?
     var orderIndex: Int64?
 
     enum CodingKeys: String, CodingKey {
-        case uuid, rule, orderIndex
+        case scope, instanceKey, rule, orderIndex
         case descriptionText = "description"
     }
 }
 
 // MARK: - 转发域（/firewall/forward/*）
 
-/// 转发规则行（forward/search 返回 items；dto.PageResult 信封 → PageEnvelope）
+/// 转发规则行（forward/search 返回 items；dto.PageResult 信封 → PageEnvelope）。
+/// v2.4.0 上游删除 isDesired/isRuntime/syncStatus（同步时代字段）
 nonisolated struct FirewallForwardRule: Codable, Identifiable, Hashable, Sendable {
     var id: Int?
     var chain: String?
@@ -393,14 +421,10 @@ nonisolated struct FirewallForwardRule: Codable, Identifiable, Hashable, Sendabl
     var interface: String?
     var usedStatus: String?
     var descriptionText: String?
-    var isDesired: Bool?
-    var isRuntime: Bool?
-    var syncStatus: String?
 
     enum CodingKeys: String, CodingKey {
         case id, chain, family, address, port, strategy, num
         case targetIP, targetPort, interface, usedStatus
-        case isDesired, isRuntime, syncStatus
         case protocolField = "protocol"
         case descriptionText = "description"
     }
@@ -415,8 +439,8 @@ nonisolated struct FirewallForwardSearchRequest: Encodable, Sendable {
     var strategy: String = ""
 }
 
-/// 转发操作条目：编辑/删除时回显**整行原始字段** + operation（抓包 2026-09-17：
-/// remove 匹配依赖 num 等运行时字段，Web 端做法是把行对象原样回传再叠加操作）
+/// 转发操作条目：编辑/删除时回显**整行原始字段** + operation
+///（remove 匹配依赖 num 等运行时字段，Web 端做法是把行对象原样回传再叠加操作）
 nonisolated struct FirewallForwardOperation: Encodable, Sendable {
     var operation: String
     var id: Int?
@@ -432,14 +456,10 @@ nonisolated struct FirewallForwardOperation: Encodable, Sendable {
     var interface: String?
     var usedStatus: String?
     var descriptionText: String?
-    var isDesired: Bool?
-    var isRuntime: Bool?
-    var syncStatus: String?
 
     enum CodingKeys: String, CodingKey {
         case operation, id, chain, family, address, port, strategy, num
         case targetIP, targetPort, interface, usedStatus
-        case isDesired, isRuntime, syncStatus
         case protocolField = "protocol"
         case descriptionText = "description"
     }
@@ -452,15 +472,21 @@ nonisolated struct FirewallForwardOperation: Encodable, Sendable {
             port: rule.port, protocolField: rule.protocolField, strategy: rule.strategy,
             num: rule.num, targetIP: rule.targetIP, targetPort: rule.targetPort,
             interface: rule.interface, usedStatus: rule.usedStatus,
-            descriptionText: rule.descriptionText,
-            isDesired: rule.isDesired, isRuntime: rule.isRuntime, syncStatus: rule.syncStatus
+            descriptionText: rule.descriptionText
         )
     }
 }
 
+/// v2.4.0：forceDelete 被 import 取代（true = 导入语义，服务端按导入口径
+/// 处理重复/校验）；Swift 关键字经 CodingKeys 映射
 nonisolated struct FirewallForwardOperateRequest: Encodable, Sendable {
-    var forceDelete: Bool
+    var isImport: Bool
     var rules: [FirewallForwardOperation]
+
+    enum CodingKeys: String, CodingKey {
+        case isImport = "import"
+        case rules
+    }
 }
 
 // MARK: - 设置域（GET /firewall/settings + /settings/operate + /settings/whitelist）
@@ -496,6 +522,8 @@ nonisolated struct FirewallBackendGroup: Decodable, Sendable {
 }
 
 nonisolated struct FirewallSettings: Decodable, Sendable {
+    /// v2.4.0 顶层新增：IPv6 支持开关（抓包 2026-10-21；可变——开关乐观更新）
+    var ipv6Enabled: Bool?
     let system: FirewallBackendGroup?
     let forwarding: FirewallBackendGroup?
     let docker: FirewallBackendGroup?
@@ -510,6 +538,13 @@ nonisolated struct FirewallSettings: Decodable, Sendable {
         guard let s = pingStatus?.lowercased() else { return false }
         return s != "disable" && s != "normaldisable"
     }
+}
+
+/// POST /firewall/settings/ipv6：IPv6 支持开关（v2.4.0 新增；抓包 2026-10-21，
+/// 任务式——后台逐子系统解绑/重建 IPv6 族，进度走任务日志）
+nonisolated struct FirewallIPv6StatusRequest: Encodable, Sendable {
+    /// Enable / Disable
+    let status: String
 }
 
 /// POST /firewall/settings/operate：subsystem = system/forwarding/docker，
@@ -616,6 +651,8 @@ nonisolated struct DockerGuardFamilyStatus: Decodable, Sendable {
     let initialized: Bool?
     let bound: Bool?
     let effective: Bool?
+    /// 族链状态不完整（如 jump_missing 修复入口；抓包 2026-10-22）
+    let partial: Bool?
 }
 
 nonisolated struct DockerGuardBase: Decodable, Sendable {
@@ -626,6 +663,8 @@ nonisolated struct DockerGuardBase: Decodable, Sendable {
     let bound: Bool?
     let ipv4: DockerGuardFamilyStatus?
     let ipv6: DockerGuardFamilyStatus?
+    /// IPv6 支持开关（false 时无 IPv6 族待办；抓包 2026-10-22）
+    let ipv6Enabled: Bool?
     let backend: String?
     let message: String?
 }
@@ -643,24 +682,21 @@ nonisolated struct DockerGuardEndpoint: Decodable, Identifiable, Hashable, Senda
     let compose: String?
     let application: String?
     let policyUUID: String?
-    /// deny_sources / allow_sources / deny_all
+    /// deny_sources / allow_sources / deny_all（v2.4.0 上游另有
+    /// accept_sources / accept_all，App 表单暂未提供）
     let mode: String?
-    let nativeAction: String?
-    let readOnly: Bool?
     let sources: [String]?
     let effective: Bool?
-    let descriptionText: String?
     let trafficPath: String?
     let managementTarget: String?
     let managementReason: String?
 
     enum CodingKeys: String, CodingKey {
         case family, hostIP, hostPort, containerID, containerName, containerState
-        case containerPort, compose, application, policyUUID, mode, nativeAction
-        case readOnly, sources, effective, trafficPath
+        case containerPort, compose, application, policyUUID, mode, sources
+        case effective, trafficPath
         case managementTarget, managementReason
         case protocolField = "protocol"
-        case descriptionText = "description"
     }
 
     var id: String { policyUUID ?? "\(family ?? "")|\(hostIP ?? "")|\(hostPort ?? 0)|\(protocolField ?? "")|\(containerID ?? "")" }
@@ -692,12 +728,25 @@ nonisolated struct DockerGuardList: Decodable, Sendable {
     let orphanPolicies: [DockerGuardEndpoint]?
 }
 
-/// POST /firewall/docker/operate：operation = initialize / bind / unbind
+/// POST /firewall/docker/operate：operation = initialize / bind / unbind。
+/// initialize 两种形态（抓包 2026-10-22）：仅初始化 {"operation":"initialize",
+/// "taskID":客户端生成 UUID}；初始化并恢复 {"operation":"initialize","backupFile":…}
+/// （不携带 taskID）
 nonisolated struct DockerGuardOperateRequest: Encodable, Sendable {
     let operation: String
     var taskID: String?
+    var backupFile: String?
 }
 
+/// POST /firewall/forward/enable（任务式；抓包 2026-10-22）：
+/// 仅初始化 {"taskID":客户端生成 UUID}；初始化并恢复 {"backupFile":…}
+nonisolated struct FirewallForwardEnableRequest: Encodable, Sendable {
+    var taskID: String?
+    var backupFile: String?
+}
+
+/// Docker 守护策略（v2.4.0 上游移除 description 字段；mode 另有
+/// accept_sources / accept_all，App 表单暂未提供）
 nonisolated struct DockerGuardPolicy: Codable, Sendable {
     var family: String
     var hostIP: String
@@ -705,12 +754,10 @@ nonisolated struct DockerGuardPolicy: Codable, Sendable {
     var protocolField: String
     var mode: String
     var sources: [String]
-    var descriptionText: String
 
     enum CodingKeys: String, CodingKey {
         case family, hostIP, hostPort, mode, sources
         case protocolField = "protocol"
-        case descriptionText = "description"
     }
 }
 

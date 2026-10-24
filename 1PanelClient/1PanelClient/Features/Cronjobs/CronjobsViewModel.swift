@@ -468,6 +468,11 @@ final class CronjobsViewModel: ObservableObject {
         // 网站列表（用于备份网站 / 切割网站日志）
         await loadWebsiteOptions()
         // 告警方式（告警分组多选；发送方式可能新增/删除，每次进表单都刷新；失败静默，表单里显示空态）
+        await loadAlertMethodOptions()
+    }
+
+    /// 告警发送方式（表单告警分组与详情页名称解析共用；失败静默）
+    func loadAlertMethodOptions() async {
         do {
             let items: [AlertConfigItem] = try await client.send(
                 path: APIEndpoint.alertConfigInfo.path,

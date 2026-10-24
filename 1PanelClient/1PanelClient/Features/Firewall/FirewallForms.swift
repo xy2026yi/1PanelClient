@@ -15,9 +15,10 @@ import UniformTypeIdentifiers
 /// 无地址族选择——按 IP 是否含「:」自动判定；编辑态多一个优先级）
 struct FirewallRuleFormView: View {
     @ObservedObject var vm: FirewallViewModel
-    /// 编辑模式的既有规则与操作键（创建时均为 nil）
+    /// 编辑模式的既有规则与操作目标键（创建时均为 nil；v2.4.0 弃 uuid，
+    /// 以 scope+instanceKey 定位）
     let editing: FirewallRule?
-    let editingUUID: String?
+    let editingTarget: FirewallRuleOperationTarget?
     /// 编辑中规则的链内当前位置（observed.locator.position；表单回显）
     var editingPosition: Int? = nil
 
@@ -196,7 +197,7 @@ struct FirewallRuleFormView: View {
         let trimmedPriority = priority.trimmingCharacters(in: .whitespaces)
         rule.orderIndex = isEdit && !trimmedPriority.isEmpty ? Int64(trimmedPriority) : nil
         if isEdit {
-            rule.uuid = editing?.uuid ?? editingUUID
+            rule.uuid = editing?.uuid
             // 表单未覆盖的字段原样回传（见 preservedFieldNotes）：
             // rules/update 是整规则替换，置 nil 提交会清掉它们
             rule.sourcePort = editing?.sourcePort
@@ -205,8 +206,8 @@ struct FirewallRuleFormView: View {
             rule.connectionStates = editing?.connectionStates
         }
 
-        if isEdit, let uuid = editingUUID ?? editing?.uuid {
-            // 仅优先级变化 → 单改通道 {"uuid","orderIndex"}（与网页端一致）；
+        if isEdit, let target = editingTarget {
+            // 仅优先级变化 → 单改通道 {scope,instanceKey,orderIndex}（与网页端一致）；
             // 其余任一字段变化 → 整规则替换（orderIndex 放 rule 内）。
             // 两个通道同传会被面板 excluded_with 校验拒绝
             if isPriorityOnlyChange(rule) {
@@ -225,10 +226,10 @@ struct FirewallRuleFormView: View {
                     dismiss()
                     return
                 }
-                let ok = await vm.updateRule(uuid: uuid, rule: nil, orderIndex: idx)
+                let ok = await vm.updateRule(target: target, rule: nil, orderIndex: idx)
                 finishSubmit(ok: ok)
             } else {
-                let ok = await vm.updateRule(uuid: uuid, rule: rule, orderIndex: nil)
+                let ok = await vm.updateRule(target: target, rule: rule, orderIndex: nil)
                 finishSubmit(ok: ok)
             }
         } else {
@@ -369,8 +370,7 @@ struct FirewallForwardFormView: View {
             targetIP: targetIP.isEmpty ? nil : targetIP.trimmingCharacters(in: .whitespaces),
             targetPort: targetPort.trimmingCharacters(in: .whitespaces),
             interface: iface == "*" ? nil : iface,
-            usedStatus: nil, descriptionText: nil,
-            isDesired: nil, isRuntime: nil, syncStatus: nil
+            usedStatus: nil, descriptionText: nil
         ))
         if await vm.submitForward(operations) {
             dismiss()
@@ -669,105 +669,7 @@ struct FirewallWhitelistEntryFormView: View {
     }
 }
 
-// MARK: - 规则同步预览（preview 计数 + ready 清单 → 确认执行；抓包 2026-09-17）
-
-struct FirewallSyncPreviewView: View {
-    @ObservedObject var vm: FirewallViewModel
-    /// system / forwarding / docker
-    let subsystem: String
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var preview: FirewallRuleSyncPreview?
-    @State private var isExecuting = false
-    @State private var loadError: String?
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                if let p = preview {
-                    Section {
-                        statRow(L10n.t("数据库规则"), p.total ?? 0, color: .blue)
-                        statRow(L10n.t("可同步"), p.ready ?? 0, color: .statusRunning)
-                        statRow(L10n.t("已存在"), p.existing ?? 0, color: .secondary)
-                        statRow(L10n.t("待删除"), p.removed ?? 0, color: .statusError)
-                        statRow(L10n.t("不可同步"), p.blocked ?? 0, color: .semanticWarning)
-                    } header: {
-                        SectionLabel(title: L10n.t("同步预览"), systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    let readyItems = (p.items ?? []).filter { $0.status == "ready" }
-                    if !readyItems.isEmpty {
-                        Section {
-                            ForEach(Array(readyItems.enumerated()), id: \.offset) { _, item in
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(item.displayToken)
-                                        .font(.dataMonospacedBody.bold())
-                                    if let reason = item.reason, !reason.isEmpty {
-                                        Text(reason)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        } header: {
-                            Text(L10n.t("待同步条目"))
-                        }
-                    }
-                } else if let err = loadError {
-                    Section {
-                        LoadErrorStateView(message: err) {
-                            Task { await load() }
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                } else {
-                    Section { LoadingStateView() }
-                        .listRowBackground(Color.clear)
-                }
-            }
-            .navigationTitle(L10n.t("同步规则"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("同步")) {
-                        Task {
-                            isExecuting = true
-                            await vm.executeSync(subsystem: subsystem)
-                            isExecuting = false
-                            dismiss()
-                        }
-                    }
-                    .disabled((preview?.ready ?? 0) == 0 || isExecuting)
-                }
-            }
-            .interactiveDismissDisabled(isExecuting)
-            .task { await load() }
-        }
-    }
-
-    private func statRow(_ title: String, _ value: Int, color: Color) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            StatusBadge(text: String(value), color: color, monospaced: true)
-        }
-    }
-
-    private func load() async {
-        loadError = nil
-        if let p = await vm.syncPreview(subsystem: subsystem) {
-            preview = p
-        } else {
-            loadError = vm.errorMessage ?? L10n.t("未知错误")
-            // 错误取走后清掉 vm 侧副本：本页已展示，取消返回后父页 alert 不再弹同一错误
-            vm.errorMessage = nil
-        }
-    }
-}
-
-// MARK: - Docker 端口防护策略表单（三模式 + 来源；抓包 2026-09-17）
+// MARK: - Docker 端口防护策略表单（三模式 + 来源）
 
 struct DockerPolicyFormView: View {
     @ObservedObject var vm: FirewallViewModel
@@ -778,7 +680,6 @@ struct DockerPolicyFormView: View {
     @State private var mode = "deny_all"
     /// 来源多行原文（每行一条 IP 或 CIDR，形态 7.1；提交拆数组）
     @State private var sourcesText = ""
-    @State private var descriptionText = ""
     @State private var isSubmitting = false
 
     private let modeOptions: [(String, String)] = [
@@ -790,21 +691,14 @@ struct DockerPolicyFormView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    OutlinedShape(label: L10n.t("端点"), isFocused: false,
-                                  hasValue: true, trailing: { EmptyView() }) {
-                        Text("\(endpoint.hostIP ?? ""):\(endpoint.hostPort.map(String.init) ?? "")/\(endpoint.protocolField?.uppercased() ?? "")")
+                // 标题放不下（超长 IPv6 等）时正文首行补显端点串，否则标题即端点串
+                if !endpointLineFitsAsTitle {
+                    Section {
+                        Text(endpointLine)
                             .font(.dataMonospacedBody)
                             .lineLimit(1)
+                            .truncationMode(.middle)
                     }
-                    OutlinedShape(label: L10n.t("容器"), isFocused: false,
-                                  hasValue: !(endpoint.containerName ?? "").isEmpty,
-                                  trailing: { EmptyView() }) {
-                        Text(endpoint.containerName ?? "—")
-                            .lineLimit(1)
-                    }
-                } header: {
-                    SectionLabel(title: L10n.t("防护目标"), systemImage: "shippingbox")
                 }
 
                 Section {
@@ -813,17 +707,19 @@ struct DockerPolicyFormView: View {
                                    selection: $mode,
                                    optionLabels: Dictionary(uniqueKeysWithValues:
                                        modeOptions.map { ($0.0, $0.1) }))
-                    OutlinedMultiLineField(label: L10n.t("来源"), prompt: "172.29.0.0/24",
-                                           lines: 1, text: $sourcesText)
-                    OutlinedMultiLineField(label: L10n.t("备注"), prompt: L10n.t("可选"),
-                                           lines: 1, text: $descriptionText)
-                } header: {
-                    SectionLabel(title: L10n.t("防护策略"), systemImage: "shield.lefthalf.filled")
+                    // deny_all 拦截全部来源，无来源输入（抓包 2026-10-22：
+                    // {"mode":"deny_all","sources":[]}，传全量网段会被服务端拒绝）
+                    if mode != "deny_all" {
+                        OutlinedMultiLineField(
+                            label: mode == "allow_sources" ? L10n.t("允许来源") : L10n.t("禁止来源"),
+                            prompt: "172.29.0.0/24",
+                            lines: 1, text: $sourcesText)
+                    }
                 } footer: {
-                    Text(L10n.t("禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部来源（0.0.0.0/0 与 ::/0）。"))
+                    Text(L10n.t("禁止指定来源：拦截列出的来源；仅允许指定来源：只放行列出的来源；禁止所有访问：拦截全部来源。"))
                 }
             }
-            .navigationTitle(L10n.t("设置端口防护"))
+            .navigationTitle(endpointLineFitsAsTitle ? endpointLine : L10n.t("设置端口防护"))
             .navigationBarTitleDisplayMode(.inline)
             .formWidthLimit()
             .toolbar {
@@ -852,6 +748,24 @@ struct DockerPolicyFormView: View {
         mode == "deny_all" || !sourceLines.isEmpty
     }
 
+    /// 端点串（标题/首行共用）：hostIP:hostPort -> containerPort/protocol，
+    /// 如 "0.0.0.0:3002 -> 3002/tcp"（IPv6 经 hostLabel 加方括号）
+    private var endpointLine: String {
+        let target: String
+        if let port = endpoint.containerPort, let proto = endpoint.protocolField {
+            target = "\(port)/\(proto)"
+        } else if let port = endpoint.containerPort {
+            target = String(port)
+        } else {
+            target = "—"
+        }
+        return "\(endpoint.hostLabel) -> \(target)"
+    }
+
+    /// 内联导航标题的宽度评估：常规 IPv4 端点串（最长约 33 字符）可容纳；
+    /// 超长 IPv6 完整地址（>30 字符）放不下，回落原标题并在正文首行补显
+    private var endpointLineFitsAsTitle: Bool { endpointLine.count <= 30 }
+
     /// 来源多行原文 → 非空行数组
     private var sourceLines: [String] {
         sourcesText.split(whereSeparator: \.isNewline)
@@ -859,40 +773,27 @@ struct DockerPolicyFormView: View {
             .filter { !$0.isEmpty }
     }
 
-    /// 禁止所有访问的固定来源（v4/v6 全量；服务端按此存储，回显同值）
-    private static let denyAllSourcesText = "0.0.0.0/0\n::/0"
-
     private func fill() {
         if let m = endpoint.mode, !m.isEmpty {
             mode = m
         }
-        let stored = (endpoint.sources ?? []).filter { !$0.isEmpty }
-        if stored.isEmpty && (endpoint.mode ?? "deny_all") == "deny_all" {
-            sourcesText = Self.denyAllSourcesText
-        } else {
-            sourcesText = stored.joined(separator: "\n")
-        }
-        descriptionText = endpoint.descriptionText ?? ""
+        // deny_all 服务端存空 sources（抓包 2026-10-22），回显不预填全量网段
+        sourcesText = (endpoint.sources ?? []).filter { !$0.isEmpty }.joined(separator: "\n")
     }
 
     private func submit() async {
         isSubmitting = true
         defer { isSubmitting = false }
-        // deny_all 且未改动时按固定来源提交（与 Web 端一致），避免落库空数组
-        let sources: [String]
-        if mode == "deny_all" && sourceLines.isEmpty {
-            sources = ["0.0.0.0/0", "::/0"]
-        } else {
-            sources = sourceLines
-        }
+        // deny_all 无来源输入，按抓包形态提交空数组（传 0.0.0.0/0 等全量
+        // 网段会被服务端拒绝）；其余模式提交输入行
+        let sources: [String] = mode == "deny_all" ? [] : sourceLines
         let policy = DockerGuardPolicy(
             family: endpoint.family ?? "ipv4",
             hostIP: endpoint.hostIP ?? "0.0.0.0",
             hostPort: endpoint.hostPort ?? 0,
             protocolField: endpoint.protocolField ?? "tcp",
             mode: mode,
-            sources: sources,
-            descriptionText: descriptionText
+            sources: sources
         )
         if await vm.upsertDockerPolicy(policy) {
             dismiss()

@@ -58,12 +58,34 @@ struct AlertRule: Decodable, Identifiable, Hashable {
             return (cycle == 1 ? L10n.t("占用磁盘超 ") : L10n.t("占用百分比超 ")) + "\(count ?? 0)%"
         case .panelUpdate:
             return L10n.t("面板有新版本时")
+        case .cronjob:
+            // 通知条件（与计划任务表单三选同款；缺失回落仅失败）
+            switch advancedTriggerMode {
+            case "success": return L10n.t("仅成功")
+            case "both":    return L10n.t("成功或失败")
+            default:        return L10n.t("仅失败")
+            }
         case .unknown:
             return ""
         }
     }
 
-    var alertType: AlertType { AlertType(rawValue: type ?? "") ?? .unknown }
+    var alertType: AlertType {
+        // v2.4.0 计划任务告警（抓包 2026-10-22）：type 存的是任务类型
+        // （shell/app/database/…，随 taskName/project 回传），统一识别为
+        // 计划任务执行异常——创建入口在计划任务设置，不在告警页
+        if CronjobType(rawValue: type ?? "") != nil { return .cronjob }
+        return AlertType(rawValue: type ?? "") ?? .unknown
+    }
+
+    /// advancedParams JSON（计划任务告警携带 {"alertTriggerMode":…}；
+    /// 告警编辑表单回填共用）
+    var advancedTriggerMode: String? {
+        guard let data = advancedParams?.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let mode = obj["alertTriggerMode"] as? String, !mode.isEmpty else { return nil }
+        return mode
+    }
 }
 
 /// 支持创建的告警类型（与官方面板一致，见 logs/告警通知/ 下抓包）
@@ -78,12 +100,13 @@ enum AlertType: String, CaseIterable, Identifiable {
     case sshLogin          // SSH 登录异常
     case panelLogin        // 面板登录异常
     case panelUpdate       // 面板新版本提醒
+    case cronjob           // 计划任务执行异常（v2.4.0：type 为任务类型，统一归并）
     case unknown
 
     var id: String { rawValue }
 
     static var creatable: [AlertType] {
-        [.panelPwdEndTime, .cpu, .memory, .disk, .load, .ssl, .siteEndTime, .sshLogin, .panelLogin, .panelUpdate]
+        [.panelPwdEndTime, .cpu, .memory, .disk, .load, .ssl, .siteEndTime, .sshLogin, .panelLogin, .panelUpdate, .cronjob]
     }
 
     var displayName: String {
@@ -98,6 +121,7 @@ enum AlertType: String, CaseIterable, Identifiable {
         case .sshLogin:        return L10n.t("SSH 登录异常")
         case .panelLogin:      return L10n.t("面板登录异常")
         case .panelUpdate:     return L10n.t("面板新版本提醒")
+        case .cronjob:         return L10n.t("计划任务执行异常")
         case .unknown:         return L10n.t("未知")
         }
     }
@@ -114,6 +138,7 @@ enum AlertType: String, CaseIterable, Identifiable {
         case .sshLogin:        return "terminal"
         case .panelLogin:      return "rectangle.and.hand.point.up.left"
         case .panelUpdate:     return "arrow.triangle.2.circlepath"
+        case .cronjob:         return "clock.badge.exclamationmark"
         case .unknown:         return "bell"
         }
     }
@@ -130,6 +155,7 @@ enum AlertType: String, CaseIterable, Identifiable {
         case .sshLogin:        return .purple
         case .panelLogin:      return .teal
         case .panelUpdate:     return .indigo
+        case .cronjob:         return .brown
         case .unknown:         return .gray
         }
     }
@@ -588,10 +614,30 @@ struct AlertUpsertRequest: Encodable {
     var advancedParams: String? = nil
     /// 面板新版本提醒固定 "website"
     var subType: String? = nil
+    /// 通知条件（v2.4.0 计划任务告警，抓包 2026-10-22：顶层与 advancedParams 双写）
+    var alertTriggerMode: String? = nil
     var createUser: String? = nil
     var updateUser: String? = nil
     var createdAt: String? = nil
     var updatedAt: String? = nil
+}
+
+// MARK: - 计划任务告警（v2.4.0；抓包 2026-10-22）
+
+/// POST /alert/cronjob/list：按任务类型查询可告警的计划任务
+/// （{"type":"shell","name":"","status":""}，name/status 为筛选占位传空）
+struct AlertCronjobListRequest: Encodable {
+    var type: String
+    var name: String = ""
+    var status: String = ""
+}
+
+/// 可告警的计划任务（alert/cronjob/list 返回项）
+struct AlertCronjobOption: Decodable, Identifiable, Hashable {
+    let id: Int
+    let name: String?
+    let status: String?
+    let type: String?
 }
 
 /// 测试邮箱发送方式（POST /api/v2/alert/config/test）

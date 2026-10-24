@@ -2,7 +2,7 @@
 //  AdvancedFeatureGate.swift
 //  1PanelClient
 //
-//  高级功能门禁：管理「高级功能」分组（整体）与 AI 的 vLLM / 模型下载
+//  高级功能门禁：管理「高级功能」分组（整体，含 KVM 虚拟机）与 AI 的 vLLM / 模型下载
 //  默认按服务器许可证显隐——licenses/search 存在 status=Bound（已绑定专业版）
 //  即显示；未绑定 / 检测失败则隐藏（含「管理 → 编辑」列表，无法经偏好开启）。
 //  关于页连点版本号 7 次可一次性解锁（设备级持久化），解锁后纳入
@@ -35,7 +35,7 @@ final class AdvancedFeatureGate: ObservableObject {
     /// WAF 已合并为一个模块常显（根列表「高级功能」分组，GPU 监控之下），其内部
     /// 「监控」子入口由 gatedAllowed 单独管控（无许可证仅 状态/黑白名单/网站设置/全局设置）
     static let gatedItems: Set<ManageItem> = [
-        .gpuMonitor, .websiteMonitor, .nodeManage,
+        .gpuMonitor, .websiteMonitor, .nodeManage, .kvm,
         .aiVllm, .aiDownloader,
     ]
 

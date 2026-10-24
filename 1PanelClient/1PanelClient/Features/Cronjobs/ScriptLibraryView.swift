@@ -2,7 +2,8 @@
 //  ScriptLibraryView.swift
 //  1PanelClient
 //
-//  脚本库：列表 / 搜索 / 查看脚本内容 / 执行脚本 / 选择脚本填充计划任务
+//  脚本库：列表 / 搜索 / 查看脚本内容 / 执行脚本（计划任务表单经
+//  scriptSearch 独立拉取选项，不再进本页选择）
 //  POST /api/v2/core/script/search
 //  执行：WS /api/v2/core/script/run?script_id=N
 //
@@ -201,9 +202,9 @@ struct ScriptLibraryView: View {
     @State private var confirmEnableAutoSync = false
     /// 同步任务 ID（非 nil 时 push 任务进度页）
     @State private var syncTaskID: String?
-    // 分组管理入口（三点菜单；选择脚本模式下不展示）
+    // 分组管理入口（三点菜单）
     @State private var showGroupManage = false
-    /// 创建脚本（选择脚本模式下不展示）
+    /// 创建脚本
     @State private var showCreate = false
     /// 待删除脚本（长按菜单；系统脚本不可删）
     @State private var pendingDelete: ScriptItem?
@@ -216,27 +217,22 @@ struct ScriptLibraryView: View {
 
     private let server: ServerConfig
 
-    /// 选择模式：非 nil 时，点击脚本行调用 onPick 并返回（用于创建计划任务填充脚本）
-    var onPick: ((ScriptItem) -> Void)?
-
-    init(server: ServerConfig, onPick: ((ScriptItem) -> Void)? = nil) {
+    init(server: ServerConfig) {
         _vm = StateObject(wrappedValue: PageVMStore.shared.vm(key: ManageItem.scriptLibrary.storeKey(server: server)) {
             ScriptLibraryViewModel(server: server)
         })
         self.server = server
-        self.onPick = onPick
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // 分组筛选条放在分支外常驻（末尾「管理」入口推入分组管理页）：
-            // 选中分组无脚本时仍能切回「全部」；选择脚本模式（创建计划任务选稿）
-            // 下不显示管理入口
+            // 选中分组无脚本时仍能切回「全部」
             if !vm.groups.isEmpty {
                 GroupFilterBar(
                     groups: vm.groups,
                     selectedID: $vm.selectedGroupID,
-                    onManage: onPick == nil ? { showGroupManage = true } : nil
+                    onManage: { showGroupManage = true }
                 )
             }
 
@@ -272,7 +268,7 @@ struct ScriptLibraryView: View {
         // 右上角仅 搜索 + 一个 + 号：+ 打开半屏菜单（创建脚本 / 立即同步 / 自动同步，
         // 与计划任务等页「+ → 半屏菜单」全站习惯一致；原 ⋯ 菜单收编合并）
         .toolbar {
-            if !isSearching, onPick == nil {
+            if !isSearching {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showCreateMenu = true
@@ -448,32 +444,21 @@ struct ScriptLibraryView: View {
     private var scriptList: some View {
         List {
             ForEach(vm.scripts) { script in
-                if onPick != nil {
-                    Button {
-                        if let pick = onPick { pick(script) }
-                    } label: {
-                        // plain 样式命中区只有文字部分，补全行矩形命中
-                        ScriptRow(script: script)
-                            .contentShape(Rectangle())
+                // tap 手势 + 编程式推入（原 NavigationLink + 长按共存，松手仍会误触导航）。
+                // 系统脚本仅可查看，不挂长按菜单（触觉随菜单出现才给）
+                ScriptRow(script: script)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .rowTapAndLongPress(
+                        onTap: { pushedScript = script },
+                        onLongPress: {
+                            guard script.isSystem != true else { return }
+                            Haptic.selection()
+                            actionScript = script
+                        },
+                        longPressHaptic: false)
+                    .accessibilityAction(named: L10n.t("更多操作")) {
+                        if script.isSystem != true { actionScript = script }
                     }
-                    .buttonStyle(.plain)
-                } else {
-                    // tap 手势 + 编程式推入（原 NavigationLink + 长按共存，松手仍会误触导航）。
-                    // 系统脚本仅可查看，不挂长按菜单（触觉随菜单出现才给）
-                    ScriptRow(script: script)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .rowTapAndLongPress(
-                            onTap: { pushedScript = script },
-                            onLongPress: {
-                                guard script.isSystem != true else { return }
-                                Haptic.selection()
-                                actionScript = script
-                            },
-                            longPressHaptic: false)
-                        .accessibilityAction(named: L10n.t("更多操作")) {
-                            if script.isSystem != true { actionScript = script }
-                        }
-                }
             }
         }
         .listStyle(.insetGrouped)

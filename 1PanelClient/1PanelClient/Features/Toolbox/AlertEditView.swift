@@ -33,6 +33,22 @@ struct AlertEditView: View {
     @State private var whitelist = ""
     @State private var enabled = true
     @State private var didFill = false
+    /// 编辑回填期间的程序化赋值标记：抑制 onChange 的重置（fill 会连动
+    /// type/任务类型等状态，重置会覆盖刚回填的值）
+    @State private var isRestoring = false
+    // 计划任务告警（v2.4.0，抓包 2026-10-22）
+    /// 任务类型（告警对象；任务名称选项随其重拉）
+    @State private var cronjobTaskType: CronjobType = .shell
+    /// 选中的任务 id
+    @State private var selectedCronjobID: Int?
+    /// 通知条件：failed / success / both
+    @State private var alertTriggerMode = "failed"
+
+    /// 计划任务告警可选的任务类型（对齐 Web 端创建告警下拉，共 12 项）
+    private static let cronjobAlertTypes: [CronjobType] = [
+        .shell, .app, .website, .directory, .log, .curl,
+        .cutWebsiteLog, .clean, .snapshot, .ntp, .syncIpGroup, .cleanLog,
+    ]
 
     private var isEditing: Bool { editing != nil }
 
@@ -44,6 +60,7 @@ struct AlertEditView: View {
             basicSection
             if type.needsProject { projectSection }
             if type.isDisk { diskSection }
+            if type == .cronjob { cronjobSection }
             conditionSection
             if type.isLoginType { whitelistSection }
             methodSection
@@ -66,6 +83,7 @@ struct AlertEditView: View {
         }
         .onAppear { fillIfEditing() }
         .onChange(of: type) { _, newType in
+            guard !isRestoring else { return }
             // 切换类型后恢复该类型默认值
             cycle = newType.defaultCycle
             projectAll = true
@@ -73,11 +91,26 @@ struct AlertEditView: View {
             selectedDiskPath = nil
             threshold = newType.defaultThreshold
             diskMonitorKind = 2
+            selectedCronjobID = nil
+            alertTriggerMode = "failed"
             Task { await vm.loadOptions(for: newType) }
         }
         .onChange(of: diskMonitorKind) { _, kind in
             // 占用磁盘默认 30%，占用百分比默认 80%（对齐官方默认值）
             threshold = kind == 1 ? 30 : 80
+        }
+        // 任务类型切换：重拉任务名称选项并清空选择（回填期跳过）
+        .onChange(of: cronjobTaskType) { _, newType in
+            guard !isRestoring else { return }
+            selectedCronjobID = nil
+            Task { await vm.loadCronjobOptions(taskType: newType.rawValue) }
+        }
+        // 进入/切换计划任务告警时加载对应任务清单（nil = 非计划任务类型不加载；
+        // id 从 nil 变任务类型即触发，编辑回填场景同样覆盖）
+        .task(id: type == .cronjob ? cronjobTaskType.rawValue : nil) {
+            if type == .cronjob {
+                await vm.loadCronjobOptions(taskType: cronjobTaskType.rawValue)
+            }
         }
         .task { await vm.loadOptions(for: type) }
     }
@@ -170,6 +203,69 @@ struct AlertEditView: View {
             return "\(disk.path)（\(fs)）"
         }
         return disk.path
+    }
+
+    // MARK: - 计划任务选择（计划任务执行异常类型；v2.4.0 抓包 2026-10-22）
+
+    private var cronjobSection: some View {
+        Section {
+            OutlinedPicker(label: L10n.t("任务类型"),
+                           options: Self.cronjobAlertTypes.map(\.rawValue),
+                           selection: Binding(
+                            get: { cronjobTaskType.rawValue },
+                            set: { cronjobTaskType = CronjobType(rawValue: $0) ?? .shell }),
+                           optionLabels: Dictionary(uniqueKeysWithValues:
+                            Self.cronjobAlertTypes.map { ($0.rawValue, $0.displayName) }))
+            if vm.isLoadingOptions {
+                HStack {
+                    Spacer()
+                    LoadingStateView()
+                    Spacer()
+                }
+            } else if vm.cronjobOptions.isEmpty {
+                HStack {
+                    Text(L10n.t("任务名称"))
+                    Spacer()
+                    Text(L10n.t("暂无任务"))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                OutlinedPicker(label: L10n.t("任务名称"),
+                               options: cronjobOptionKeys, selection: cronjobOptionText,
+                               optionLabels: cronjobOptionLabels)
+            }
+        } header: {
+            Text(L10n.t("告警对象"))
+        } footer: {
+            Text(L10n.t("任务名称选项随任务类型查询；触发通知条件后将按告警次数发送"))
+        }
+    }
+
+    private var cronjobOptionKeys: [String] {
+        ["0"] + vm.cronjobOptions.map { String($0.id) }
+    }
+
+    private var cronjobOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for job in vm.cronjobOptions {
+            labels[String(job.id)] = job.name?.isEmpty == false ? job.name! : "#\(job.id)"
+        }
+        return labels
+    }
+
+    private var cronjobOptionText: Binding<String> {
+        Binding<String>(
+            get: {
+                vm.cronjobOptions.contains(where: { $0.id == selectedCronjobID })
+                    ? String(selectedCronjobID!) : "0"
+            },
+            set: { selectedCronjobID = $0 == "0" ? nil : Int($0) }
+        )
+    }
+
+    /// 通知条件选项（与计划任务表单三选同款）
+    private var triggerModeOptions: [(String, String)] {
+        [("failed", L10n.t("仅失败")), ("success", L10n.t("仅成功")), ("both", L10n.t("成功或失败"))]
     }
 
     // MARK: - 触发条件
@@ -268,7 +364,13 @@ struct AlertEditView: View {
 
     private var conditionSection: some View {
         Section {
-            if type.isLoginType {
+            if type == .cronjob {
+                OutlinedPicker(label: L10n.t("通知条件"),
+                               options: triggerModeOptions.map(\.0),
+                               selection: $alertTriggerMode,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                triggerModeOptions.map { ($0.0, $0.1) }))
+            } else if type.isLoginType {
                 OutlinedUnitField(label: L10n.t("时间窗口"), unit: L10n.t("分钟"),
                                   text: unitText($cycle, range: 1...1440))
                 OutlinedUnitField(label: L10n.t("失败次数"), unit: L10n.t("次"),
@@ -317,6 +419,8 @@ struct AlertEditView: View {
             return L10n.t("按监测类型统计磁盘使用，超过阈值即触发")
         case .panelUpdate:
             return L10n.t("面板有新版本发布时通知")
+        case .cronjob:
+            return L10n.t("任务执行结果满足通知条件时告警，达到告警次数后按方式发送")
         default:
             return L10n.t("证书 / 网站 / 密码到期前，每天检查并按告警次数发送")
         }
@@ -373,8 +477,20 @@ struct AlertEditView: View {
     private func fillIfEditing() {
         guard let rule = editing, !didFill else { return }
         didFill = true
+        // 回填期间程序化赋值连动多个状态：抑制 onChange 重置（见 isRestoring）
+        isRestoring = true
         if let t = rule.type, AlertType(rawValue: t) != .unknown {
             type = AlertType(rawValue: t) ?? .panelPwdEndTime
+        }
+        // 计划任务告警：规则 type 为任务类型（shell/…），归并为 cronjob 并回填
+        if type != .cronjob, let t = rule.type, CronjobType(rawValue: t) != nil {
+            type = .cronjob
+            cronjobTaskType = CronjobType(rawValue: t) ?? .shell
+            selectedCronjobID = Int(rule.project ?? "")
+            switch rule.advancedTriggerMode {
+            case "success", "both": alertTriggerMode = rule.advancedTriggerMode!
+            default: alertTriggerMode = "failed"
+            }
         }
         let project = rule.project ?? ""
         projectAll = project.isEmpty || project == "all"
@@ -385,7 +501,8 @@ struct AlertEditView: View {
         diskMonitorKind = (type.isDisk && rule.cycle == 1) ? 1 : 2
         selectedDiskPath = (type.isDisk && !projectAll) ? project : nil
         sendCount = rule.sendCount ?? 3
-        whitelist = rule.advancedParams ?? ""
+        // 白名单仅登录类型使用（计划任务告警的 advancedParams 是通知条件 JSON）
+        whitelist = type.isLoginType ? (rule.advancedParams ?? "") : ""
         enabled = rule.isEnabled
         // 规则记录不含 sendMethod：method 与某个发送方式 id 匹配则视为指定，否则视为所有
         if let m = rule.method, let id = Int(m), availableConfigs.contains(where: { $0.id == id }) {
@@ -395,6 +512,7 @@ struct AlertEditView: View {
             sendMethodAll = true
             selectedConfigID = nil
         }
+        DispatchQueue.main.async { isRestoring = false }
     }
 
     // MARK: - 请求构造
@@ -428,9 +546,20 @@ struct AlertEditView: View {
             return L10n.f("网站「 %@ 」到期告警", projectName(id: id))
         case .panelUpdate:
             return L10n.t("面板新版本提醒")
+        case .cronjob:
+            // 计划任务-任务类型「任务名」执行告警（抓包 2026-10-22 形态）
+            guard let job = selectedCronjob else { return nil }
+            return L10n.f("计划任务-%@「%@」执行告警", cronjobTaskType.displayName,
+                          job.name ?? "#\(job.id)")
         case .unknown:
             return nil
         }
+    }
+
+    /// 当前选中的计划任务
+    private var selectedCronjob: AlertCronjobOption? {
+        guard let id = selectedCronjobID else { return nil }
+        return vm.cronjobOptions.first(where: { $0.id == id })
     }
 
     private func buildRequest() -> AlertUpsertRequest? {
@@ -473,11 +602,15 @@ struct AlertEditView: View {
             } else {
                 return nil
             }
+        case .cronjob:
+            // project = 任务 id；type/subType 均为任务类型（抓包 2026-10-22）
+            guard let job = selectedCronjob else { return nil }
+            project = String(job.id)
         case .unknown:
             return nil
         }
-
-        // cycle/count 语义随类型变化：百分比类 cycle 固定 5；磁盘 cycle 为监测类型；面板更新均为 0
+        // cycle/count 语义随类型变化：百分比类 cycle 固定 5；磁盘 cycle 为监测类型；
+        // 面板更新与计划任务均为 0
         let finalCycle: Int
         let finalCount: Int
         switch type {
@@ -487,7 +620,7 @@ struct AlertEditView: View {
         case .disk:
             finalCycle = diskMonitorKind
             finalCount = threshold
-        case .panelUpdate:
+        case .panelUpdate, .cronjob:
             finalCycle = 0
             finalCount = 0
         default:
@@ -497,7 +630,9 @@ struct AlertEditView: View {
 
         var req = AlertUpsertRequest(
             id: editing?.id,
-            type: type.rawValue,
+            // 计划任务告警的 type 为任务类型（shell/…；抓包 2026-10-22），
+            // 其余类型为告警类型 rawValue
+            type: type == .cronjob ? cronjobTaskType.rawValue : type.rawValue,
             cycle: finalCycle,
             count: finalCount,
             sendCount: sendCount,
@@ -513,6 +648,13 @@ struct AlertEditView: View {
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
             req.advancedParams = lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n"
+        } else if type == .cronjob {
+            // 通知条件顶层与 advancedParams JSON 双写；subType 同任务类型
+            // （抓包 2026-10-22：{"type":"shell",…,"alertTriggerMode":"success",
+            //  "subType":"shell","advancedParams":"{\"alertTriggerMode\":\"success\"}"}）
+            req.alertTriggerMode = alertTriggerMode
+            req.advancedParams = #"{"alertTriggerMode":"\#(alertTriggerMode)"}"#
+            req.subType = cronjobTaskType.rawValue
         } else if isEditing {
             // 编辑非登录类型时回传空串，对齐官方更新请求
             req.advancedParams = ""

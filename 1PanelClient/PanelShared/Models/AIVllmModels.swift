@@ -6,6 +6,8 @@
 //  compose 模板 / 启动命令模板；版本列表复用 AppStoreDetail（GET /api/v2/apps/vllm）
 //
 //  抓包来源：logs/vLLM与下载器.md（2026-09-12，含 operate/update 补充抓包）
+//  实例监控（/api/v2/ai/vllm/monitor/*）：logs/2.4.0新增vllm.md（2026-10-23，
+//  抓包机无 GPU，status=unavailable 全 null；字段按服务端 model.MonitorVLLM 对齐）
 //
 
 import Foundation
@@ -259,5 +261,245 @@ nonisolated enum VllmBaseURLType: String, CaseIterable, Identifiable {
         case .custom:
             return nil
         }
+    }
+}
+
+// MARK: - 实例监控（/api/v2/ai/vllm/monitor/*）
+
+/// POST monitor/current 与 monitor/clean 共用请求 {appInstallID}
+nonisolated struct VllmMonitorTargetRequest: Encodable {
+    let appInstallID: Int
+}
+
+/// POST monitor/search {appInstallID, startTime, endTime, aggregation, group}
+/// aggregation: avg | max；group: overview | latency | requests（服务端按组只聚合该组直方图）
+nonisolated struct VllmMonitorSearchRequest: Encodable {
+    let appInstallID: Int
+    let startTime: String   // ISO8601 毫秒 Z，如 "2026-10-23T00:51:10.881Z"
+    let endTime: String
+    var aggregation: String = "avg"
+    var group: String = "overview"
+}
+
+/// 单个采样点（current 响应与 search points 共用）。全部指标可空：
+/// 实例未运行 / 无 GPU / 首个采样（无前值算不出速率）时为 null，status 为 "unavailable"
+nonisolated struct VllmMonitorPoint: Decodable, Equatable {
+    let createdAt: String?
+    let appInstallID: Int?
+    /// "ok" / "unavailable"
+    let status: String?
+    /// 分布直方图对应的采样区间秒数
+    let intervalSeconds: Double?
+    // 请求分析
+    let completedRequests: Double?         // 区间内完成请求数
+    let queueTime: Double?                 // 平均排队时间 s
+    let averageGenerationTokens: Double?   // 平均生成 token 数
+    let prefixCacheHitRate: Double?        // 前缀缓存命中率 %
+    let finishReasons: [String: Double]?   // 完成原因 → req/s
+    let promptDistribution: [String: Double]?      // 提示 token 直方桶 → req/s
+    let generationDistribution: [String: Double]?  // 生成 token 直方桶 → req/s
+    // 概览
+    let running: Double?                   // 运行中请求数
+    let waiting: Double?                   // 等待中请求数
+    let cacheUsage: Double?                // KV 缓存使用率 %
+    let promptThroughput: Double?          // 提示吞吐 tokens/s
+    let generationThroughput: Double?      // 生成吞吐 tokens/s
+    let requestThroughput: Double?         // 请求吞吐 req/s
+    // 延迟分析（均为秒）
+    let timeToFirstToken: Double?
+    let timePerOutputToken: Double?
+    let requestLatency: Double?
+    let prefillTime: Double?
+    let decodeTime: Double?
+    let timeToFirstTokenP50: Double?
+    let timeToFirstTokenP90: Double?
+    let timeToFirstTokenP95: Double?
+    let timeToFirstTokenP99: Double?
+    let timePerOutputTokenP50: Double?
+    let timePerOutputTokenP90: Double?
+    let timePerOutputTokenP95: Double?
+    let timePerOutputTokenP99: Double?
+    let requestLatencyP50: Double?
+    let requestLatencyP90: Double?
+    let requestLatencyP95: Double?
+    let requestLatencyP99: Double?
+
+    var isAvailable: Bool { (status ?? "").lowercased() == "ok" }
+}
+
+/// POST monitor/search 响应 {sampleCount, bucketSeconds, points}
+/// sampleCount>1200 时服务端按 bucketSeconds 分桶聚合（约 600 桶）；否则原样返回采样点，
+/// 采样缺口处补入空点（全 null）用于断线
+nonisolated struct VllmMonitorHistory: Decodable {
+    let sampleCount: Int?
+    let bucketSeconds: Int?
+    let points: [VllmMonitorPoint]?
+}
+
+/// 历史查询分组（对应 search.group，服务端按组裁剪聚合范围）
+nonisolated enum VllmMonitorGroup: String, CaseIterable, Identifiable {
+    case overview
+    case latency
+    case requests
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .overview: return L10n.t("概览")
+        case .latency: return L10n.t("延迟分析")
+        case .requests: return L10n.t("请求分析")
+        }
+    }
+}
+
+/// 历史聚合方式（对应 search.aggregation）
+nonisolated enum VllmMonitorAggregation: String, CaseIterable, Identifiable {
+    case avg
+    case max
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .avg: return L10n.t("平均值")
+        case .max: return L10n.t("最大值")
+        }
+    }
+}
+
+/// 标量指标描述表：分组 / 标题 / 单位 / 取值；页面实时区与历史曲线共用。
+/// 单位口径按服务端 utils/ai_tools/vllm 计算：缓存与命中率为百分比、吞吐为每秒速率、
+/// 延迟类为秒（含 P50/P90/P95/P99 分位）
+nonisolated enum VllmMonitorMetric: String, CaseIterable, Identifiable {
+    // 概览
+    case running, waiting, cacheUsage, promptThroughput, generationThroughput, requestThroughput
+    // 延迟分析
+    case timeToFirstToken, timePerOutputToken, requestLatency, prefillTime, decodeTime
+    // 请求分析
+    case completedRequests, queueTime, averageGenerationTokens, prefixCacheHitRate
+
+    var id: String { rawValue }
+
+    var group: VllmMonitorGroup {
+        switch self {
+        case .running, .waiting, .cacheUsage, .promptThroughput, .generationThroughput, .requestThroughput:
+            return .overview
+        case .timeToFirstToken, .timePerOutputToken, .requestLatency, .prefillTime, .decodeTime:
+            return .latency
+        case .completedRequests, .queueTime, .averageGenerationTokens, .prefixCacheHitRate:
+            return .requests
+        }
+    }
+
+    static func metrics(in group: VllmMonitorGroup) -> [VllmMonitorMetric] {
+        allCases.filter { $0.group == group }
+    }
+
+    var title: String {
+        switch self {
+        case .running: return L10n.t("运行中请求")
+        case .waiting: return L10n.t("等待中请求")
+        case .cacheUsage: return L10n.t("KV 缓存使用率")
+        case .promptThroughput: return L10n.t("提示吞吐")
+        case .generationThroughput: return L10n.t("生成吞吐")
+        case .requestThroughput: return L10n.t("请求吞吐")
+        case .timeToFirstToken: return L10n.t("首 Token 延迟")
+        case .timePerOutputToken: return L10n.t("Token 间延迟")
+        case .requestLatency: return L10n.t("端到端延迟")
+        case .prefillTime: return L10n.t("预填充耗时")
+        case .decodeTime: return L10n.t("解码耗时")
+        case .completedRequests: return L10n.t("完成请求数")
+        case .queueTime: return L10n.t("排队时间")
+        case .averageGenerationTokens: return L10n.t("平均生成 Token")
+        case .prefixCacheHitRate: return L10n.t("前缀缓存命中率")
+        }
+    }
+
+    /// 单位（空串为计数）
+    var unit: String {
+        switch self {
+        case .running, .waiting, .completedRequests: return ""
+        case .cacheUsage, .prefixCacheHitRate: return "%"
+        case .promptThroughput, .generationThroughput: return "tokens/s"
+        case .requestThroughput: return "req/s"
+        case .averageGenerationTokens: return "tokens"
+        case .timeToFirstToken, .timePerOutputToken, .requestLatency, .prefillTime, .decodeTime,
+             .queueTime: return "s"
+        }
+    }
+
+    /// 数值展示小数位：计数 0、百分比 1、速率/Token 2、秒 3
+    var decimals: Int {
+        switch self {
+        case .running, .waiting, .completedRequests: return 0
+        case .cacheUsage, .prefixCacheHitRate: return 1
+        case .promptThroughput, .generationThroughput, .requestThroughput, .averageGenerationTokens: return 2
+        case .timeToFirstToken, .timePerOutputToken, .requestLatency, .prefillTime, .decodeTime,
+             .queueTime: return 3
+        }
+    }
+
+    /// 百分比指标曲线 Y 固定 0...100，其余动态
+    var fixedYDomain: ClosedRange<Double>? {
+        switch self {
+        case .cacheUsage, .prefixCacheHitRate: return 0...100
+        default: return nil
+        }
+    }
+
+    func value(in point: VllmMonitorPoint) -> Double? {
+        switch self {
+        case .running: return point.running
+        case .waiting: return point.waiting
+        case .cacheUsage: return point.cacheUsage
+        case .promptThroughput: return point.promptThroughput
+        case .generationThroughput: return point.generationThroughput
+        case .requestThroughput: return point.requestThroughput
+        case .timeToFirstToken: return point.timeToFirstToken
+        case .timePerOutputToken: return point.timePerOutputToken
+        case .requestLatency: return point.requestLatency
+        case .prefillTime: return point.prefillTime
+        case .decodeTime: return point.decodeTime
+        case .completedRequests: return point.completedRequests
+        case .queueTime: return point.queueTime
+        case .averageGenerationTokens: return point.averageGenerationTokens
+        case .prefixCacheHitRate: return point.prefixCacheHitRate
+        }
+    }
+
+    /// 分位数（仅首 Token / Token 间 / 端到端三项有 P50/P90/P95/P99），按 (标签, 取值) 返回
+    func percentiles(in point: VllmMonitorPoint) -> [(label: String, value: Double?)] {
+        switch self {
+        case .timeToFirstToken:
+            return [("P50", point.timeToFirstTokenP50), ("P90", point.timeToFirstTokenP90),
+                    ("P95", point.timeToFirstTokenP95), ("P99", point.timeToFirstTokenP99)]
+        case .timePerOutputToken:
+            return [("P50", point.timePerOutputTokenP50), ("P90", point.timePerOutputTokenP90),
+                    ("P95", point.timePerOutputTokenP95), ("P99", point.timePerOutputTokenP99)]
+        case .requestLatency:
+            return [("P50", point.requestLatencyP50), ("P90", point.requestLatencyP90),
+                    ("P95", point.requestLatencyP95), ("P99", point.requestLatencyP99)]
+        default:
+            return []
+        }
+    }
+
+    /// 是否带 P50/P90/P95/P99 分位（首 Token / Token 间 / 端到端三项）
+    var hasPercentiles: Bool {
+        switch self {
+        case .timeToFirstToken, .timePerOutputToken, .requestLatency: return true
+        default: return false
+        }
+    }
+
+    /// 指定分位（"P50"/"P90"/"P95"/"P99"）取值；无该分位或指标不带分位返回 nil
+    func percentile(_ label: String, in point: VllmMonitorPoint) -> Double? {
+        percentiles(in: point).first { $0.label == label }?.value
+    }
+
+    /// 带单位的数值文本（nil → "—"）
+    func text(_ value: Double?) -> String {
+        guard let value else { return "—" }
+        let number = String(format: "%.\(decimals)f", value)
+        return unit.isEmpty ? number : (unit == "%" ? number + "%" : number + " " + unit)
     }
 }

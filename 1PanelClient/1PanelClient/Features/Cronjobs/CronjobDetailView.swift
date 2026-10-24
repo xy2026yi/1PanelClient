@@ -17,6 +17,9 @@ struct CronjobDetailView: View {
     @State private var showDeleteSheet = false
     /// 快照任务详情（load/info；仅 snapshot 类型加载，用于展示镜像开关与排除应用）
     @State private var snapshotInfo: CronjobInfo?
+    /// 通用详情（load/info；告警设置仅 info 返回，列表模型无这些字段——
+    /// 有设置才展示告警分组；Shell 的 path 模式也由它区分脚本路径/内容）
+    @State private var detailInfo: CronjobInfo?
     /// 快照详情加载失败（「—」占位不可永久残留，给重试入口）
     @State private var snapshotLoadFailed = false
     /// 删除确认弹窗中的「同时删除备份文件」选项（传入共享 TextInputConfirmSheet）
@@ -56,7 +59,14 @@ struct CronjobDetailView: View {
                         }
                     }
                 }
-                if let script = currentJob.script, !script.isEmpty {
+                // select（路径选择）模式：script 存的是文件路径，以路径行展示而非内容块
+                if scriptModeOfJob == "select" {
+                    if let path = currentJob.script, !path.isEmpty {
+                        Section {
+                            InfoRow(L10n.t("脚本路径"), value: path)
+                        }
+                    }
+                } else if let script = currentJob.script, !script.isEmpty {
                     Section {
                         Text(script)
                             .font(.dataMonospacedCaption)
@@ -132,6 +142,19 @@ struct CronjobDetailView: View {
             case .clean, .ntp, .syncIpGroup:
                 // 缓存清理 / 同步服务器时间 / 同步 WAF IP 组：无类型特定详情
                 EmptyView()
+            }
+
+            // 告警设置（有设置才显示）。判定信号双路：列表响应自带 alertCount
+            // （>0 即已设置——关闭告警时 Web 端提交 0；v2.4.0 响应侧不回传
+            // hasAlert，抓包 2026-10-22）与 load/info 的告警方式明细（方法 id）
+            if let alert = alertDisplay {
+                Section(L10n.t("告警")) {
+                    InfoRow(L10n.t("告警方式"), value: alertMethodNames(alert.methodIDs))
+                    InfoRow(L10n.t("通知条件"), value: alertTriggerLabel(alert.trigger))
+                    if let count = alert.count, count > 0 {
+                        InfoRow(L10n.t("告警次数"), value: L10n.f("%ld 次", count))
+                    }
+                }
             }
 
             // 记录入口（立即执行/结束任务/停用启用/编辑/删除已收进右上角三点菜单）
@@ -222,7 +245,20 @@ struct CronjobDetailView: View {
             }
         }
         .toastOverlay(message: $vm.toastMessage)
-        .navigationDestination(isPresented: $showEditView) {
+        .navigationDestination(isPresented: Binding(
+            get: { showEditView },
+            set: { showing in
+                showEditView = showing
+                // 编辑返回后作废已加载的详情缓存并重拉：update 只刷新列表，
+                // 告警方式明细/快照规则等 info 侧数据不重取会保持旧值
+                if !showing {
+                    editingInfo = nil
+                    detailInfo = nil
+                    snapshotInfo = nil
+                    Task { await reloadInfoForCurrentType() }
+                }
+            }
+        )) {
             if let info = editingInfo {
                 CreateCronjobView(vm: vm, server: server, editingJob: info)
             }
@@ -231,18 +267,78 @@ struct CronjobDetailView: View {
         // 与已装应用列表并行加载（排除应用按 id 解析应用名）；
         // 备份网站/切割网站日志：拉网站简表解析 id → primaryDomain；
         // 备份数据库：按任务类型拉实例列表解析 id → 库名
-        .task(id: currentJob.id) {
-            switch currentJob.jobType {
-            case .snapshot:
-                guard snapshotInfo == nil else { return }
-                await loadSnapshotInfo()
-            case .website, .cutWebsiteLog:
-                await vm.loadWebsiteOptions()
-            case .database:
-                await vm.loadDBItems(dbType: currentJob.dbType ?? "mysql")
-            default:
-                break
+        .task(id: currentJob.id) { await reloadInfoForCurrentType() }
+    }
+
+    /// 按类型补拉 info：快照详情（镜像/排除应用）、Shell 脚本来源模式与告警
+    /// 明细。其余类型仅在有告警信号（列表 alertCount>0）时拉 info，无信号跳过
+    /// 省一次请求（网站/数据库类型只拉名称解析表）
+    private func reloadInfoForCurrentType() async {
+        switch currentJob.jobType {
+        case .snapshot:
+            guard snapshotInfo == nil else { return }
+            await loadSnapshotInfo()
+        case .website, .cutWebsiteLog:
+            await vm.loadWebsiteOptions()
+        case .database:
+            await vm.loadDBItems(dbType: currentJob.dbType ?? "mysql")
+        case .shell:
+            guard detailInfo == nil else { return }
+            await loadDetailInfo()
+        default:
+            if currentJob.hasAlertConfigured, detailInfo == nil {
+                await loadDetailInfo()
             }
+        }
+    }
+
+    /// 通用详情加载：load/info + 告警方式名称表（id → 标题）并行
+    private func loadDetailInfo() async {
+        async let methods: Void = vm.loadAlertMethodOptions()
+        let info = await vm.loadCronjobInfo(id: currentJob.id)
+        await methods
+        detailInfo = info
+    }
+
+    /// Shell 脚本来源模式（info 优先，列表模型兜底；枚举 input/library/select，
+    /// 未知回落 input）
+    private var scriptModeOfJob: String {
+        let mode = detailInfo?.scriptMode ?? currentJob.scriptMode
+        return (mode == "library" || mode == "select") ? mode! : "input"
+    }
+
+    /// 告警展示数据：info 优先（含告警方式明细），列表信号兜底（alertCount>0，
+    /// 进页即可显，无需等 info；两路 trigger 归一同口径）
+    private var alertDisplay: (methodIDs: Set<Int>, trigger: String, count: Int?)? {
+        if let info = detailInfo {
+            if info.hasAlert == true || !info.alertMethodIDSet.isEmpty || (info.alertCount ?? 0) > 0 {
+                return (info.alertMethodIDSet, info.alertTriggerModeValue, info.alertCount)
+            }
+        }
+        guard currentJob.hasAlertConfigured else { return nil }
+        return ([], currentJob.alertTriggerModeValue, currentJob.alertCount)
+    }
+
+    /// 告警方式名称（id → 方式名；config.displayName 优先——title 是内部键
+    /// 如 xpack.alert.bark，回退链与告警方式选择器同款：displayName → title → 未知）
+    private func alertMethodNames(_ ids: Set<Int>) -> String {
+        guard !ids.isEmpty else { return L10n.t("未设置") }
+        return ids
+            .map { id in
+                guard let method = vm.alertMethods.first(where: { $0.id == id }) else {
+                    return "#\(id)"
+                }
+                return method.sendConfig.displayName ?? method.title ?? L10n.t("未知")
+            }
+            .joined(separator: ", ")
+    }
+
+    /// 通知条件文案（与创建表单三选同款）
+    private func alertTriggerLabel(_ mode: String) -> String {
+        switch mode {
+        case "success": return L10n.t("仅成功")
+        case "both": return L10n.t("成功或失败")
+        default: return L10n.t("仅失败")
         }
     }
 

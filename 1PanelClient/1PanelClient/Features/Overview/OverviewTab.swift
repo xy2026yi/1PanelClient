@@ -947,6 +947,8 @@ struct PanelUpgradeView: View {
     @State private var isLoading = false
     @State private var isUpgrading = false
     @State private var errorMessage: String?
+    /// 手动展开的版本卡（首条默认展开；其余点「点击查看详情」切换）
+    @State private var expandedVersions: Set<String> = []
     /// 升级任务提交成功：轻提示 toast（成功语义走 toast，错误才用 alert）
     @State private var toastMessage: String?
 
@@ -980,8 +982,16 @@ struct PanelUpgradeView: View {
                         updateBanner(latestVersion: latest)
                     }
 
-                    ForEach(Array(releases.enumerated()), id: \.element.id) { index, release in
-                        releaseCard(release, isExpanded: index == 0)
+                    ForEach(releases) { release in
+                        releaseCard(release, isExpanded: expandedVersions.contains(release.id))
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if expandedVersions.contains(release.id) {
+                                    expandedVersions.remove(release.id)
+                                } else {
+                                    expandedVersions.insert(release.id)
+                                }
+                            }
                     }
                 }
             }
@@ -1064,7 +1074,7 @@ struct PanelUpgradeView: View {
                     .foregroundStyle(.secondary)
                     .lineSpacing(4)
             } else if !isExpanded {
-                Text(L10n.t("点击查看详情"))
+                Label(L10n.t("点击查看详情"), systemImage: "chevron.down")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -1095,6 +1105,10 @@ struct PanelUpgradeView: View {
             releases = try await releasesResponse
             latestSettingInfo = await settingsResponse
             latestUpgradeInfo = await upgradeResponse
+            // 加载后默认展开最新一条（用户可点击收起/展开任意条）
+            if expandedVersions.isEmpty, let first = releases.first {
+                expandedVersions.insert(first.id)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -127,12 +127,154 @@ struct FirewallImportView: View {
     }
 }
 
-/// 导入预览用的极简 InventoryItem 包装（状态未知，按 external 呈现中性样式）
+/// 导入预览用的极简 InventoryItem 包装（无观察态，中性样式）
 private enum FirewallImportPreview {
     static func item(for rule: FirewallRule) -> FirewallInventoryItem {
         FirewallInventoryItem(
-            incompatible: nil, error: nil, rule: rule,
-            observed: nil, desired: nil, state: nil, match: nil)
+            rule: rule, observed: nil, isWhitelist: nil, descriptionID: nil)
+    }
+}
+
+// MARK: - 初始化并恢复规则（rules/backups 选择 + POST rules initialize）
+
+/// 「初始化并恢复规则」：列出服务器上的规则备份（rules/backups?subsystem=…），
+/// 点选一条 → 确认 → 任务式恢复，进进度页。三段共用：
+/// system → POST rules {"initialize":true,"backupFile":…,"items":[]}（抓包 2026-10-21）；
+/// docker → POST docker/operate {"operation":"initialize","backupFile":…}；
+/// forwarding → POST forward/enable {"backupFile":…}（均抓包 2026-10-22）
+struct FirewallRestoreBackupView: View {
+    @ObservedObject var vm: FirewallViewModel
+    /// system / docker / forwarding（备份目录与恢复端点随段区分）
+    let subsystem: String
+
+    @Environment(\.dismiss) private var dismiss
+    /// 待确认恢复的备份
+    @State private var pendingRestore: FirewallRuleBackupFile?
+    @State private var isRestoring = false
+
+    private var files: [FirewallRuleBackupFile] { vm.ruleBackups?.files ?? [] }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let err = vm.ruleBackupsError {
+                    LoadErrorStateView(message: err) {
+                        Task { await vm.loadRuleBackups(subsystem: subsystem) }
+                    }
+                } else if vm.isLoadingBackups && vm.ruleBackups == nil {
+                    LoadingStateView()
+                } else if files.isEmpty {
+                    ContentUnavailableView(
+                        L10n.t("暂无备份文件"),
+                        systemImage: "externaldrive.badge.timemachine",
+                        description: Text(L10n.t("重置时勾选「备份规则后重置」会生成备份文件，生成后可在此恢复。"))
+                    )
+                } else {
+                    backupList
+                }
+            }
+            .navigationTitle(L10n.t("初始化并恢复规则"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) { dismiss() }
+                        .disabled(isRestoring)
+                }
+            }
+            .interactiveDismissDisabled(isRestoring)
+            .refreshable { await vm.loadRuleBackups(subsystem: subsystem) }
+        }
+        // 每次呈现都重拉：备份文件会在本页之外产生（重置时生成/网页端操作），
+        // 首开加载后不刷新会拿陈旧列表选恢复源（刷新期间旧列表保持展示不闪空）
+        .task { await vm.loadRuleBackups(subsystem: subsystem) }
+        .alert(L10n.t("确认恢复规则"), isPresented: Binding(
+            get: { pendingRestore != nil },
+            set: { if !$0 { pendingRestore = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) { pendingRestore = nil }
+            Button(L10n.t("恢复"), role: .destructive) {
+                Haptic.warning()
+                guard let file = pendingRestore, let name = file.name else { return }
+                pendingRestore = nil
+                isRestoring = true
+                Task {
+                    // 成功即 dismiss：activeTask 已携带任务号，进度页随外层导航推出
+                    let ok: Bool
+                    switch subsystem {
+                    case "docker":
+                        ok = await vm.dockerOperate("initialize", backupFile: name)
+                    case "forwarding":
+                        ok = await vm.enableForwarding(backupFile: name)
+                    default:
+                        ok = await vm.initializeWithRestore(backupFile: name)
+                    }
+                    if ok {
+                        dismiss()
+                    } else {
+                        isRestoring = false
+                    }
+                }
+            }
+        } message: {
+            if let file = pendingRestore {
+                Text(L10n.f("将初始化基础链并从备份恢复 %ld 条规则，当前运行时规则将被替换。确认使用备份「%@」吗？",
+                            file.ruleCount ?? 0, file.name ?? ""))
+            }
+        }
+    }
+
+    private var backupList: some View {
+        Form {
+            Section {
+                ForEach(files) { file in
+                    Button {
+                        pendingRestore = file
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(file.name ?? "—")
+                                    .font(.footnote)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                HStack(spacing: 8) {
+                                    if let provider = file.provider {
+                                        Text(provider.uppercased())
+                                            .font(.caption2.weight(.semibold))
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 1)
+                                            .background(Color.secondary.opacity(0.15),
+                                                        in: RoundedRectangle(cornerRadius: 4))
+                                    }
+                                    Text(L10n.f("%ld 条规则", file.ruleCount ?? 0))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    if let ts = file.modifiedAt {
+                                        Text(Date(timeIntervalSince1970:
+                                                    TimeInterval(ts) / 1000)
+                                            .formatted(date: .numeric, time: .shortened))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isRestoring)
+                }
+            } header: {
+                SectionLabel(title: L10n.t("选择备份"), systemImage: "externaldrive.badge.timemachine")
+            } footer: {
+                if let dir = vm.ruleBackups?.directory, !dir.isEmpty {
+                    Text(L10n.f("备份目录：%@", dir))
+                }
+            }
+        }
     }
 }
 
@@ -446,7 +588,7 @@ struct FirewallExportPickerView: View {
     @State private var selected: Set<String> = []
 
     private var exportable: [FirewallInventoryItem] {
-        vm.inventory.filter { $0.manageableUUID != nil && $0.state != "protected" }
+        vm.inventory.filter { $0.operationTarget != nil && !$0.isProtected }
     }
 
     var body: some View {

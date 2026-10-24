@@ -13,13 +13,13 @@ import Combine
 struct FirewallRuleRowView: View {
     let item: FirewallInventoryItem
     var processName: String?
-    /// 链内优先级（observed.locator.position；external 规则可能缺失）
+    /// 链内优先级（observed.locator.position；个别规则可能缺失）
     var priority: Int?
     /// 是否显示使用方徽标：导入/导出预览行没有监听数据（processName 恒
     /// nil），不传 false 会整列误显「未使用」
     var showsUsage: Bool = true
 
-    private var rule: FirewallRule? { item.rule ?? item.desired?.rule }
+    private var rule: FirewallRule? { item.rule }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -120,12 +120,8 @@ struct FirewallForwardRowView: View {
                     .font(.dataMonospaced)
                     .lineLimit(1)
                 Spacer()
-                // 转发无策略概念：状态只看 isRuntime（已生效/未生效）
-                if rule.isRuntime == true {
-                    StatusBadge(text: L10n.t("已生效"), color: .statusRunning)
-                } else {
-                    StatusBadge(text: L10n.t("未生效"), color: .secondary)
-                }
+                // v2.4.0 上游删除 isRuntime/syncStatus，状态徽章随之取消
+                //（Web 端转发表格同版也无状态列）
             }
             if !secondaryLine.isEmpty {
                 Text(secondaryLine)

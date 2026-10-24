@@ -263,6 +263,8 @@ struct ManageTab: View {
             AIVllmView(server: server)
         case .aiDownloader:
             AIDownloaderView(server: server)
+        case .kvm:
+            KVMView(server: server)
         }
     }
 }
@@ -483,6 +485,8 @@ enum ManageItem: String, Identifiable {
     case aiVllm
     /// 模型下载器（AI Hub 子页）
     case aiDownloader
+    /// 虚拟机管理 KVM（高级功能分组；/xpack/vms/*，专业版门禁）
+    case kvm
 
     var id: String { rawValue }
 
@@ -505,7 +509,7 @@ enum ManageItem: String, Identifiable {
             (L10n.t("工具箱"), [.fail2ban, .ftp, .clam, .supervisor, .diskManage, .clean]),
             // WAF 并入「WAF 监控」后放高级功能分组（GPU 监控之下）；
             // 自身不受许可证门禁（无 license 仅隐藏其内部「监控」子入口）
-            (L10n.t("高级功能"), [.gpuMonitor, .waf, .websiteMonitor, .nodeManage]),
+            (L10n.t("高级功能"), [.gpuMonitor, .waf, .websiteMonitor, .nodeManage, .kvm]),
             // 告警通知 / 备份账号 / 许可证收进「设置」Hub（对齐网页端面板菜单）
             (L10n.t("面板"), [.panelSettings, .cronjob, .taskCenter, .logs]),
         ]
@@ -553,6 +557,7 @@ enum ManageItem: String, Identifiable {
         case .aiOllama:    return "Ollama"
         case .aiVllm:      return "vLLM"
         case .aiDownloader: return L10n.t("模型下载")
+        case .kvm:         return L10n.t("虚拟机管理")
         }
     }
 
@@ -605,6 +610,7 @@ enum ManageItem: String, Identifiable {
         case .aiOllama:    return L10n.t("Ollama 模型拉取与运行")
         case .aiVllm:      return L10n.t("GPU 推理服务引擎实例管理")
         case .aiDownloader: return L10n.t("HuggingFace / ModelScope 模型下载")
+        case .kvm:         return L10n.t("KVM 虚拟机 / 镜像 / 模版 / 网络 / 存储池（专业版）")
         }
     }
 
@@ -650,6 +656,7 @@ enum ManageItem: String, Identifiable {
         case .aiOllama:    return "cpu"
         case .aiVllm:      return "bolt.horizontal.circle"
         case .aiDownloader: return "arrow.down.circle"
+        case .kvm:         return "desktopcomputer"
         }
     }
 
@@ -695,6 +702,7 @@ enum ManageItem: String, Identifiable {
         case .aiVllm:      return .mint
         case .aiDownloader: return .cyan
         case .diskManage:  return .gray
+        case .kvm:         return .blue
         }
     }
 

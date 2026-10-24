@@ -160,6 +160,19 @@ nonisolated struct Cronjob: Codable, Identifiable, Hashable {
     let retryTimes: Int?
     let timeout: Int?
     let timeoutUnit: String?
+    /// 告警次数（v2.4.0 列表返回；关闭告警时 Web 端提交 0 → >0 即已设置告警）
+    let alertCount: Int?
+    /// 通知条件（v2.4.0 列表返回）：failed / success / both
+    let alertTriggerMode: String?
+
+    /// 通知条件归一（与 CronjobInfo.alertTriggerModeValue 同口径：
+    /// 合法三选一原样，缺失/未知回落 failed）
+    var alertTriggerModeValue: String {
+        (alertTriggerMode == "success" || alertTriggerMode == "both") ? alertTriggerMode! : "failed"
+    }
+
+    /// 是否设置了告警（alertCount > 0；依据：告警关闭时 Web 端提交 alertCount=0）
+    var hasAlertConfigured: Bool { (alertCount ?? 0) > 0 }
 
     /// 任务类型枚举
     var jobType: CronjobType {
@@ -252,6 +265,8 @@ nonisolated struct Cronjob: Codable, Identifiable, Hashable {
         case retryTimes
         case timeout
         case timeoutUnit
+        case alertCount
+        case alertTriggerMode
     }
 
     init(from decoder: Decoder) throws {
@@ -283,6 +298,8 @@ nonisolated struct Cronjob: Codable, Identifiable, Hashable {
         retryTimes = try c.decodeIfPresent(Int.self, forKey: .retryTimes)
         timeout = try c.decodeIfPresent(Int.self, forKey: .timeout)
         timeoutUnit = try c.decodeIfPresent(String.self, forKey: .timeoutUnit)
+        alertCount = try c.decodeIfPresent(Int.self, forKey: .alertCount)
+        alertTriggerMode = try c.decodeIfPresent(String.self, forKey: .alertTriggerMode)
     }
 }
 
@@ -348,6 +365,8 @@ nonisolated struct CronjobInfo: Decodable {
     let alertTitle: String?
     let alertMethod: String?
     let alertMethodItems: [String]?
+    /// 通知条件（v2.4.0 新增，dto/cronjob.go 17 行变更）：failed / success / both
+    let alertTriggerMode: String?
 
     /// 任务类型枚举
     var jobType: CronjobType {
@@ -364,6 +383,12 @@ nonisolated struct CronjobInfo: Decodable {
         let items = alertMethodItems ?? (alertMethod ?? "")
             .split(separator: ",").map(String.init).filter { !$0.isEmpty }
         return Set(items.compactMap(Int.init))
+    }
+
+    /// 通知条件归一值：合法三选一原样返回，缺失/未知回落 failed
+    /// （与 Web 端表单默认「仅失败」一致；抓包 2026-10-21）
+    var alertTriggerModeValue: String {
+        (alertTriggerMode == "success" || alertTriggerMode == "both") ? alertTriggerMode! : "failed"
     }
 
     /// 文件模式的文件路径列表（files 数组取 val）
@@ -415,6 +440,7 @@ nonisolated struct CronjobInfo: Decodable {
         case alertTitle
         case alertMethod
         case alertMethodItems
+        case alertTriggerMode
     }
 
     init(from decoder: Decoder) throws {
@@ -462,6 +488,7 @@ nonisolated struct CronjobInfo: Decodable {
         alertTitle = try c.decodeIfPresent(String.self, forKey: .alertTitle)
         alertMethod = try c.decodeIfPresent(String.self, forKey: .alertMethod)
         alertMethodItems = try c.decodeIfPresent([String].self, forKey: .alertMethodItems)
+        alertTriggerMode = try c.decodeIfPresent(String.self, forKey: .alertTriggerMode)
     }
 }
 
@@ -671,6 +698,8 @@ nonisolated struct CronjobCreateRequest: Encodable {
     var alertTitle: String = ""
     var alertMethod: String = ""
     var alertMethodItems: [String] = []
+    /// 通知条件（v2.4.0 新增）：failed（默认，仅失败）/ success / both
+    var alertTriggerMode: String = "failed"
     var scopes: [String] = []
     /// 备份参数（逗号分隔的字符串，如 "--single-transaction,--quick"）。
     /// 仅 MySQL / MariaDB 备份任务使用，对应网页端的 args 字段。
@@ -811,6 +840,8 @@ nonisolated struct CronjobTransferItem: Codable, Identifiable, Hashable {
     var alertCount: Int
     var alertTitle: String
     var alertMethod: String
+    /// 通知条件（v2.4.0 新增；可选——旧版面板导出文件无此键，解码为 nil 编码省略）
+    var alertTriggerMode: String?
 
     struct SnapshotRule: Codable, Hashable {
         var withImage: Bool

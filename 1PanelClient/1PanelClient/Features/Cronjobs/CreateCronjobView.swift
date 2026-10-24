@@ -25,9 +25,22 @@ struct CreateCronjobView: View {
     // 初值 = Shell 类型的网页端默认周期 每月 3 日 01:30，切换类型时跟随）
     @State private var schedules: [ScheduleItem] = [CreateCronjobView.defaultSchedule(for: .shell)]
     // Shell
-    @State private var script = "#!/bin/bash\n"
+    /// 脚本内容（input 模式的编辑原文 / library 模式带出的所选脚本内容）
+    @State private var script = ""
+    /// 脚本来源三选（形态 3）：input 编辑 / library 脚本库 / select 路径选择。
+    /// 提交形状按抓包 2026-10-22：library 携 scriptID 且 script 置空；
+    /// select 携脚本路径于 script、scriptID 置空
+    @State private var scriptMode = "input"
+    /// library 模式选中的脚本 id（0 = 未选）
+    @State private var scriptID = 0
+    /// path 模式：脚本文件绝对路径（文件浏览器选定，可手动修改）
+    @State private var scriptPath = ""
+    /// 脚本库选项（首次进入 library 模式时轻量拉取；失败可重试）
+    @State private var libraryScripts: [ScriptItem] = []
+    @State private var libraryScriptsError: String?
+    /// path 模式的文件浏览器（不限扩展名，须选定到文件）
+    @State private var showScriptFilePicker = false
     @State private var user = ""           // 默认不选（空字符串 = 服务器默认）
-    @State private var showScriptPicker = false
     // 备份
     @State private var retainCopies = 7
     /// 备份账号（有序多选；提交 sourceAccountIDs 逗号串 + sourceAccountItems 数组）
@@ -71,6 +84,8 @@ struct CreateCronjobView: View {
     @State private var hasAlert = false
     @State private var alertMethodIDs: Set<Int> = []
     @State private var alertCount = 3
+    /// 通知条件（v2.4.0 新增，位于告警方式之上）：failed 仅失败 / success 仅成功 / both 成功或失败
+    @State private var alertTriggerMode = "failed"
     @State private var showAlertMethodPicker = false
     /// 标记是否已完成编辑模式的数据预填
     @State private var hasPrefilled = false
@@ -342,21 +357,19 @@ struct CreateCronjobView: View {
                   schedules[0].cronSpec == Self.defaultSchedule(for: oldType).cronSpec else { return }
             schedules = [Self.defaultSchedule(for: newType)]
         }
-        .sheet(isPresented: $showScriptPicker) {
-        NavigationStack {
-            ScriptLibraryView(server: server) { picked in
-                if let code = picked.script, !code.isEmpty {
-                    script = code
-                }
-                showScriptPicker = false
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("取消")) { showScriptPicker = false }
-                }
+        // path 模式：文件浏览器（不限扩展名；点击文件即选定回填路径）
+        .sheet(isPresented: $showScriptFilePicker) {
+            DirectoryPickerSheet(client: vm.client, fileExtensions: []) { path in
+                scriptPath = path
             }
         }
-    }    }
+        // 进入脚本库模式时轻量拉取脚本清单（失败显示错误态可重试）
+        .task(id: scriptMode) {
+            if scriptMode == "library", libraryScripts.isEmpty {
+                await loadLibraryScripts()
+            }
+        }
+    }
 
     // MARK: - 向导分页成员（自单页表单拆出）
 
@@ -404,6 +417,80 @@ struct CreateCronjobView: View {
         )
     }
 
+    /// library 模式：脚本库选择（形态 3，"0" = 请选择占位；空库/加载失败各显状态）
+    @ViewBuilder
+    private var libraryPickerRow: some View {
+        if let err = libraryScriptsError {
+            HStack {
+                Text(err)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                Spacer()
+                Button(L10n.t("重试")) {
+                    Task { await loadLibraryScripts() }
+                }
+                .font(.footnote.weight(.semibold))
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        } else if libraryScripts.isEmpty {
+            HStack {
+                Text(L10n.t("脚本库"))
+                Spacer()
+                Text(L10n.t("暂无脚本"))
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            OutlinedPicker(label: L10n.t("脚本库"),
+                           options: libraryScriptKeys, selection: scriptIDText,
+                           optionLabels: libraryScriptLabels)
+        }
+    }
+
+    private var libraryScriptKeys: [String] {
+        ["0"] + libraryScripts.map { String($0.id) }
+    }
+
+    private var libraryScriptLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for item in libraryScripts { labels[String(item.id)] = item.name }
+        return labels
+    }
+
+    /// 选中脚本 id ↔ picker 键（"0" = 未选；抓包 2026-10-22：library 只携
+    /// scriptID，script 置空——选库不回填内容到 script）
+    private var scriptIDText: Binding<String> {
+        Binding<String>(
+            get: {
+                libraryScripts.contains(where: { $0.id == scriptID })
+                    ? String(scriptID) : "0"
+            },
+            set: { newValue in
+                guard let id = Int(newValue), id != 0 else { return }
+                scriptID = id
+            }
+        )
+    }
+
+    /// 脚本库清单（脚本库页同款请求；失败显示错误态可重试）
+    private func loadLibraryScripts() async {
+        libraryScriptsError = nil
+        let client = APIClient.shared(for: server)
+        do {
+            let resp: PageResponse<ScriptItem> = try await client.send(
+                path: APIEndpoint.scriptSearch.path,
+                body: ScriptSearchRequest(info: "", groupID: 0, page: 1, pageSize: 100),
+                as: PageResponse<ScriptItem>.self
+            )
+            libraryScripts = resp.items ?? []
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            libraryScripts = []
+            libraryScriptsError = L10n.f("脚本库加载失败：%@", error.localizedDescription)
+        }
+    }
+
     /// 执行周期：入口行（N 个周期）→ 子编辑页（形态 8，与创建容器端口/挂载同模式）
     private var scheduleSection: some View {
         Section {
@@ -427,17 +514,30 @@ struct CreateCronjobView: View {
         switch type {
         case .shell:
             Section {
-                Button {
-                    showScriptPicker = true
-                } label: {
-                    Label(L10n.t("从脚本库选择"), systemImage: "books.vertical")
-                        .foregroundStyle(Color.accentColor)
+                // 脚本来源三选（形态 3）：编辑 / 脚本库 / 路径选择
+                // （枚举值按抓包 2026-10-22：input / library / select）
+                OutlinedPicker(label: L10n.t("脚本内容"),
+                               options: ["input", "library", "select"],
+                               selection: $scriptMode,
+                               optionLabels: [
+                                "input": L10n.t("编辑"),
+                                "library": L10n.t("脚本库"),
+                                "select": L10n.t("路径选择"),
+                               ])
+                switch scriptMode {
+                case "library":
+                    libraryPickerRow
+                case "select":
+                    OutlinedTextField(label: L10n.t("脚本路径"),
+                                      text: $scriptPath,
+                                      browseAction: { showScriptFilePicker = true })
+                default:
+                    OutlinedMultiLineField(label: L10n.t("脚本内容"),
+                                           prompt: "#!/bin/bash",
+                                           lines: 8, fixedLines: 8,
+                                           zoomable: true, monospaced: true,
+                                           text: $script)
                 }
-                OutlinedMultiLineField(label: L10n.t("脚本内容"),
-                                       prompt: "#!/bin/bash",
-                                       lines: 8, fixedLines: 8,
-                                       zoomable: true, monospaced: true,
-                                       text: $script)
             } header: { Text(L10n.t("脚本内容")) }
 
             Section {
@@ -666,9 +766,18 @@ struct CreateCronjobView: View {
             .filter { !$0.isEmpty }
     }
 
-    /// 内容页必填校验（目录范围 / URL 地址；开启告警须至少选一种方式）
+    /// 内容页必填校验（Shell 脚本按来源模式 / 目录范围 / URL 地址；开启告警须至少选一种方式）
     private var contentValid: Bool {
         switch type {
+        case .shell:
+            switch scriptMode {
+            case "library":
+                guard scriptID != 0 else { return false }
+            case "select":
+                guard !scriptPath.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+            default:
+                guard !script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+            }
         case .directory:
             guard dirScopeKey == "dir"
                 ? !nonEmptyLines(dirSourceText).isEmpty
@@ -968,6 +1077,14 @@ struct CreateCronjobView: View {
             Toggle(L10n.t("告警"), isOn: $hasAlert)
 
             if hasAlert {
+                OutlinedPicker(label: L10n.t("通知条件"),
+                               options: ["failed", "success", "both"],
+                               selection: $alertTriggerMode,
+                               optionLabels: [
+                                   "failed": L10n.t("仅失败"),
+                                   "success": L10n.t("仅成功"),
+                                   "both": L10n.t("成功或失败"),
+                               ])
                 Button {
                     showAlertMethodPicker = true
                 } label: {
@@ -993,7 +1110,7 @@ struct CreateCronjobView: View {
         } header: {
             Text(L10n.t("告警"))
         } footer: {
-            Text(L10n.t("任务失败达到告警次数后，将通过所选方式发送通知"))
+            Text(L10n.t("满足通知条件达到告警次数后，将通过所选方式发送通知"))
         }
     }
 
@@ -1040,8 +1157,21 @@ struct CreateCronjobView: View {
 
         switch type {
         case .shell:
-            req.script = script
+            // 提交形状按抓包 2026-10-22：library 只携 scriptID（script 置空）；
+            // select 携脚本路径于 script（scriptID 置空）；input 携脚本内容
+            // 且 scriptID 显式为 0（列表返回 input 任务 scriptID=0）
+            req.scriptMode = scriptMode
             req.user = user
+            switch scriptMode {
+            case "library":
+                req.scriptID = scriptID
+                req.script = ""
+            case "select":
+                req.script = scriptPath.trimmingCharacters(in: .whitespaces)
+            default:
+                req.scriptID = 0
+                req.script = script
+            }
         case .app:
             req.appID = appSelections.joined(separator: ",")
             req.appIdList = appSelections
@@ -1104,6 +1234,7 @@ struct CreateCronjobView: View {
         if hasAlert {
             req.hasAlert = true
             req.alertCount = alertCount
+            req.alertTriggerMode = alertTriggerMode
             req.alertTitle = L10n.f("计划任务-%@「 %@ 」任务失败告警", type.displayName, name)
             // 只提交现存发送方式的 id（编辑回填可能含已删除的方式）
             let validIDs = Set(vm.alertMethods.map(\.id))
@@ -1155,9 +1286,18 @@ struct CreateCronjobView: View {
             schedules = parseSchedules(spec)
         }
 
-        // Shell
+        // Shell：脚本来源三模式回填（input/library/select；未知值回落 input）
+        switch info.scriptMode {
+        case "library", "select": scriptMode = info.scriptMode!
+        default: scriptMode = "input"
+        }
+        scriptID = info.scriptID ?? 0
         if let s = info.script, !s.isEmpty {
-            script = s
+            if scriptMode == "select" {
+                scriptPath = s
+            } else {
+                script = s
+            }
         }
         user = info.user ?? ""
 
@@ -1188,6 +1328,7 @@ struct CreateCronjobView: View {
         if let count = info.alertCount, count > 0 {
             alertCount = count
         }
+        alertTriggerMode = info.alertTriggerModeValue
         alertMethodIDs = info.alertMethodIDSet
 
         // 各类型特定字段（多值字段 "2,1" → 逗号拆分数组，顺序保留）

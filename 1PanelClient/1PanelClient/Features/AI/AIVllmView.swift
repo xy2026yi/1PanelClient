@@ -4,7 +4,8 @@
 //
 //  vLLM 推理实例（/api/v2/xpack/vllm）：实例列表（状态轮询）/
 //  创建（AIVllmCreateView，进度走任务日志）/ 启停/重启/删除/
-//  容器日志（复用 ComposeLogView）/ 编辑（create 表单复用）
+//  容器日志（复用 ComposeLogView）/ 编辑（create 表单复用）/
+//  实例监控（AIVllmMonitorView，v2.4.0 新增 /api/v2/ai/vllm/monitor，按 appInstallId 定位）
 //
 //  operate/update/delete 请求未抓包，按命名规律推定，联调时集中修正
 //
@@ -190,6 +191,7 @@ struct AIVllmView: View {
     @State private var forceDeleteInstance = false
     @State private var pendingOperate: (instance: VllmInstance, operate: String)?
     @State private var logInstance: VllmInstance?
+    @State private var monitorInstance: VllmInstance?
 
     init(server: ServerConfig) {
         self.server = server
@@ -309,6 +311,15 @@ struct AIVllmView: View {
                     client: vm.client)
             }
         }
+        // 实例监控：监控接口按应用安装 id（appInstallId）定位，缺失时菜单不提供入口
+        .navigationDestination(isPresented: Binding(
+            get: { monitorInstance != nil },
+            set: { if !$0 { monitorInstance = nil } }
+        )) {
+            if let instance = monitorInstance, let appInstallID = instance.appInstallId {
+                AIVllmMonitorView(server: server, instance: instance, appInstallID: appInstallID)
+            }
+        }
     }
 
     private var instanceList: some View {
@@ -369,6 +380,13 @@ struct AIVllmView: View {
         ) {
             logInstance = instance
         })
+        if instance.appInstallId != nil {
+            items.append(ActionMenuItem(
+                title: L10n.t("监控"), icon: "chart.xyaxis.line", color: .cyan
+            ) {
+                monitorInstance = instance
+            })
+        }
         items.append(ActionMenuItem(
             title: L10n.t("编辑"), icon: "pencil", color: .teal
         ) {

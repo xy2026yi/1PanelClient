@@ -124,6 +124,25 @@ struct CronjobTransferModelsTests {
         let again = try JSONDecoder().decode([CronjobTransferItem].self, from: data)
         #expect(again == items)
     }
+
+    @Test("通知条件透传（v2.4.0 alertTriggerMode）：旧导出无键解码 nil 且编码省略，新导出原样回传")
+    func alertTriggerModePassthrough() throws {
+        // 旧面板导出（v2.3.x，无 alertTriggerMode 键）不阻断解码
+        let legacy = try JSONDecoder().decode([CronjobTransferItem].self, from: Data(Self.capturedJSON.utf8))
+        #expect(legacy[0].alertTriggerMode == nil)
+        let legacyEncoded = String(decoding: try JSONEncoder().encode(legacy), as: UTF8.self)
+        #expect(!legacyEncoded.contains("alertTriggerMode"))
+
+        // 新面板导出（v2.4.0，dto/cronjob.go 17 行变更新增）：导入整对象回传保留原值
+        let modernJSON = Self.capturedJSON.replacingOccurrences(
+            of: "\"alertCount\":0,\"alertTitle\":\"\",\"alertMethod\":\"\"}]",
+            with: "\"alertCount\":3,\"alertTitle\":\"\",\"alertMethod\":\"5\",\"alertTriggerMode\":\"both\"}]")
+        let modern = try JSONDecoder().decode([CronjobTransferItem].self, from: Data(modernJSON.utf8))
+        #expect(modern[0].alertTriggerMode == "both")
+        let roundTrip = try JSONDecoder().decode([CronjobTransferItem].self,
+                                                 from: try JSONEncoder().encode(modern))
+        #expect(roundTrip[0].alertTriggerMode == "both")
+    }
 }
 // 旧「iptables 链规则模型」套件已随 v2.3.0 防火墙重构移除
 // （上游删除 filter/rule 系列端点与链规则模型，见 doc/references/v2.3.0-upstream-diff.md §2.1）
