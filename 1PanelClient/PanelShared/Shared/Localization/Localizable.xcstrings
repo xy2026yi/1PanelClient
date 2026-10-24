@@ -441,6 +441,17 @@
         }
       }
     },
+    "%ld 台虚拟机状态异常" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld virtual machines in abnormal state"
+          }
+        }
+      }
+    },
     "%ld 天" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -580,6 +591,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to delete %ld items"
+          }
+        }
+      }
+    },
+    "%ld/%ld 核" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld/%ld cores"
           }
         }
       }
@@ -1301,6 +1323,17 @@
         }
       }
     },
+    "CPU 分配（%ld 核）超过宿主机总量（%ld 核）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU allocation (%ld cores) exceeds the host total (%ld cores)"
+          }
+        }
+      }
+    },
     "CPU 占用过高" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1319,6 +1352,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "High CPU Usage"
+          }
+        }
+      }
+    },
+    "CPU 已分配" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU Allocated"
           }
         }
       }
@@ -5906,6 +5950,17 @@
         }
       }
     },
+    "使用率 %.1f%%" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%.1f%% used"
+          }
+        }
+      }
+    },
     "使用自定义配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7534,6 +7589,17 @@
         }
       }
     },
+    "内存分配超过宿主机总量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory allocation exceeds the host total"
+          }
+        }
+      }
+    },
     "内存单位" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7563,6 +7629,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "High Memory Usage"
+          }
+        }
+      }
+    },
+    "内存已分配" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memory Allocated"
           }
         }
       }
@@ -8124,6 +8201,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create vLLM Instance"
+          }
+        }
+      }
+    },
+    "创建中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creating"
           }
         }
       }
@@ -11164,6 +11252,17 @@
         }
       }
     },
+    "可用 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ available"
+          }
+        }
+      }
+    },
     "可用性检查" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13584,6 +13683,17 @@
         }
       }
     },
+    "存储已使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage Used"
+          }
+        }
+      }
+    },
     "存储桶" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13602,6 +13712,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Storage pools"
+          }
+        }
+      }
+    },
+    "存储池 %@ 使用率 %.1f%%" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage pool %@ is %.1f%% used"
+          }
+        }
+      }
+    },
+    "存储池 %@ 未启用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage pool %@ is not active"
+          }
+        }
+      }
+    },
+    "存储池 %@：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage pool %@: %@"
+          }
+        }
+      }
+    },
+    "存储池概况" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage Pool Overview"
           }
         }
       }
@@ -16109,7 +16263,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Started"
+            "value" : "Running"
           }
         }
       }
@@ -19498,6 +19652,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blocked Trend (7 Days)"
+          }
+        }
+      }
+    },
+    "挂起" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspended"
           }
         }
       }
@@ -23150,6 +23315,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Panel Sessions"
+          }
+        }
+      }
+    },
+    "暂无风险" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No risks"
           }
         }
       }
@@ -32647,6 +32823,17 @@
         }
       }
     },
+    "虚拟机状态（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virtual Machines (%ld)"
+          }
+        }
+      }
+    },
     "虚拟机管理" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35338,6 +35525,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resource Usage"
+          }
+        }
+      }
+    },
+    "资源分配" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resource Allocation"
           }
         }
       }
@@ -39045,6 +39243,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fan"
+          }
+        }
+      }
+    },
+    "风险提醒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risk Alerts"
           }
         }
       }

@@ -2,8 +2,8 @@
 //  KVMViewModel.swift
 //  1PanelClient
 //
-//  虚拟机管理（KVM，/xpack/vms/*，专业版）页面状态：环境检测、五段数据
-//  （虚拟机 / 镜像 / 模版 / 网络 / 存储池）加载与全部操作出口。
+//  虚拟机管理（KVM，/xpack/vms/*，专业版）页面状态：环境检测、六段数据
+//  （概览 / 虚拟机 / 镜像 / 模版 / 网络 / 存储池）加载与全部操作出口。
 //  任务式操作（创建·编辑·重命名·转模版·删除·快照·模版删除）成功后置 activeTask，
 //  由根页推入 TaskProgressView（operateNode=local，与抓包一致）并在完成时整页刷新；
 //  即时操作（电源·同步·网络/存储启停自启·镜像增删改）成功后直接重拉对应段。
@@ -22,11 +22,12 @@ struct KVMTaskTarget: Identifiable, Hashable {
 @MainActor
 final class KVMViewModel: ObservableObject {
     enum Segment: String, CaseIterable, Identifiable {
-        case vms, iso, templates, networks, storages
+        case overview, vms, iso, templates, networks, storages
 
         var id: String { rawValue }
         var title: String {
             switch self {
+            case .overview: return L10n.t("概览")
             case .vms: return L10n.t("虚拟机")
             case .iso: return L10n.t("镜像")
             case .templates: return L10n.t("模版")
@@ -36,7 +37,7 @@ final class KVMViewModel: ObservableObject {
         }
     }
 
-    @Published var segment: Segment = .vms
+    @Published var segment: Segment = .overview
 
     // 环境检测
     @Published private(set) var environment: KVMEnvironment?
@@ -103,11 +104,47 @@ final class KVMViewModel: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         switch segment {
+        case .overview: await loadOverview()
         case .vms: await loadVMs()
         case .iso: await loadISOs()
         case .templates: await loadTemplates()
         case .networks: await loadNetworks()
         case .storages: await loadStorages()
+        }
+    }
+
+    // MARK: 概览（vms/search 全量 + storages/list + dashboard/current 并发；网页端同源）
+
+    @Published private(set) var overview: KVMOverview?
+    @Published private(set) var overviewError: String?
+
+    func loadOverview() async {
+        do {
+            // 并发三请求：全量 search（网页同款 pageSize 10000，只用于统计、
+            // 不碰 vms 分页列表）+ 宿主机总量（失败降级无百分比）+ 存储池
+            //（概况卡片复用 storages 段数据源，失败沿用旧快照）
+            async let searchTask = client.send(
+                path: APIEndpoint.kvmSearch.path,
+                body: KVMSearchRequest(page: 1, pageSize: 10000, info: ""),
+                as: PageResponse<KVMVirtualMachine>.self)
+            async let hostTask = try? client.send(
+                path: APIEndpoint.dashboardCurrent.path,
+                method: APIEndpoint.dashboardCurrent.method,
+                as: DashboardCurrent.self)
+            async let poolsTask = fetchList(.kvmStorageList) as [KVMStoragePool]?
+
+            let search: PageResponse<KVMVirtualMachine> = try await searchTask
+            let host: DashboardCurrent? = await hostTask
+            let pools: [KVMStoragePool]? = await poolsTask
+
+            let items = search.items ?? []
+            vmTotal = search.total ?? items.count
+            overview = KVMOverview.compute(vms: items, host: host)
+            overviewError = nil
+            if let pools { storages = pools }
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            overviewError = error.localizedDescription
         }
     }
 

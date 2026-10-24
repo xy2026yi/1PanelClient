@@ -492,4 +492,85 @@ struct KVMModelsTests {
         #expect(AdvancedFeatureGate.isGated(.kvm))
         #expect(ManageItem.groups.first { $0.items.contains(.kvm) }?.title == L10n.t("高级功能"))
     }
+
+    // MARK: 概览统计（网页端同源数据，抓包 2026-10-24 数值逐项核对）
+
+    private func makeVM(_ id: Int, status: String, cpu: Int? = nil, memory: Int? = nil) -> KVMVirtualMachine {
+        let json = """
+        {"id":\(id),"name":"vm\(id)","status":"\(status)"
+        \(cpu.map { ",\"cpu\":\($0)" } ?? "")\(memory.map { ",\"memory\":\($0)" } ?? "")}
+        """
+        return try! JSONDecoder().decode(KVMVirtualMachine.self, from: Data(json.utf8))
+    }
+
+    @Test("概览统计：状态分桶计数（含挂起独立桶）+ CPU/内存分配求和与百分比")
+    func overviewCompute() throws {
+        let hostJSON = """
+        {"cpuTotal":2,"memoryTotal":8294105088}
+        """
+        let host = try JSONDecoder().decode(DashboardCurrent.self, from: Data(hostJSON.utf8))
+        let vms = [
+            makeVM(1, status: "running", cpu: 1, memory: 1024),   // 抓包 teat1
+            makeVM(2, status: "running", cpu: 1, memory: 2048),
+            makeVM(3, status: "shut off"),
+            makeVM(4, status: "creating"),
+            makeVM(5, status: "paused"),
+            makeVM(6, status: "crashed"),
+            makeVM(7, status: "in shutdown"),
+        ]
+        let overview = KVMOverview.compute(vms: vms, host: host)
+        #expect(overview.totalCount == 7)
+        #expect(overview.runningCount == 2)
+        #expect(overview.stoppedCount == 1)
+        #expect(overview.creatingCount == 2)      // creating + in shutdown
+        #expect(overview.pausedCount == 1)        // 挂起独立桶，不并入异常
+        #expect(overview.errorCount == 1)         // crashed
+        #expect(overview.allocatedCPU == 2)
+        #expect(overview.allocatedMemoryMB == 3072)
+        // 抓包核对：Σmemory 1024MB ÷ 8294105088B = 12.95%（网页精确一致）
+        let single = KVMOverview.compute(vms: [vms[0]], host: host)
+        #expect(abs((single.memoryPercent ?? 0) - 12.95) < 0.01)
+        #expect(single.cpuPercent == 50)
+
+        // 宿主机信息缺失 → 百分比降级为 nil
+        let noHost = KVMOverview.compute(vms: vms, host: nil)
+        #expect(noHost.cpuPercent == nil)
+        #expect(noHost.memoryPercent == nil)
+    }
+
+    @Test("概览风险规则：异常 VM / 池未启用 / 池超用 / 池报错 / CPU·内存超分配")
+    func overviewRisks() throws {
+        let hostJSON = """
+        {"cpuTotal":2,"memoryTotal":1073741824}
+        """
+        let host = try JSONDecoder().decode(DashboardCurrent.self, from: Data(hostJSON.utf8))
+        // CPU 3 > 2 核；内存 2048MB > 1GB → 双超分配
+        let overcommit = KVMOverview.compute(
+            vms: [makeVM(1, status: "running", cpu: 3, memory: 2048)], host: host)
+
+        let poolJSON = """
+        [{"id":1,"name":"p-inactive","status":"inactive","capacity":1000,"available":1000},
+         {"id":2,"name":"p-full","status":"Running","capacity":1000,"available":5},
+         {"id":3,"name":"p-error","status":"Running","capacity":1000,"available":1000,"error":"boom"}]
+        """
+        let pools = try JSONDecoder().decode([KVMStoragePool].self, from: Data(poolJSON.utf8))
+
+        let risks = KVMOverviewRisks.compute(overview: overcommit, pools: pools)
+        // 5 条 = 池未启用 + 池使用率>90% + 池报错 + CPU 超配 + 内存超配（无异常 VM）
+        #expect(risks.count == 5)
+        #expect(risks.contains { $0.message.contains("p-inactive") })
+        #expect(risks.contains { $0.message.contains("p-full") })
+        #expect(risks.contains { $0.message.contains("p-error") })
+        #expect(risks.contains { $0.message.contains("CPU") })
+        #expect(risks.contains { $0.message.contains("内存") })
+
+        // 健康场景：无风险
+        let healthy = KVMOverview.compute(
+            vms: [makeVM(1, status: "running", cpu: 1, memory: 512)], host: host)
+        let healthyPoolJSON = """
+        [{"id":1,"name":"ok","status":"Running","capacity":1000,"available":900}]
+        """
+        let healthyPools = try JSONDecoder().decode([KVMStoragePool].self, from: Data(healthyPoolJSON.utf8))
+        #expect(KVMOverviewRisks.compute(overview: healthy, pools: healthyPools).isEmpty)
+    }
 }

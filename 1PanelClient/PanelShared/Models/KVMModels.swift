@@ -39,7 +39,7 @@ nonisolated struct KVMEnvironment: Decodable, Equatable {
 // MARK: - 虚拟机
 
 /// POST /xpack/vms/search 返回项
-nonisolated struct KVMVirtualMachine: Decodable, Identifiable, Hashable {
+nonisolated struct KVMVirtualMachine: Decodable, Identifiable, Hashable, Sendable {
     let id: Int
     let name: String?
     let uuid: String?
@@ -82,7 +82,7 @@ nonisolated struct KVMVirtualMachine: Decodable, Identifiable, Hashable {
     }
 }
 
-nonisolated struct KVMDisk: Decodable, Hashable {
+nonisolated struct KVMDisk: Decodable, Hashable, Sendable {
     let capacity: Int64?
     let format: String?
     let readOnly: Bool?
@@ -114,7 +114,7 @@ nonisolated struct KVMDisk: Decodable, Hashable {
     }
 }
 
-nonisolated struct KVMInterface: Decodable, Hashable {
+nonisolated struct KVMInterface: Decodable, Hashable, Sendable {
     let type: String?
     let source: String?
     let model: String?
@@ -123,7 +123,7 @@ nonisolated struct KVMInterface: Decodable, Hashable {
 }
 
 /// 图形控制台信息（列表 graphics 字段与 POST /xpack/vms/console 响应同构）
-nonisolated struct KVMGraphics: Decodable, Hashable {
+nonisolated struct KVMGraphics: Decodable, Hashable, Sendable {
     let type: String?
     let port: String?
     let listen: String?
@@ -656,7 +656,7 @@ nonisolated struct KVMHostInterface: Decodable, Identifiable, Hashable {
 
 // MARK: - 网络
 
-nonisolated struct KVMResourceRef: Decodable, Hashable {
+nonisolated struct KVMResourceRef: Decodable, Hashable, Sendable {
     let id: Int?
     let name: String?
 }
@@ -774,7 +774,7 @@ nonisolated struct KVMResourceDeleteRequest: Encodable {
 // MARK: - 存储池
 
 /// POST /xpack/vms/storages/list 返回项；容量字节
-nonisolated struct KVMStoragePool: Decodable, Identifiable, Hashable {
+nonisolated struct KVMStoragePool: Decodable, Identifiable, Hashable, Sendable {
     let id: Int
     let name: String?
     /// dir
@@ -844,4 +844,99 @@ nonisolated struct KVMOrphanItem: Codable, Identifiable, Hashable {
 /// POST /xpack/vms/orphans/clean 请求体
 nonisolated struct KVMOrphansCleanRequest: Encodable {
     let items: [KVMOrphanItem]
+}
+
+// MARK: - 概览统计（客户端推导；网页端同源数据：vms/search + storages/list + dashboard/current）
+
+/// 虚拟机概览分桶（网页四桶 + 挂起；挂起为主动 suspend，归「异常」会误导）
+nonisolated enum KVMVMStatusBucket {
+    case running, stopped, creating, error, paused
+
+    static func of(_ vm: KVMVirtualMachine) -> KVMVMStatusBucket {
+        if vm.isRunning { return .running }
+        if vm.isShutOff { return .stopped }
+        if vm.isPaused { return .paused }
+        if vm.isTransitioning { return .creating }
+        return .error   // crashed / 未知状态
+    }
+}
+
+/// 概览统计快照：状态计数 + 资源分配（宿主机总量来自 dashboardCurrent；
+/// 数值口径经抓包逐项核对：内存 12.95% / 存储 0.91% 与网页精确一致）
+nonisolated struct KVMOverview: Equatable {
+    let runningCount: Int
+    let stoppedCount: Int
+    let creatingCount: Int
+    let errorCount: Int
+    let pausedCount: Int
+    /// Σ vm.cpu（核）
+    let allocatedCPU: Int
+    /// Σ vm.memory（MB）
+    let allocatedMemoryMB: Int
+    /// 宿主机核数（dashboardCurrent.cpuTotal）
+    let hostCPUCount: Int?
+    /// 宿主机内存字节（dashboardCurrent.memoryTotal）
+    let hostMemoryBytes: Int64?
+
+    var totalCount: Int { runningCount + stoppedCount + creatingCount + errorCount + pausedCount }
+    var memoryPercent: Double? {
+        guard let hostMemoryBytes, hostMemoryBytes > 0 else { return nil }
+        return Double(allocatedMemoryMB) * 1024 * 1024 / Double(hostMemoryBytes) * 100
+    }
+    var cpuPercent: Double? {
+        guard let hostCPUCount, hostCPUCount > 0 else { return nil }
+        return Double(allocatedCPU) / Double(hostCPUCount) * 100
+    }
+
+    static func compute(vms: [KVMVirtualMachine], host: DashboardCurrent?) -> KVMOverview {
+        var counts: [KVMVMStatusBucket: Int] = [:]
+        for vm in vms { counts[KVMVMStatusBucket.of(vm), default: 0] += 1 }
+        return KVMOverview(
+            runningCount: counts[.running] ?? 0,
+            stoppedCount: counts[.stopped] ?? 0,
+            creatingCount: counts[.creating] ?? 0,
+            errorCount: counts[.error] ?? 0,
+            pausedCount: counts[.paused] ?? 0,
+            allocatedCPU: vms.compactMap(\.cpu).reduce(0, +),
+            allocatedMemoryMB: vms.compactMap(\.memory).reduce(0, +),
+            hostCPUCount: host?.cpuTotal,
+            hostMemoryBytes: host?.memoryTotal)
+    }
+}
+
+/// 风险提醒条目（客户端推导规则；无专用 API——抓包三请求均不含风险端点，
+/// 网页端同为前端推导）
+nonisolated struct KVMRiskItem: Identifiable, Equatable {
+    let message: String
+    var id: String { message }
+}
+
+nonisolated enum KVMOverviewRisks {
+    /// 规则：异常虚拟机 ｜ 存储池未启用 ｜ 存储池使用率 > 90% ｜ 存储池报错 ｜ CPU/内存超分配
+    static func compute(overview: KVMOverview, pools: [KVMStoragePool]) -> [KVMRiskItem] {
+        var items: [KVMRiskItem] = []
+        if overview.errorCount > 0 {
+            items.append(KVMRiskItem(message: L10n.f("%ld 台虚拟机状态异常", overview.errorCount)))
+        }
+        for pool in pools {
+            if !pool.isActive {
+                items.append(KVMRiskItem(message: L10n.f("存储池 %@ 未启用", pool.displayName)))
+            }
+            if let percent = pool.usedPercent, percent > 90 {
+                items.append(KVMRiskItem(message: L10n.f("存储池 %@ 使用率 %.1f%%", pool.displayName, percent)))
+            }
+            if let error = pool.error, !error.isEmpty {
+                items.append(KVMRiskItem(message: L10n.f("存储池 %@：%@", pool.displayName, error)))
+            }
+        }
+        if let hostCPU = overview.hostCPUCount, hostCPU > 0, overview.allocatedCPU > hostCPU {
+            items.append(KVMRiskItem(message: L10n.f("CPU 分配（%ld 核）超过宿主机总量（%ld 核）",
+                                                     overview.allocatedCPU, hostCPU)))
+        }
+        if let hostMemory = overview.hostMemoryBytes, hostMemory > 0,
+           Int64(overview.allocatedMemoryMB) * 1024 * 1024 > hostMemory {
+            items.append(KVMRiskItem(message: L10n.t("内存分配超过宿主机总量")))
+        }
+        return items
+    }
 }

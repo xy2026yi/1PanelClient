@@ -5,10 +5,10 @@
 //  虚拟机管理根页（高级功能分组，/xpack/vms/*，专业版门禁；logs/高级功能-KVM.md 抓包 2026-10-23）：
 //  进页先 GET environment 做依赖门控——未就绪不可使用功能，仅显示 libvirt（详情
 //  /dev/kvm）/ storage（附目录路径）两行 已启用·未启用 提示 + 重新检测；就绪后分段
-//  虚拟机 / 镜像 / 模版 / 网络 / 存储池。
+//  概览 / 虚拟机 / 镜像 / 模版 / 网络 / 存储池（概览为默认段，KVMOverviewView）。
 //  虚拟机段：卡片列表（每台一卡：点击卡进详情、长按弹操作菜单——电源 / 编辑 / 重命名 / 删除，
 //  卡上常驻 控制台·健康检查·监控·快照·磁盘管理·转为模版 六个快捷按钮（3×2 网格，按状态可用）），
-//  工具栏 ⋯ 菜单（同步 / 孤立数据清理）+ 创建。
+//  工具栏 同步 + 创建。孤立数据清理入口在概览段右上角。
 //  任务式操作进度由根页 navigationDestination(item: activeTask) 推入 TaskProgressView
 //  （operateNode=local），完成后重拉当前段。VNC 控制台见 KVMVNCConsoleView（卡片「控制台」
 //  按钮推入）；健康检查结果弹 KVMHealthReportSheet。
@@ -82,6 +82,7 @@ struct KVMView: View {
             .padding(.vertical, 8)
 
             switch vm.segment {
+            case .overview: KVMOverviewView(vm: vm)
             case .vms: KVMVMListView(vm: vm)
             case .iso: KVMISOListView(vm: vm)
             case .templates: KVMTemplateListView(vm: vm)
@@ -185,7 +186,6 @@ struct KVMVMListView: View {
     @ObservedObject var vm: KVMViewModel
 
     @State private var showCreate = false
-    @State private var showOrphans = false
     @State private var actionVM: KVMVirtualMachine?
     @State private var route: KVMVMRoute?
     @State private var renameVM: KVMVirtualMachine?
@@ -213,30 +213,21 @@ struct KVMVMListView: View {
         .refreshable { await vm.loadVMs() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        Task {
-                            isSyncing = true
-                            defer { isSyncing = false }
-                            await vm.sync()
-                        }
-                    } label: {
-                        Label(L10n.t("同步"), systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    .disabled(isSyncing)
-                    Button {
-                        showOrphans = true
-                    } label: {
-                        Label(L10n.t("孤立数据清理"), systemImage: "trash.slash")
+                Button {
+                    Task {
+                        isSyncing = true
+                        defer { isSyncing = false }
+                        await vm.sync()
                     }
                 } label: {
                     if isSyncing {
                         ProgressView()
                     } else {
-                        Image(systemName: "ellipsis.circle")
+                        Image(systemName: "arrow.triangle.2.circlepath")
                     }
                 }
-                .accessibilityLabel(L10n.t("更多操作"))
+                .disabled(isSyncing)
+                .accessibilityLabel(L10n.t("同步"))
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -253,9 +244,6 @@ struct KVMVMListView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             KVMVMFormView(vm: vm)
-        }
-        .navigationDestination(isPresented: $showOrphans) {
-            KVMOrphansView(vm: vm)
         }
         .navigationDestination(item: $route) { route in
             switch route {
