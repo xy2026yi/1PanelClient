@@ -89,17 +89,6 @@
         }
       }
     },
-    "%@ · 网关 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · Gateway %@"
-          }
-        }
-      }
-    },
     "%@ 不可用，请在系统设置中检查权限" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -338,6 +327,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%ld child snapshots"
+          }
+        }
+      }
+    },
+    "%ld 个已用 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld IPs in use"
           }
         }
       }
@@ -1462,6 +1462,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DHCP end address"
+          }
+        }
+      }
+    },
+    "DHCP 范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DHCP Range"
           }
         }
       }
@@ -3370,6 +3381,17 @@
         }
       }
     },
+    "libvirt 注册" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "libvirt Registration"
+          }
+        }
+      }
+    },
     "nginx.conf" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4912,6 +4934,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failures only"
+          }
+        }
+      }
+    },
+    "仅展示未被虚拟机、快照或已登记模板引用的候选文件。请确认文件不再使用后再清理，清理操作不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only files not referenced by any virtual machine, snapshot, or registered template are listed. Make sure the files are no longer needed before cleaning — this operation cannot be undone."
           }
         }
       }
@@ -6467,6 +6500,28 @@
         }
       }
     },
+    "候选 %ld 项 · 共 %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld candidates · %@ %@ total"
+          }
+        }
+      }
+    },
+    "候选文件（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Candidate Files (%ld)"
+          }
+        }
+      }
+    },
     "值" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7006,6 +7061,17 @@
         }
       }
     },
+    "共 %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %@ total"
+          }
+        }
+      }
+    },
     "共 %@ 个" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7200,6 +7266,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Linked databases (%ld)"
+          }
+        }
+      }
+    },
+    "关联虚拟机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virtual Machines"
+          }
+        }
+      }
+    },
+    "关联虚拟机（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virtual Machines (%ld)"
           }
         }
       }
@@ -13177,6 +13265,17 @@
         }
       }
     },
+    "复制路径" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Path"
+          }
+        }
+      }
+    },
     "外部地址" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13529,6 +13628,28 @@
         }
       }
     },
+    "孤立数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphaned Data"
+          }
+        }
+      }
+    },
+    "孤立数据清理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphaned Data Cleanup"
+          }
+        }
+      }
+    },
     "孤立策略" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13536,6 +13657,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Orphan Policies"
+          }
+        }
+      }
+    },
+    "孤立虚拟机磁盘" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orphaned VM Disk"
           }
         }
       }
@@ -14838,6 +14970,17 @@
         }
       }
     },
+    "将删除 %ld 个文件，清理操作不可恢复。请确认文件不再使用。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld files will be deleted and this cannot be undone. Make sure they are no longer needed."
+          }
+        }
+      }
+    },
     "将删除 vLLM 实例「%@」及其容器与数据目录，不可恢复。请输入实例名称以确认删除。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15428,6 +15571,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hour(s)"
+          }
+        }
+      }
+    },
+    "尚未扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not scanned yet"
           }
         }
       }
@@ -16422,6 +16576,17 @@
         }
       }
     },
+    "已注册" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registered"
+          }
+        }
+      }
+    },
     "已添加 %ld 个周期，将按各周期分别执行。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16451,6 +16616,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cleaned"
+          }
+        }
+      }
+    },
+    "已清理 %ld 项" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleaned %ld items"
           }
         }
       }
@@ -16495,6 +16671,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Used"
+          }
+        }
+      }
+    },
+    "已用 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPs in Use"
+          }
+        }
+      }
+    },
+    "已用 IP（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPs in Use (%ld)"
           }
         }
       }
@@ -18457,6 +18655,17 @@
         }
       }
     },
+    "所有文件均被虚拟机、快照或模板引用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All files are referenced by a virtual machine, snapshot, or template"
+          }
+        }
+      }
+    },
     "所有网卡" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18919,6 +19128,17 @@
         }
       }
     },
+    "扫描失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan failed: %@"
+          }
+        }
+      }
+    },
     "扫描报告" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19223,6 +19443,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reject Default SSL Handshake"
+          }
+        }
+      }
+    },
+    "拖拽模式（按住左键拖动）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag mode (hold left button while dragging)"
           }
         }
       }
@@ -19678,13 +19909,13 @@
         }
       }
     },
-    "控制台为 VNC 图形界面：轻点左键、长按右键、拖动移动指针，捏合缩放；右上角键盘可输入。" : {
+    "控制台与健康检查入口在虚拟机列表卡片上。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Console is a VNC graphical screen: tap for left click, long-press for right click, drag to move the pointer, pinch to zoom; keyboard available from the top-right button."
+            "value" : "Console and health check are available as buttons on the virtual machine card."
           }
         }
       }
@@ -20888,6 +21119,17 @@
         }
       }
     },
+    "文本含无法键入的字符，已发送到客户机剪贴板（需客户机安装 spice-vdagent）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text contains characters that cannot be typed; it has been sent to the guest clipboard (requires spice-vdagent in the guest)"
+          }
+        }
+      }
+    },
     "文本和图片" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21192,6 +21434,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No versions available"
+          }
+        }
+      }
+    },
+    "无孤立数据" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Orphaned Data"
           }
         }
       }
@@ -21867,6 +22120,17 @@
         }
       }
     },
+    "暂无关联虚拟机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Associated Virtual Machines"
+          }
+        }
+      }
+    },
     "暂无内容（证书未签发或申请失败）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22281,6 +22545,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No installed skills"
+          }
+        }
+      }
+    },
+    "暂无已用 IP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No IPs in Use"
           }
         }
       }
@@ -23759,6 +24034,17 @@
         }
       }
     },
+    "未发现未被引用的候选文件" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No unreferenced candidate files found"
+          }
+        }
+      }
+    },
     "未启用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23964,6 +24250,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No disks detected"
+          }
+        }
+      }
+    },
+    "未注册" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Registered"
           }
         }
       }
@@ -25277,6 +25574,17 @@
         }
       }
     },
+    "正在扫描…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning…"
+          }
+        }
+      }
+    },
     "正在更新…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26262,7 +26570,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cleaning failed: %@"
+            "value" : "Cleanup failed: %@"
           }
         }
       }
@@ -26329,6 +26637,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prune containers failed: %@"
+          }
+        }
+      }
+    },
+    "清理所选" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean Selected"
           }
         }
       }
@@ -27616,6 +27935,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Users (%ld)"
+          }
+        }
+      }
+    },
+    "由 libvirt DHCP 分配给虚拟机的地址。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Addresses assigned to virtual machines by libvirt DHCP."
           }
         }
       }
@@ -29893,6 +30223,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Type"
+          }
+        }
+      }
+    },
+    "粘贴" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste"
           }
         }
       }
@@ -32757,6 +33098,17 @@
         }
       }
     },
+    "触摸模式（轻点左键，长按右键）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch mode (tap for left click, long-press for right click)"
+          }
+        }
+      }
+    },
     "警告" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35210,6 +35562,17 @@
         }
       }
     },
+    "路径与容量" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path & Capacity"
+          }
+        }
+      }
+    },
     "路径选择" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37362,6 +37725,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Re-running initialization takes over the config file and restarts the service again"
+          }
+        }
+      }
+    },
+    "重新扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rescan"
           }
         }
       }

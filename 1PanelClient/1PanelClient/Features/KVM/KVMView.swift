@@ -7,10 +7,11 @@
 //  /dev/kvm）/ storage（附目录路径）两行 已启用·未启用 提示 + 重新检测；就绪后分段
 //  虚拟机 / 镜像 / 模版 / 网络 / 存储池。
 //  虚拟机段：卡片列表（每台一卡：点击卡进详情、长按弹操作菜单——电源 / 编辑 / 重命名 / 删除，
-//  卡上常驻 监控·快照·磁盘管理·转为模版 四个快捷按钮，按状态可用），工具栏 创建 + 同步。
+//  卡上常驻 控制台·健康检查·监控·快照·磁盘管理·转为模版 六个快捷按钮（3×2 网格，按状态可用）），
+//  工具栏 ⋯ 菜单（同步 / 孤立数据清理）+ 创建。
 //  任务式操作进度由根页 navigationDestination(item: activeTask) 推入 TaskProgressView
-//  （operateNode=local），完成后重拉当前段。VNC 控制台见 KVMVNCConsoleView
-//  （详情页「控制台」行推入）。
+//  （operateNode=local），完成后重拉当前段。VNC 控制台见 KVMVNCConsoleView（卡片「控制台」
+//  按钮推入）；健康检查结果弹 KVMHealthReportSheet。
 //
 
 import SwiftUI
@@ -170,12 +171,21 @@ enum KVMVMRoute: Hashable {
     case monitor(KVMVirtualMachine)
     case disks(KVMVirtualMachine)
     case snapshots(KVMVirtualMachine)
+    case console(KVMVirtualMachine)
+}
+
+/// 健康检查结果（卡片按钮触发 → sheet 弹层）
+struct KVMHealthCheckResult: Identifiable {
+    let machine: KVMVirtualMachine
+    let report: KVMHealthReport
+    var id: Int { machine.id }
 }
 
 struct KVMVMListView: View {
     @ObservedObject var vm: KVMViewModel
 
     @State private var showCreate = false
+    @State private var showOrphans = false
     @State private var actionVM: KVMVirtualMachine?
     @State private var route: KVMVMRoute?
     @State private var renameVM: KVMVirtualMachine?
@@ -184,13 +194,16 @@ struct KVMVMListView: View {
     @State private var forceDelete = false
     @State private var pendingOperate: (vm: KVMVirtualMachine, operate: KVMOperate)?
     @State private var isSyncing = false
+    // 健康检查（卡片按钮触发；转圈 + 结果弹层）
+    @State private var checkingHealthID: Int?
+    @State private var healthResult: KVMHealthCheckResult?
 
     var body: some View {
         List {
             if vm.vms.isEmpty {
                 vmEmptySection
             } else {
-                // 每台虚拟机一张卡（独立 Section）：信息行 + 四个快捷按钮
+                // 每台虚拟机一张卡（独立 Section）：信息行 + 六个快捷按钮
                 ForEach(vm.vms) { machine in
                     vmCard(machine)
                 }
@@ -200,21 +213,30 @@ struct KVMVMListView: View {
         .refreshable { await vm.loadVMs() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task {
-                        isSyncing = true
-                        defer { isSyncing = false }
-                        await vm.sync()
+                Menu {
+                    Button {
+                        Task {
+                            isSyncing = true
+                            defer { isSyncing = false }
+                            await vm.sync()
+                        }
+                    } label: {
+                        Label(L10n.t("同步"), systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .disabled(isSyncing)
+                    Button {
+                        showOrphans = true
+                    } label: {
+                        Label(L10n.t("孤立数据清理"), systemImage: "trash.slash")
                     }
                 } label: {
                     if isSyncing {
                         ProgressView()
                     } else {
-                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
-                .disabled(isSyncing)
-                .accessibilityLabel(L10n.t("同步"))
+                .accessibilityLabel(L10n.t("更多操作"))
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -232,6 +254,9 @@ struct KVMVMListView: View {
         .navigationDestination(isPresented: $showCreate) {
             KVMVMFormView(vm: vm)
         }
+        .navigationDestination(isPresented: $showOrphans) {
+            KVMOrphansView(vm: vm)
+        }
         .navigationDestination(item: $route) { route in
             switch route {
             case .detail(let machine): KVMVMDetailView(vm: vm, machine: machine)
@@ -239,6 +264,8 @@ struct KVMVMListView: View {
             case .monitor(let machine): KVMVMMonitorView(vm: vm, machine: machine)
             case .disks(let machine): KVMDiskManageView(vm: vm, machine: machine)
             case .snapshots(let machine): KVMSnapshotListView(vm: vm, machine: machine)
+            case .console(let machine):
+                KVMVNCConsoleView(server: vm.server, machineName: machine.displayName)
             }
         }
         .sheet(item: $actionVM) { machine in
@@ -249,6 +276,9 @@ struct KVMVMListView: View {
             )
             .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(machine).count))])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $healthResult) { result in
+            KVMHealthReportSheet(machine: result.machine, report: result.report)
         }
         .sheet(item: $renameVM) { machine in
             KVMRenameSheet(machine: machine) { newName in
@@ -343,7 +373,20 @@ struct KVMVMListView: View {
                     }
                 }
 
-            HStack(spacing: 8) {
+            // 六枚快捷按钮 3×2 网格：控制台·健康检查（原详情页入口上移）→ 监控·快照·磁盘·模版
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                CardActionButton(
+                    title: L10n.t("控制台"), icon: "rectangle.on.rectangle", color: .orange,
+                    disabled: machine.graphics == nil
+                ) {
+                    route = .console(machine)
+                }
+                CardActionButton(
+                    title: L10n.t("健康检查"), icon: "stethoscope", color: .green,
+                    busy: checkingHealthID == machine.id
+                ) {
+                    Task { await runHealthCheck(machine) }
+                }
                 CardActionButton(
                     title: L10n.t("监控"), icon: "chart.xyaxis.line", color: .blue,
                     disabled: !machine.isRunning
@@ -370,6 +413,20 @@ struct KVMVMListView: View {
             }
             .padding(.top, 2)
             .padding(.bottom, 4)
+        }
+    }
+
+    /// 健康检查：按钮转圈 → 结果弹层（原详情页入口上移至卡片）
+    private func runHealthCheck(_ machine: KVMVirtualMachine) async {
+        checkingHealthID = machine.id
+        defer { checkingHealthID = nil }
+        do {
+            let report = try await vm.healthCheck(machine)
+            healthResult = KVMHealthCheckResult(machine: machine, report: report)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            vm.alertMessage = L10n.f("健康检查失败：%@", error.localizedDescription)
+            vm.showAlert = true
         }
     }
 

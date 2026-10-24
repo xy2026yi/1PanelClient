@@ -2,23 +2,28 @@
 //  KVMVNCConsoleView.swift
 //  1PanelClient
 //
-//  虚拟机 VNC 控制台（MVP）：WS /xpack/vms/console/ws?name=&operateNode=local 承载
-//  裸 RFB 3.8 字节流（logs/vnc_ws_dump.txt 抓包为联调 ground truth）。
+//  虚拟机 VNC 控制台：WS /xpack/vms/console/ws?name=&operateNode= 承载
+//  裸 RFB 3.8 字节流（logs/vnc_ws_dump*.txt 抓包为联调 ground truth）。
 //  - 鉴权在 WS/HTTP 层（1Panel-Token，与终端同款），RFB 安全类型 None（抓包实证）；
-//  - 像素格式 32bpp/24bit 真彩小端、shifts 0/8/16（逐字节对齐网页端——面板
-//    代理不接受服务端原生回显；字节序 RGBA，直接落 byteOrder32Little +
-//    noneSkipLast 位图，零逐像素转换）；
-//  - 编码只宣告 RAW + CopyRect + DesktopSize 伪编码（服务端只能从客户端集合里选），
-//    不宣告光标伪编码——qemu 会把客户机光标画进帧缓冲；压缩编码留二期；
-//  - 键盘用标准 KeyEvent（keysym），QEMU 扩展键码留二期；
+//  - 像素格式 32bpp/24bit 真彩小端、shifts 0/8/16（逐字节对齐网页端）；像素值经
+//    面板代理后按大端落字节，内存序 [pad,B,G,R]，CGImage 用 byteOrder32Little +
+//    noneSkipLast 位图零逐像素转换（探针实证：该组合读内存为 X,B,G,R）；
+//  - 编码宣告 Tight + hextile + RAW + CopyRect + 伪编码（DesktopSize/LastRect/
+//    Cursor/QEMU 扩展键/LED）；Tight 支持-fill/copy/palette/gradient 过滤器与
+//    4 条持久 zlib 流（不宣告质量等级与 TightPNG，故无 JPEG/PNG 矩形）；
+//  - 光标伪编码本地渲染（cirrus-vga 由模拟器画进帧缓冲，virtio 系显卡走 -239）；
+//  - 键盘：文本走标准 KeyEvent（keysym），专用键/修饰走 QEMU 扩展键事件
+//    （XT set-1 键码）；iPad 外接键盘经 .onKeyPress 接管；
+//  - 输入：轻点=左键、长按=右键、拖动=移动指针；拖拽模式下按下-移动-释放=
+//    左键拖动；双指滚动=滚轮（UIKit 2 指手势，±3% 内不视为捏合）；
+//    捏合缩放（缩放中双指拖动平移）；底部键盘栏含修饰键与功能键。
 //  - WS 帧与 RFB 消息边界不对齐（代理按 TCP 块切分，抓包实证），必须流式拼装。
-//  输入：轻点=左键、长按=右键、拖动=移动指针；捏合缩放（缩放中双指拖动平移）；
-//  底部键盘栏接收英文/符号（IME 无法映射 keysym）+ 方向/功能键与粘滞修饰键。
 //
 
 import SwiftUI
 import CryptoKit
 import Combine
+import Compression
 
 // MARK: - RFB 字节序辅助
 
@@ -65,15 +70,17 @@ nonisolated enum RFBClientEncoder {
               0x00, 0x00, 0x00])                  // 3 字节填充
     }
 
-    /// SetEncodings：hextile(5) + RAW(0) + CopyRect(1) + 伪编码（DesktopSize/LastRect/
-    /// Cursor/QEMU 扩展键/LED）。qemu 从客户端集合选，无 Tight/ZRLE 时选 hextile。
+    /// SetEncodings：Tight(7) + hextile(5) + RAW(0) + CopyRect(1) + 伪编码
+    /// （DesktopSize/LastRect/Cursor/QEMU 扩展键/LED）。qemu 逆向遍历编码表、
+    /// 列表首个帧编码胜出（vnc.c set_encodings 注释实证），故 Tight 放首位；
+    /// 不宣告质量等级（-32..-23）与 TightPNG(-260)，qemu 不会发 JPEG/PNG 矩形。
     ///
     /// ⚠️ 填充 1 字节（RFB 3.3 线上布局），不是 RFC 6143 的 2 字节——dump_1 帧 9
     /// 实证网页端按 1 字节填充发送，1Panel agent 同布局解析；按 6143 发 2 字节
     /// 填充会被读成 0 个编码并使后续字节错位、连接被静默掐断（vnc_probe2 分段
     /// 实验定位：发完 SetPixelFormat 存活、发完 SetEncodings 即死）
     static func setEncodings() -> Data {
-        let encodings: [Int32] = [5, 0, 1, -223, -224, -239, -258, -261]
+        let encodings: [Int32] = [7, 5, 0, 1, -223, -224, -239, -258, -261]
         var data = Data([0x02, 0x00])                     // 类型 + 1 字节填充（3.3 布局）
         data.append(contentsOf: RFBBytes.be16(UInt16(encodings.count)))
         for encoding in encodings {
@@ -116,6 +123,16 @@ nonisolated enum RFBClientEncoder {
         data.append(contentsOf: RFBBytes.be32(keycode))
         return data
     }
+
+    /// ClientCutText（类型 6）：发送 iOS 剪贴板文本给客户机。qemu 侧需 vdagent
+    /// 才会落到客户机剪贴板（无代理则静默忽略，无害）
+    static func clientCutText(_ text: String) -> Data {
+        let bytes = Array(text.utf8)
+        var data = Data([0x06, 0x00, 0x00, 0x00])
+        data.append(contentsOf: RFBBytes.be32(UInt32(bytes.count)))
+        data.append(contentsOf: bytes)
+        return data
+    }
 }
 
 // MARK: - ServerInit 解析（抓包帧 7 样本见单测）
@@ -151,11 +168,88 @@ nonisolated enum RFBServerMessage: Equatable {
     case copyRect(x: Int, y: Int, width: Int, height: Int, sourceX: Int, sourceY: Int)
     /// 分辨率变化（重置帧缓冲并补发全量请求）
     case desktopSize(width: Int, height: Int)
+    /// 光标形状（热区 = 矩形坐标 x,y；0 尺寸 = 隐藏光标）
+    case cursor(hotX: Int, hotY: Int, width: Int, height: Int, pixels: Data, mask: Data)
     case bell
     case serverCutText(String)
     /// 已消费但客户端无需处理的消息（如 SetColourMapEntries）
     case ignored
 }
+
+// MARK: - Tight zlib 持久解压流
+
+/// Tight 的 zlib 流跨矩形复用（同流字典续压，qemu 每段 Z_SYNC_FLUSH、无 adler）。
+/// Apple COMPRESSION_ZLIB 实为裸 DEFLATE（探针实证：编码产物无 RFC1950 头、
+/// 需跳 2 字节头后解压），故每条流首次使用跳过对端的 2 字节 zlib 头；
+/// 重置位到达时重置流并重新跳头。多余输入（同步刷新尾）留存流内续用
+nonisolated final class TightZlibStream {
+    private var stream = compression_stream(
+        dst_ptr: UnsafeMutablePointer<UInt8>(bitPattern: 1)!, dst_size: 0,
+        src_ptr: UnsafePointer<UInt8>(bitPattern: 1)!, src_size: 0,
+        state: nil)
+    private var active = false
+    private var skippedHeader = false
+    /// 上轮未消费输入（Z_SYNC_FLUSH 尾等），续入下个矩形
+    private var pending = [UInt8]()
+
+    init?() {
+        guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB)
+                == COMPRESSION_STATUS_OK else { return nil }
+        active = true
+    }
+
+    deinit {
+        if active { compression_stream_destroy(&stream) }
+    }
+
+    /// 服务端控制字节重置位：重置流（下个 blob 重新带头）
+    func reset() {
+        guard active else { return }
+        compression_stream_destroy(&stream)
+        _ = compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB)
+        pending.removeAll()
+        skippedHeader = false
+    }
+
+    /// 喂入一个矩形的压缩数据，产出恰好 outputSize 字节。
+    /// 输入不足或损坏返回 nil；多余输入留存流内
+    func inflate(_ input: [UInt8], outputSize: Int) -> [UInt8]? {
+        guard active else { return nil }
+        guard outputSize > 0 else { return [] }
+        pending.append(contentsOf: input)
+        if !skippedHeader {
+            guard pending.count >= 2 else { return nil }
+            pending.removeFirst(2)
+            skippedHeader = true
+        }
+        var output = [UInt8](repeating: 0, count: outputSize)
+        var produced = 0
+        var consumed = 0
+        var failed = false
+        var exhausted = false
+
+        pending.withUnsafeMutableBufferPointer { inputBuffer in
+            output.withUnsafeMutableBufferPointer { outputBuffer in
+                while produced < outputSize {
+                    stream.src_ptr = UnsafePointer(inputBuffer.baseAddress! + consumed)
+                    stream.src_size = inputBuffer.count - consumed
+                    stream.dst_ptr = outputBuffer.baseAddress! + produced
+                    stream.dst_size = outputBuffer.count - produced
+                    let status = compression_stream_process(&stream, 0)
+                    consumed = inputBuffer.count - stream.src_size
+                    produced = outputBuffer.count - stream.dst_size
+                    if status == COMPRESSION_STATUS_ERROR { failed = true; return }
+                    if stream.src_size == 0, produced < outputSize { exhausted = true; return }
+                }
+            }
+        }
+        if failed || exhausted || produced < outputSize { return nil }
+        pending.removeFirst(consumed)
+        return output
+    }
+}
+
+// MARK: - RFB 字节流拼装
 
 /// RFB 字节流 → 服务端消息。WS 帧边界与消息边界不对齐（代理按 TCP 块切分），
 /// 内部缓存拼装；feed 可任意切块（单测按乱块喂入验证）
@@ -172,6 +266,9 @@ nonisolated final class RFBMessageAssembler {
     /// hextile 跨瓦片/矩形延续的前景/背景色（RFB 规定未指定时沿用上值）
     private var hextileBackground: [UInt8]?
     private var hextileForeground: [UInt8]?
+    /// Tight 的 4 条持久 zlib 流（同流字典跨矩形续压；qemu 实证 stream0=copy/
+    /// 1=mono/2=palette/3=gradient），惰性创建
+    private var tightStreams: [TightZlibStream?] = [nil, nil, nil, nil]
 
     /// 复位内部缓存与批次状态（重连时调用）
     func reset() {
@@ -181,6 +278,7 @@ nonisolated final class RFBMessageAssembler {
         onBatchCompleteFlag = false
         hextileBackground = nil
         hextileForeground = nil
+        tightStreams = [nil, nil, nil, nil]
     }
 
     /// 喂入并按序取回本段解析出的全部消息（回调式无法保证消费顺序，
@@ -260,18 +358,33 @@ nonisolated final class RFBMessageAssembler {
                 return .rawRect(x: x, y: y, width: width, height: height, pixels: pixels)
             }
             return nil
-        case -239:  // 光标伪编码：像素 + 位掩码，仅消费（不绘制本地光标）
+        case 7:  // Tight：qemu 首选编码（fill/copy/palette/gradient + 持久 zlib 流）
+            if let message = tryTakeTightRect(x: x, y: y, width: width, height: height) {
+                pendingRects -= 1
+                return message
+            }
+            return nil
+        case -239:  // 光标伪编码：w*h*4 像素 + 位掩码，本地渲染（热区 = 矩形坐标）
             let byteCount = width * height * 4 + (width + 7) / 8 * height
-            guard width >= 0, height >= 0, byteCount <= 16 * 1024 * 1024,
-                  let _ = take(12 + byteCount) else {
-                failure = String(format: "Illegal cursor rect %dx%d", width, height)
-                return nil
+            guard byteCount <= 16 * 1024 * 1024, let payload = take(12 + byteCount) else {
+                if byteCount > 16 * 1024 * 1024 {
+                    failure = String(format: "Illegal cursor rect %dx%d", width, height)
+                }
+                return nil  // 字节不足：等待，不置失败
             }
             pendingRects -= 1
-            return .ignored
-        case -258, -224:  // QEMU 扩展键宣告 / LastRect：0 长度
+            let body = payload.suffix(byteCount)
+            return .cursor(hotX: x, hotY: y, width: width, height: height,
+                           pixels: body.prefix(width * height * 4),
+                           mask: body.suffix((width + 7) / 8 * height))
+        case -258:  // QEMU 扩展键宣告回执：0 尺寸矩形（正常参与计数）
             _ = take(12)
             pendingRects -= 1
+            return .ignored
+        case -224:  // LastRect：服务端提前结束本批——矩形数清零（noVNC 同款；
+            // qemu 实际按真实计数发送、不用 LastRect，此为 TightVNC 系服务端兼容）
+            _ = take(12)
+            pendingRects = 0
             return .ignored
         case -261:  // QEMU LED 状态：1 字节
             guard let _ = take(13) else { return nil }
@@ -386,9 +499,185 @@ nonisolated final class RFBMessageAssembler {
         return Data(pixels)
     }
 
-    /// 帧更新之外的普通消息（Bell / ServerCutText / SetColourMapEntries）
+    // MARK: Tight 解码（协议布局经 noVNC tight.js / qemu vnc-enc-tight.c / 抓包三方实证）
+
+    /// 控制字节：低 4 位 = 4 条 zlib 流的重置位；高半字节：
+    /// 0x08 fill（后随 3 字节 RGB）｜0x09 JPEG｜0x0A PNG｜否则 basic——
+    /// bit2 = 显式过滤器字节（0 copy / 1 palette / 2 gradient），bit0-1 = zlib 流号。
+    /// 压缩数据前置紧凑长度（压缩后字节数，7bit/字节续位编码，第 3 字节全 8 位）；
+    /// 未压缩数据 < 12 字节时直发不压缩（qemu VNC_TIGHT_MIN_TO_COMPRESS）。
+    /// 像素数据为 24bit RGB 三元组（tight_pack24 按 shift 取值，与端序无关），
+    /// 展开为帧缓冲字节序 [pad,B,G,R]（与 hextile/RAW 原样落位一致）
+    private func tryTakeTightRect(x: Int, y: Int, width: Int, height: Int) -> RFBServerMessage? {
+        guard width > 0, height > 0, width * height <= 16 * 1024 * 1024 else {
+            failure = String(format: "Illegal tight rect %dx%d", width, height)
+            return nil
+        }
+        var cursor = 12  // 矩形头仍在缓存中（peek，不消费）
+        func peekByte() -> UInt8? {
+            guard buffer.count > cursor else { return nil }
+            defer { cursor += 1 }
+            return buffer[buffer.startIndex + cursor]
+        }
+        func peekBytes(_ count: Int) -> [UInt8]? {
+            guard buffer.count >= cursor + count else { return nil }
+            defer { cursor += count }
+            return [UInt8](buffer[(buffer.startIndex + cursor)..<(buffer.startIndex + cursor + count)])
+        }
+        /// 紧凑长度（压缩后大小）：b&0x7f 逐字节 7bit，0x80 续位；第 3 字节全 8 位
+        func peekCompactLength() -> Int? {
+            guard let b0 = peekByte() else { return nil }
+            var length = Int(b0 & 0x7f)
+            if b0 & 0x80 != 0 {
+                guard let b1 = peekByte() else { return nil }
+                length |= Int(b1 & 0x7f) << 7
+                if b1 & 0x80 != 0 {
+                    guard let b2 = peekByte() else { return nil }
+                    length |= Int(b2) << 14
+                }
+            }
+            guard length <= 64 * 1024 * 1024 else {
+                failure = "Tight blob too long: \(length)"
+                return nil
+            }
+            return length
+        }
+
+        guard let control = peekByte() else { return nil }
+        for i in 0..<4 where (control >> i) & 1 == 1 { tightStreams[i]?.reset() }
+        let high = control >> 4
+
+        // RGB 三元组 → 帧缓冲 4 字节（[pad,B,G,R]，与 hextile/RAW 送达序一致）
+        func framebufferPixels(rgb: [UInt8]) -> Data {
+            var pixels = [UInt8](repeating: 0, count: rgb.count / 3 * 4)
+            for i in 0..<(rgb.count / 3) {
+                pixels[i * 4] = 0
+                pixels[i * 4 + 1] = rgb[i * 3 + 2]
+                pixels[i * 4 + 2] = rgb[i * 3 + 1]
+                pixels[i * 4 + 3] = rgb[i * 3]
+            }
+            return Data(pixels)
+        }
+
+        if high == 0x08 {  // fill：纯色矩形（3 字节 RGB）
+            guard let rgb = peekBytes(3) else { return nil }
+            guard take(cursor) != nil else { return nil }
+            var repeated = [UInt8]()
+            repeated.reserveCapacity(width * height * 3)
+            for _ in 0..<(width * height) { repeated.append(contentsOf: rgb) }
+            let pixels = framebufferPixels(rgb: repeated)
+            return .rawRect(x: x, y: y, width: width, height: height, pixels: pixels)
+        }
+        guard high & 0x08 == 0 else {
+            // 0x09 JPEG / 0x0A PNG：未宣告质量等级与 TightPNG，不应出现
+            failure = String(format: "Unexpected tight type %#04x (JPEG/PNG not announced)", control)
+            return nil
+        }
+        let streamIndex = Int(high & 0x03)
+        var filter: UInt8 = 0
+        if high & 0x04 != 0 {
+            guard let f = peekByte() else { return nil }
+            filter = f
+        }
+        /// 过滤器数据：≥ 12 字节走 zlib（紧凑长度 + 压缩块），否则直发
+        func peekFilterData(uncompressedSize: Int) -> [UInt8]? {
+            if uncompressedSize < 12 { return peekBytes(uncompressedSize) }
+            guard let compressedLength = peekCompactLength() else { return nil }
+            guard let blob = peekBytes(compressedLength) else { return nil }
+            guard let stream = tightStream(at: streamIndex) else { return nil }
+            guard let data = stream.inflate(blob, outputSize: uncompressedSize) else {
+                failure = "Tight zlib inflate failed (stream \(streamIndex))"
+                return nil
+            }
+            return data
+        }
+
+        var pixels: Data
+        switch filter {
+        case 0, 2:  // copy / gradient：w*h*3 RGB（gradient 为 delta 预测编码）
+            let uncompressedSize = width * height * 3
+            guard var data = peekFilterData(uncompressedSize: uncompressedSize) else { return nil }
+            if filter == 2 { data = Self.decodeGradient(data, width: width, height: height) }
+            pixels = framebufferPixels(rgb: data)
+        case 1:  // palette：1 字节数量-1 + 数量×3 RGB 调色板 + 索引（≤2 色 1bpp，否则 8bpp）
+            guard let colorByte = peekByte() else { return nil }
+            let colors = Int(colorByte) + 1
+            guard let palette = peekBytes(colors * 3) else { return nil }
+            let bitsPerPixel = colors <= 2 ? 1 : 8
+            let rowBytes = (width * bitsPerPixel + 7) / 8
+            guard let indices = peekFilterData(uncompressedSize: rowBytes * height) else { return nil }
+            var rgb = [UInt8](repeating: 0, count: width * height * 3)
+            for row in 0..<height {
+                for column in 0..<width {
+                    let index: Int
+                    if bitsPerPixel == 1 {
+                        index = Int(indices[row * rowBytes + column / 8] >> (7 - column % 8) & 1)
+                    } else {
+                        index = Int(indices[row * width + column])
+                    }
+                    for c in 0..<3 {
+                        rgb[(row * width + column) * 3 + c] = palette[index * 3 + c]
+                    }
+                }
+            }
+            pixels = framebufferPixels(rgb: rgb)
+        default:
+            failure = "Illegal tight filter \(filter)"
+            return nil
+        }
+        guard take(cursor) != nil else { return nil }
+        return .rawRect(x: x, y: y, width: width, height: height, pixels: pixels)
+    }
+
+    /// 惰性取用/创建 Tight zlib 流
+    private func tightStream(at index: Int) -> TightZlibStream? {
+        if let stream = tightStreams[index] { return stream }
+        guard let stream = TightZlibStream() else {
+            failure = "zlib stream init failed"
+            return nil
+        }
+        tightStreams[index] = stream
+        return stream
+    }
+
+    /// gradient 过滤器还原（noVNC _gradientFilter 逐式移植，输出改为 3 字节/像素）：
+    /// 首行左预测，其余行 clamp(左 + 上 - 左上)，delta 按字节回绕加
+    static func decodeGradient(_ data: [UInt8], width: Int, height: Int) -> [UInt8] {
+        var output = [UInt8](repeating: 0, count: width * height * 3)
+        var dataIndex = 0
+        var left = [UInt8](repeating: 0, count: 3)
+        for column in 0..<width {
+            for c in 0..<3 {
+                let value = data[dataIndex] &+ left[c]
+                output[column * 3 + c] = value
+                left[c] = value
+                dataIndex += 1
+            }
+        }
+        for row in 1..<height {
+            left = [0, 0, 0]
+            var upperLeft = [UInt8](repeating: 0, count: 3)
+            let upperRow = (row - 1) * width * 3
+            for column in 0..<width {
+                for c in 0..<3 {
+                    let upper = output[upperRow + column * 3 + c]
+                    let prediction = min(255, max(0, Int(left[c]) + Int(upper) - Int(upperLeft[c])))
+                    let value = data[dataIndex] &+ UInt8(prediction)
+                    output[row * width * 3 + column * 3 + c] = value
+                    upperLeft[c] = upper
+                    left[c] = value
+                    dataIndex += 1
+                }
+            }
+        }
+        return output
+    }
+
+    /// 帧更新之外的普通消息（Bell / ServerCutText / SetColourMapEntries）。
+    /// 类型 0 属帧更新头（由 tryTakeUpdateHeader 处理）——字节不足时此处须等待
+    /// 而非报错（窄 WS 帧可使 FBU 头跨帧截断，逐字节喂入单测实证）
     private func tryTakeNormalMessage() -> RFBServerMessage? {
-        guard let type = buffer.first else { return nil }
+        guard let type = buffer.first, type != 0 else { return nil }
         switch type {
         case 1:  // SetColourMapEntries：填充 2 + first 2 + count 2 + count*6
             guard let count = peekU16(4) else { return nil }
@@ -416,14 +705,15 @@ nonisolated final class RFBMessageAssembler {
     }
 }
 
-// MARK: - 帧缓冲（BGRA 32bpp）
+// MARK: - 帧缓冲（像素值大端落字节：[pad,B,G,R]）
 
-/// 客户端像素格式（网页端同款 shifts 0/8/16 小端）下，像素内存字节序为
-/// R,G,B,0（RGBA），CGImage 用 byteOrder32Little + noneSkipLast 零转换成像
+/// 客户端像素格式（网页端同款 shifts 0/8/16）下像素值经面板代理后按大端落字节，
+/// 内存序 [pad,B,G,R]，CGImage 用 byteOrder32Little + noneSkipLast 零转换成像
+///（探针实证：该组合读内存为 X,B,G,R）。Tight 展开亦产出同序
 nonisolated final class RFBFramebuffer {
     private(set) var width: Int
     private(set) var height: Int
-    /// RGBA 逐行存储（按服务端送达字节序原样落位）
+    /// 逐行存储，字节序与送达原样一致（[pad,B,G,R]）
     private(set) var pixels: [UInt8]
 
     init(width: Int, height: Int) {
@@ -474,7 +764,7 @@ nonisolated final class RFBFramebuffer {
         pixels = [UInt8](repeating: 0, count: self.width * self.height * 4)
     }
 
-    /// 指定坐标像素（R,G,B,0 四字节；单测用）
+    /// 指定坐标像素（按送达原样 4 字节；单测用）
     func pixel(x: Int, y: Int) -> (UInt8, UInt8, UInt8, UInt8)? {
         guard x >= 0, y >= 0, x < width, y < height else { return nil }
         let start = (y * width + x) * 4
@@ -509,14 +799,35 @@ nonisolated enum RFBKeysym {
     static let up: UInt32 = 0xff52
     static let right: UInt32 = 0xff53
     static let down: UInt32 = 0xff54
+    static let home: UInt32 = 0xff50
+    static let end: UInt32 = 0xff57
+    static let pageUp: UInt32 = 0xff55   // Prior
+    static let pageDown: UInt32 = 0xff56  // Next
+    static let insert: UInt32 = 0xff63
     static let shift: UInt32 = 0xffe1
     static let control: UInt32 = 0xffe3
     static let alt: UInt32 = 0xffe9
+    static let superKey: UInt32 = 0xffeb  // Super_L（Win 键）
+    static let capsLock: UInt32 = 0xffe5
+    static let space: UInt32 = 0x20
+    static let f1: UInt32 = 0xffbe
+    static let f2: UInt32 = 0xffbf
+    static let f3: UInt32 = 0xffc0
+    static let f4: UInt32 = 0xffc1
+    static let f5: UInt32 = 0xffc2
+    static let f6: UInt32 = 0xffc3
+    static let f7: UInt32 = 0xffc4
+    static let f8: UInt32 = 0xffc5
+    static let f9: UInt32 = 0xffc6
+    static let f10: UInt32 = 0xffc7
+    static let f11: UInt32 = 0xffc8
+    static let f12: UInt32 = 0xffc9
 
-    /// XT set-1 键码（QEMU 扩展键盘事件用；专用键与修饰键，
-    /// 网页端抓包实证该通道：'l' 的键码 0x26）。E0 前缀键（方向/Delete）
-    /// 置高位 0x80——QEMU 按高位识别 E0 前缀（noVNC 同款表：← 0xCB/↑ 0xC8/
-    /// → 0xCD/↓ 0xD0/Del 0xD3），不带高位是数字小键区键，受 NumLock 影响
+    /// XT set-1 键码（QEMU 扩展键盘事件用；网页端抓包实证该通道：'l' 键码 0x26）。
+    /// E0 前缀键（方向/Delete/Home/End/PgUp/PgDn/Ins/Win）置高位 0x80——QEMU 按
+    /// 高位识别 E0 前缀（noVNC 同款表：← 0xCB/↑ 0xC8/→ 0xCD/↓ 0xD0/Del 0xD3/
+    /// Home 0xC7/End 0xCF/PgUp 0xC9/PgDn 0xD1/Ins 0xD2/Win 0xDB），
+    /// 不带高位是小键区键，受 NumLock 影响
     static func keycode(for keysym: UInt32) -> UInt32? {
         switch keysym {
         case escape: return 0x01
@@ -526,11 +837,30 @@ nonisolated enum RFBKeysym {
         case control: return 0x1d
         case shift: return 0x2a
         case alt: return 0x38
+        case superKey: return 0xdb
+        case capsLock: return 0x3a
+        case home: return 0xc7
+        case end: return 0xcf
+        case pageUp: return 0xc9
+        case pageDown: return 0xd1
+        case insert: return 0xd2
         case RFBKeysym.delete: return 0xd3  // Delete（抓包未覆盖，按 noVNC XT 表）
         case left: return 0xcb
         case up: return 0xc8
         case right: return 0xcd
         case down: return 0xd0
+        case f1: return 0x3b
+        case f2: return 0x3c
+        case f3: return 0x3d
+        case f4: return 0x3e
+        case f5: return 0x3f
+        case f6: return 0x40
+        case f7: return 0x41
+        case f8: return 0x42
+        case f9: return 0x43
+        case f10: return 0x44
+        case f11: return 0x57
+        case f12: return 0x58
         default: return nil
         }
     }
@@ -549,6 +879,13 @@ nonisolated enum RFBKeysym {
 
 // MARK: - VNC 会话
 
+/// 本地渲染的光标形状（-239 伪编码下发；热区随指针位置叠加显示）
+struct VNCursorShape {
+    let image: CGImage
+    let hotX: Int
+    let hotY: Int
+}
+
 @MainActor
 final class KVMVNCSession: ObservableObject {
     enum ConnectionState: Equatable {
@@ -560,6 +897,8 @@ final class KVMVNCSession: ObservableObject {
     @Published private(set) var framebufferImage: CGImage?
     @Published private(set) var framebufferSize: CGSize = .zero
     @Published private(set) var serverName: String = ""
+    /// 光标形状（nil = 无下发/隐藏；cirrus-vga 不下发，virtio 系显卡走此通道）
+    @Published private(set) var cursor: VNCursorShape?
     /// 收到的帧更新批次数（状态条显示）
     @Published private(set) var updateBatches = 0
     /// 已接收字节（握手诊断：卡「连接中」时可判断服务端是否回话）
@@ -669,9 +1008,10 @@ final class KVMVNCSession: ObservableObject {
         guard var comp = URLComponents(string: server.normalizedBaseURL) else { return nil }
         comp.scheme = comp.scheme == "https" ? "wss" : "ws"
         comp.path = "/api/v2/xpack/vms/console/ws"
+        // 跟随多机管理切换的当前节点（与终端 WS 同款；REST 侧 APIClient 自动附带）
         comp.queryItems = [
             URLQueryItem(name: "name", value: vmName),
-            URLQueryItem(name: "operateNode", value: "local"),
+            URLQueryItem(name: "operateNode", value: NodeScope.current(for: server.id) ?? "local"),
         ]
         return comp.url
     }
@@ -834,7 +1174,7 @@ final class KVMVNCSession: ObservableObject {
             framebuffer?.applyCopyRect(x: x, y: y, width: width, height: height,
                                        sourceX: sx, sourceY: sy)
         case .desktopSize(let width, let height):
-            // 同尺寸（-308 能力宣告矩形）不重建帧缓冲，避免闪屏
+            // 同尺寸不重建帧缓冲（防御性：避免无谓闪屏）
             guard width != Int(framebufferSize.width) || height != Int(framebufferSize.height) else {
                 return
             }
@@ -842,6 +1182,9 @@ final class KVMVNCSession: ObservableObject {
             framebufferSize = CGSize(width: width, height: height)
             send(RFBClientEncoder.framebufferUpdateRequest(
                 incremental: false, width: width, height: height))
+        case .cursor(let hotX, let hotY, let width, let height, let pixels, let mask):
+            cursor = Self.makeCursor(hotX: hotX, hotY: hotY, width: width, height: height,
+                                     pixels: pixels, mask: mask)
         case .updateComplete:
             updateBatches += 1
             if let image = framebuffer?.makeImage() {
@@ -854,9 +1197,44 @@ final class KVMVNCSession: ObservableObject {
             }
         case .bell:
             Haptic.selection()
-        case .serverCutText, .ignored:
-            break  // 客户机剪贴板不回填（二期可写系统剪贴板）
+        case .serverCutText(let text):
+            // 客户机剪贴板 → 系统剪贴板（qemu 仅在扩展剪贴板协商后下发，多为休眠路径）
+            if !text.isEmpty { UIPasteboard.general.string = text }
+        case .ignored:
+            break
         }
+    }
+
+    /// 光标像素（帧缓冲同序 [pad,B,G,R]）+ 位掩码（1 = 透明）→ 带 alpha 的 CGImage。
+    /// premultipliedLast（默认字节序）内存即 R,G,B,A（探针实证）。0 尺寸 = 隐藏
+    nonisolated static func makeCursor(hotX: Int, hotY: Int, width: Int, height: Int,
+                                       pixels: Data, mask: Data) -> VNCursorShape? {
+        guard width > 0, height > 0, pixels.count >= width * height * 4,
+              mask.count >= (width + 7) / 8 * height else { return nil }
+        let maskRowBytes = (width + 7) / 8
+        var rgba = [UInt8](repeating: 0, count: width * height * 4)
+        let px = pixels.startIndex, mk = mask.startIndex
+        for row in 0..<height {
+            for column in 0..<width {
+                let i = row * width + column
+                let transparent = mask[mk + row * maskRowBytes + column / 8] & (0x80 >> (column % 8)) != 0
+                rgba[i * 4] = pixels[px + i * 4 + 3]
+                rgba[i * 4 + 1] = pixels[px + i * 4 + 2]
+                rgba[i * 4 + 2] = pixels[px + i * 4 + 1]
+                rgba[i * 4 + 3] = transparent ? 0 : 255
+            }
+        }
+        let image: CGImage? = rgba.withUnsafeMutableBytes { buffer in
+            guard let base = buffer.baseAddress,
+                  let context = CGContext(
+                    data: base, width: width, height: height,
+                    bitsPerComponent: 8, bytesPerRow: width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+            return context.makeImage()
+        }
+        guard let image else { return nil }
+        return VNCursorShape(image: image, hotX: hotX, hotY: hotY)
     }
 
     // MARK: 输入出口
@@ -866,10 +1244,10 @@ final class KVMVNCSession: ObservableObject {
     }
 
     /// 带修饰的按键：先按下激活修饰，再击键，最后逆序释放修饰。
-    /// keycode 非 nil 时走 QEMU 扩展键盘事件（专用键必需，纯 keysym 在部分
-    /// 客户机不生效——⌫/回车实测无效即此因），否则标准 KeyEvent
+    /// 有 XT 键码的键（专用键/修饰键）走 QEMU 扩展键盘事件——纯 keysym 在部分
+    /// 客户机不生效（⌫/回车实测无效即此因）；字母等无键码走标准 KeyEvent
     func sendKey(keysym: UInt32, keycode: UInt32? = nil, modifiers: [UInt32] = []) {
-        func press(_ keysym: UInt32, _ down: Bool) {
+        func press(_ keysym: UInt32, _ keycode: UInt32?, _ down: Bool) {
             if let keycode {
                 send(RFBClientEncoder.qemuExtKeyEvent(down: down, keysym: keysym, keycode: keycode))
             } else {
@@ -877,22 +1255,28 @@ final class KVMVNCSession: ObservableObject {
             }
         }
         for modifier in modifiers where modifier != keysym {
-            send(RFBClientEncoder.keyEvent(down: true, keysym: modifier))
+            press(modifier, RFBKeysym.keycode(for: modifier), true)
         }
-        press(keysym, true)
-        press(keysym, false)
+        press(keysym, keycode, true)
+        press(keysym, keycode, false)
         for modifier in modifiers.reversed() where modifier != keysym {
-            send(RFBClientEncoder.keyEvent(down: false, keysym: modifier))
+            press(modifier, RFBKeysym.keycode(for: modifier), false)
         }
     }
 
-    /// 文本输入逐字符转 keysym（不可映射字符忽略；修饰随字符发送）
+    /// 文本输入逐字符转 keysym（不可映射字符忽略；修饰随字符发送；
+    /// 换行/制表等有键码的字符自动走扩展键事件）
     func sendText(_ text: String, modifiers: [UInt32] = []) {
         for character in text {
             if let keysym = RFBKeysym.keysym(for: character) {
-                sendKey(keysym: keysym, modifiers: modifiers)
+                sendKey(keysym: keysym, keycode: RFBKeysym.keycode(for: keysym), modifiers: modifiers)
             }
         }
+    }
+
+    /// 系统剪贴板文本 → 客户机剪贴板（需客户机 vdagent；无则 qemu 静默忽略）
+    func sendClientCutText(_ text: String) {
+        send(RFBClientEncoder.clientCutText(text))
     }
 
     /// 出站消息串行队列：全部经同一 drain 任务按序发出。
@@ -928,10 +1312,97 @@ final class KVMVNCSession: ObservableObject {
     }
 }
 
+// MARK: - 双指滚动手势（UIKit 侧识别）
+
+/// UIKit 识别器 ↔ SwiftUI 手势的互斥门（引用类型，跨手势回调读写）：
+/// DragGesture 拿不到触点数，双指手势只能由 UIKit 2 指 pan 识别；
+/// 双指拖动期间 DragGesture 停止指针跟随，捏合进行中让位。
+/// 拖动语义按画面状态二选一：放大溢出 → 平移画面；适配 → 滚轮
+@MainActor
+final class ConsoleGestureModel: ObservableObject {
+    var twoFingerPanActive = false
+    /// 双指滚轮回调（参数 = 手指纵向位移增量，正 = 向下）
+    var onWheel: ((CGFloat) -> Void)?
+    /// 双指平移回调（参数 = 手指位移增量）
+    var onPan: ((CGSize) -> Void)?
+    /// 画面放大溢出（双指拖动优先平移而非滚轮）
+    var wantsPan: () -> Bool = { false }
+    /// 捏合/平移进行中（滚轮抑制）
+    var pinchActive: () -> Bool = { false }
+}
+
+/// 透明 UIKit 层：UIPanGestureRecognizer(2 指) → 滚轮；SwiftUI 手势挂本层。
+/// 允许与 SwiftUI 识别器并行识别；平移过阈值且未进入捏合才产生滚轮
+private struct ScrollWheelOverlay: UIViewRepresentable {
+    let model: ConsoleGestureModel
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        let pan = UIPanGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handlePan(_:)))
+        pan.minimumNumberOfTouches = 2
+        pan.maximumNumberOfTouches = 2
+        pan.delegate = context.coordinator
+        view.addGestureRecognizer(pan)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(model: model) }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        let model: ConsoleGestureModel
+        private var engaged = false
+        private var isPan = false
+        private var lastTranslation = CGPoint.zero
+
+        init(model: ConsoleGestureModel) { self.model = model }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            true
+        }
+
+        @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+            switch gesture.state {
+            case .began:
+                engaged = false
+                isPan = false
+                lastTranslation = .zero
+                model.twoFingerPanActive = true
+            case .changed:
+                let translation = gesture.translation(in: gesture.view)
+                if !engaged {
+                    // 启动阈值滤掉轻触抖动；捏合/平移进行中让位。
+                    // 语义二选一：画面放大溢出 → 平移（可调显示区域），否则滚轮
+                    guard !model.pinchActive(),
+                          abs(translation.x) > 10 || abs(translation.y) > 10 else { return }
+                    engaged = true
+                    isPan = model.wantsPan()
+                    lastTranslation = translation
+                }
+                let delta = CGSize(width: translation.x - lastTranslation.x,
+                                   height: translation.y - lastTranslation.y)
+                lastTranslation = translation
+                if isPan {
+                    model.onPan?(delta)
+                } else if delta.height != 0 {
+                    model.onWheel?(delta.height)
+                }
+            default:
+                model.twoFingerPanActive = false
+            }
+        }
+    }
+}
+
 // MARK: - 控制台视图
 
 struct KVMVNCConsoleView: View {
     @StateObject private var console: KVMVNCSession
+    @Environment(\.scenePhase) private var scenePhase
 
     /// 画面显示缩放（1 = 适配屏宽；捏合 1...4 倍）
     @State private var displayScale: CGFloat = 1
@@ -942,10 +1413,24 @@ struct KVMVNCConsoleView: View {
     @State private var isKeyboardVisible = false
     @State private var keyboardInput = ""
     @FocusState private var keyboardFocused: Bool
+    /// 硬件键盘接管时控制台持有焦点（键盘栏隐藏期间）
+    @FocusState private var consoleFocused: Bool
     // 粘滞修饰（随下一次击键发送并自动复位）
     @State private var ctrlOn = false
     @State private var altOn = false
     @State private var shiftOn = false
+    @State private var winOn = false
+    /// 拖拽模式：按下-移动-释放 = 左键按住拖动（触摸模式为 移动指针/轻点/长按右键）
+    @State private var dragMode = false
+    @State private var leftDragActive = false
+    /// 滚动手势互斥门
+    @State private var gestureModel = ConsoleGestureModel()
+    /// 滚轮位移累积（约 40pt = 1 滚轮格）
+    @State private var wheelAccumulator: CGFloat = 0
+    /// 最近一次指针的帧缓冲坐标（光标叠加 / 滚轮锚点）
+    @State private var lastFramebufferPoint: (x: Int, y: Int)?
+    /// 粘贴提示（含不可键入字符时提示已走剪贴板通道）
+    @State private var pasteHint = ""
 
     init(server: ServerConfig, machineName: String) {
         _console = StateObject(wrappedValue: KVMVNCSession(server: server, vmName: machineName))
@@ -956,6 +1441,7 @@ struct KVMVNCConsoleView: View {
         if ctrlOn { modifiers.append(RFBKeysym.control) }
         if altOn { modifiers.append(RFBKeysym.alt) }
         if shiftOn { modifiers.append(RFBKeysym.shift) }
+        if winOn { modifiers.append(RFBKeysym.superKey) }
         return modifiers
     }
 
@@ -970,8 +1456,21 @@ struct KVMVNCConsoleView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    dragMode.toggle()
+                    leftDragActive = false
+                    Haptic.selection()
+                } label: {
+                    Image(systemName: dragMode ? "hand.draw.fill" : "hand.draw")
+                }
+                .accessibilityLabel(dragMode ? L10n.t("拖拽模式（按住左键拖动）")
+                                             : L10n.t("触摸模式（轻点左键，长按右键）"))
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     isKeyboardVisible.toggle()
                     keyboardFocused = isKeyboardVisible
+                    consoleFocused = !isKeyboardVisible
+                    if isKeyboardVisible { pasteHint = "" }
                 } label: {
                     Image(systemName: "keyboard")
                 }
@@ -980,6 +1479,12 @@ struct KVMVNCConsoleView: View {
         }
         .task { await console.connect() }
         .onDisappear { console.disconnect() }
+        .onChange(of: scenePhase) { _, phase in
+            // 回前台自动重连（后台挂起后 WS 已断，状态为 failed）
+            if phase == .active, case .failed = console.state {
+                Task { await console.connect() }
+            }
+        }
     }
 
     // MARK: 画面区
@@ -1012,9 +1517,14 @@ struct KVMVNCConsoleView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
 
-                // 输入层：固定容器坐标系（不受画面缩放/平移变换影响，
-                // 视图坐标 → 帧缓冲坐标统一走 framebufferPoint）
-                Color.clear
+                // 本地光标（-239 下发的形状；cirrus-vga 不下发则不叠加）
+                if let cursor = console.cursor, let point = lastFramebufferPoint {
+                    cursorOverlay(cursor, at: point, in: geo.size)
+                }
+
+                // 输入层：UIKit 双指滚轮 + SwiftUI 触控手势，固定容器坐标系
+                //（视图坐标 → 帧缓冲坐标统一走 framebufferPoint）
+                ScrollWheelOverlay(model: gestureModel)
                     .contentShape(Rectangle())
                     .gesture(
                         DragGesture(minimumDistance: 0)
@@ -1027,14 +1537,38 @@ struct KVMVNCConsoleView: View {
                                         height: offset.height + value.translation.height - panAnchor.height)
                                     panAnchor = value.translation
                                 } else if console.state == .connected {
-                                    movePointer(to: value.location, in: geo.size)
+                                    if dragMode {
+                                        // 拖拽模式：按下即左键、移动持续按住
+                                        if leftDragActive {
+                                            dragPointer(to: value.location, in: geo.size)
+                                        } else if let point = framebufferPoint(at: value.location, in: geo.size) {
+                                            leftDragActive = true
+                                            dispatchPointer(buttonMask: 1, x: point.x, y: point.y)
+                                        }
+                                    } else if !gestureModel.twoFingerPanActive {
+                                        movePointer(to: value.location, in: geo.size)
+                                    }
+                                }
+                            }
+                            .onEnded { _ in
+                                if leftDragActive {
+                                    // 释放锚定最近有效位置（手指移出画面边缘也必须释放按键）
+                                    let anchor = lastFramebufferPoint ?? (0, 0)
+                                    dispatchPointer(buttonMask: 0, x: anchor.x, y: anchor.y)
+                                    leftDragActive = false
                                 }
                             }
                     )
                     .simultaneousGesture(
                         MagnificationGesture()
                             .onChanged { value in
-                                if !isPinching { isPinching = true; panAnchor = .zero }
+                                if !isPinching {
+                                    // ±3% 内的抖动不视为捏合——把纯双指平移让给滚轮
+                                    guard abs(value - 1) > 0.03 else { return }
+                                    isPinching = true
+                                    panAnchor = .zero
+                                    lastPinchValue = value
+                                }
                                 let ratio = value / lastPinchValue
                                 lastPinchValue = value
                                 displayScale = min(max(displayScale * ratio, fitScale), 5)
@@ -1047,21 +1581,51 @@ struct KVMVNCConsoleView: View {
                     )
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                            guard !dragMode else { return }  // 拖拽模式长按 = 按住左键
                             rightClickLast()
                         }
                     )
                     .onTapGesture {
+                        consoleFocused = true
+                        guard !dragMode else { return }  // 按下/释放已构成单击
                         tapLast()
+                    }
+                    .focusable()
+                    .focused($consoleFocused)
+                    .onKeyPress(phases: [.down, .repeat]) { press in
+                        handleHardwareKey(press)
                     }
 
                 statusBar
             }
-            .onAppear { refit(in: geo.size) }
+            .onAppear {
+                refit(in: geo.size)
+                consoleFocused = !isKeyboardVisible
+                gestureModel.pinchActive = { isPinching }
+                gestureModel.onWheel = { wheelScrolled($0) }
+                gestureModel.wantsPan = { hasDisplayOverflow }
+                gestureModel.onPan = { panDisplay(by: $0) }
+            }
             .onChange(of: geo.size) { _, _ in refit(in: geo.size) }
             .onChange(of: console.framebufferSize) { _, _ in
                 refit(in: geo.size)
             }
         }
+    }
+
+    /// 光标叠加：帧缓冲坐标 → 容器坐标（与画面同变换），热区对齐指针位置
+    private func cursorOverlay(_ cursor: VNCursorShape, at point: (x: Int, y: Int),
+                               in container: CGSize) -> some View {
+        let fx = (CGFloat(point.x - cursor.hotX) + CGFloat(cursor.image.width) / 2
+                  - console.framebufferSize.width / 2) * displayScale
+        let fy = (CGFloat(point.y - cursor.hotY) + CGFloat(cursor.image.height) / 2
+                  - console.framebufferSize.height / 2) * displayScale
+        return Image(uiImage: UIImage(cgImage: cursor.image))
+            .interpolation(.none)
+            .scaleEffect(displayScale)
+            .position(x: container.width / 2 + offset.width + fx,
+                      y: container.height / 2 + offset.height + fy)
+            .allowsHitTesting(false)
     }
 
     /// 适配缩放（画面 → 容器内完整显示的最小比例）；不打断进行中的捏合
@@ -1128,24 +1692,66 @@ struct KVMVNCConsoleView: View {
         return (Int(imageX), Int(imageY))
     }
 
+    /// 指针出口统一记账（光标叠加与滚轮锚点需要最近位置）
+    private func dispatchPointer(buttonMask: UInt8, x: Int, y: Int) {
+        lastFramebufferPoint = (x, y)
+        console.sendPointer(buttonMask: buttonMask, x: x, y: y)
+    }
+
     private func movePointer(to location: CGPoint, in container: CGSize) {
         guard let point = framebufferPoint(at: location, in: container) else { return }
-        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
+        dispatchPointer(buttonMask: 0, x: point.x, y: point.y)
+    }
+
+    /// 拖拽模式的持续按住移动
+    private func dragPointer(to location: CGPoint, in container: CGSize) {
+        guard let point = framebufferPoint(at: location, in: container) else { return }
+        dispatchPointer(buttonMask: 1, x: point.x, y: point.y)
     }
 
     private func tapLast() {
         guard let point = framebufferPoint(at: lastPointerLocation, in: lastContainerSize) else { return }
-        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
-        console.sendPointer(buttonMask: 1, x: point.x, y: point.y)  // 左键按下
-        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
+        dispatchPointer(buttonMask: 0, x: point.x, y: point.y)
+        dispatchPointer(buttonMask: 1, x: point.x, y: point.y)  // 左键按下
+        dispatchPointer(buttonMask: 0, x: point.x, y: point.y)
     }
 
     private func rightClickLast() {
         guard let point = framebufferPoint(at: lastPointerLocation, in: lastContainerSize) else { return }
         Haptic.selection()
-        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
-        console.sendPointer(buttonMask: 4, x: point.x, y: point.y)  // 右键按下
-        console.sendPointer(buttonMask: 0, x: point.x, y: point.y)
+        dispatchPointer(buttonMask: 0, x: point.x, y: point.y)
+        dispatchPointer(buttonMask: 4, x: point.x, y: point.y)  // 右键按下
+        dispatchPointer(buttonMask: 0, x: point.x, y: point.y)
+    }
+
+    /// 双指滚动 → 滚轮事件（约 40pt = 1 格；手指下移 = 滚轮向下 = 按钮 5/0x10）
+    private func wheelScrolled(_ delta: CGFloat) {
+        guard console.state == .connected else { return }
+        wheelAccumulator += delta
+        let downward = wheelAccumulator > 0
+        let ticks = Int(abs(wheelAccumulator) / 40)
+        guard ticks > 0 else { return }
+        wheelAccumulator -= CGFloat(ticks) * 40 * (downward ? 1 : -1)
+        let anchor = lastFramebufferPoint ?? (Int(console.framebufferSize.width / 2),
+                                              Int(console.framebufferSize.height / 2))
+        let mask: UInt8 = downward ? 0x10 : 0x08
+        for _ in 0..<ticks {
+            dispatchPointer(buttonMask: mask, x: anchor.0, y: anchor.1)
+            dispatchPointer(buttonMask: 0, x: anchor.0, y: anchor.1)
+        }
+    }
+
+    /// 画面放大溢出（任一方向超出可视区）→ 双指拖动用于平移调整显示区域
+    private var hasDisplayOverflow: Bool {
+        guard console.framebufferSize.width > 0, lastContainerSize.width > 0 else { return false }
+        return console.framebufferSize.width * displayScale > lastContainerSize.width + 1
+            || console.framebufferSize.height * displayScale > lastContainerSize.height + 1
+    }
+
+    /// 双指拖动平移画面（越界钳制）
+    private func panDisplay(by delta: CGSize) {
+        offset = CGSize(width: offset.width + delta.width, height: offset.height + delta.height)
+        clampOffset(in: lastContainerSize)
     }
 
     private func clampOffset(in container: CGSize) {
@@ -1156,14 +1762,58 @@ struct KVMVNCConsoleView: View {
                         height: min(max(offset.height, -maxY), maxY))
     }
 
+    // MARK: 硬件键盘（iPad 外接；键盘栏隐藏期间由控制台持有焦点接管）
+
+    private func handleHardwareKey(_ press: KeyPress) -> KeyPress.Result {
+        guard console.state == .connected, !isKeyboardVisible else { return .ignored }
+        // Ctrl/Alt/Win 直通（characters 已含 Shift 产物，字符路径不重复叠加 Shift）
+        var modifiers: [UInt32] = []
+        if press.modifiers.contains(.control) { modifiers.append(RFBKeysym.control) }
+        if press.modifiers.contains(.option) { modifiers.append(RFBKeysym.alt) }
+        if press.modifiers.contains(.command) { modifiers.append(RFBKeysym.superKey) }
+        if press.modifiers.contains(.shift) { modifiers.append(RFBKeysym.shift) }
+
+        let characters = press.characters
+        if characters.count == 1,
+           let keysym = RFBKeysym.keysym(for: characters.first!),
+           keysym != RFBKeysym.enter {  // 回车走扩展键码分支
+            let characterModifiers = modifiers.filter { $0 != RFBKeysym.shift }
+            console.sendKey(keysym: keysym, keycode: RFBKeysym.keycode(for: keysym),
+                            modifiers: characterModifiers.isEmpty ? [] : characterModifiers)
+            return .handled
+        }
+        let keysym: UInt32?
+        switch press.key {
+        case .return: keysym = RFBKeysym.enter
+        case .delete: keysym = RFBKeysym.backspace      // KeyEquivalent.delete = 退格
+        case .deleteForward: keysym = RFBKeysym.delete
+        case .escape: keysym = RFBKeysym.escape
+        case .tab: keysym = RFBKeysym.tab
+        case .space: keysym = RFBKeysym.space
+        case .leftArrow: keysym = RFBKeysym.left
+        case .rightArrow: keysym = RFBKeysym.right
+        case .upArrow: keysym = RFBKeysym.up
+        case .downArrow: keysym = RFBKeysym.down
+        case .home: keysym = RFBKeysym.home
+        case .end: keysym = RFBKeysym.end
+        case .pageUp: keysym = RFBKeysym.pageUp
+        case .pageDown: keysym = RFBKeysym.pageDown
+        default: keysym = nil
+        }
+        guard let keysym else { return .ignored }
+        console.sendKey(keysym: keysym, keycode: RFBKeysym.keycode(for: keysym),
+                        modifiers: modifiers)
+        return .handled
+    }
+
     // MARK: 键盘栏
 
     private var keyboardBar: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                // 组合缓冲：逐字符显示，按键即转发（只发增量——编辑/删除不回发）；
-                // 键盘回车 = 发送 Enter 并清空；IME 中文/emoji 无法映射 keysym，
-                // 入缓冲但不转发（占位注明仅英文与符号）
+                // 组合缓冲：逐字符显示，按键即转发增量，删除按差值补发 Backspace
+                //（保持缓冲与客户机内容一致）；键盘回车 = 发送 Enter 并清空；
+                // IME 中文/emoji 无法映射 keysym，入缓冲但不转发
                 TextField(L10n.t("键盘输入（仅英文与符号）"), text: $keyboardInput)
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
@@ -1172,7 +1822,16 @@ struct KVMVNCConsoleView: View {
                     .submitLabel(.send)
                     .onChange(of: keyboardInput) { previous, current in
                         let commonLength = zip(previous, current).prefix { $0.0 == $0.1 }.count
-                        let appended = String(current.dropFirst(min(commonLength, current.count)))
+                        // 删除：按差值补发 Backspace（iOS 键盘删除键的直觉语义）
+                        let removed = previous.count - commonLength
+                        if removed > 0 {
+                            for _ in 0..<removed {
+                                console.sendKey(keysym: RFBKeysym.backspace,
+                                                keycode: RFBKeysym.keycode(for: RFBKeysym.backspace),
+                                                modifiers: [])
+                            }
+                        }
+                        let appended = String(current.dropFirst(commonLength))
                         if !appended.isEmpty {
                             console.sendText(appended, modifiers: activeModifiers)
                             resetModifiers()
@@ -1190,6 +1849,13 @@ struct KVMVNCConsoleView: View {
                     .accessibilityLabel(L10n.t("清空"))
                 }
                 Button {
+                    pasteFromClipboard()
+                } label: {
+                    Image(systemName: "doc.on.clipboard")
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel(L10n.t("粘贴"))
+                Button {
                     sendEnterFromKeyboard()
                 } label: {
                     Image(systemName: "return")
@@ -1197,19 +1863,51 @@ struct KVMVNCConsoleView: View {
                 .buttonStyle(.bordered)
             }
 
+            if !pasteHint.isEmpty {
+                Text(pasteHint)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    stickyModifier("Ctrl", keysym: RFBKeysym.control, isOn: $ctrlOn)
-                    stickyModifier("Alt", keysym: RFBKeysym.alt, isOn: $altOn)
-                    stickyModifier("Shift", keysym: RFBKeysym.shift, isOn: $shiftOn)
-                    specialKey("Esc", keysym: RFBKeysym.escape)
-                    specialKey("Tab", keysym: RFBKeysym.tab)
-                    specialKey("←", keysym: RFBKeysym.left)
-                    specialKey("↑", keysym: RFBKeysym.up)
-                    specialKey("↓", keysym: RFBKeysym.down)
-                    specialKey("→", keysym: RFBKeysym.right)
-                    specialKey("⌫", keysym: RFBKeysym.backspace)
-                    specialKey("Del", keysym: RFBKeysym.delete)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        stickyModifier("Ctrl", keysym: RFBKeysym.control, isOn: $ctrlOn)
+                        stickyModifier("Alt", keysym: RFBKeysym.alt, isOn: $altOn)
+                        stickyModifier("Shift", keysym: RFBKeysym.shift, isOn: $shiftOn)
+                        stickyModifier("Win", keysym: RFBKeysym.superKey, isOn: $winOn)
+                        specialCombo("Ctrl+Alt+Del", keysym: RFBKeysym.delete,
+                                     modifiers: [RFBKeysym.control, RFBKeysym.alt])
+                        specialKey("Caps", keysym: RFBKeysym.capsLock)
+                    }
+                    HStack(spacing: 8) {
+                        specialKey("Esc", keysym: RFBKeysym.escape)
+                        specialKey("Tab", keysym: RFBKeysym.tab)
+                        specialKey("⌫", keysym: RFBKeysym.backspace)
+                        specialKey("Del", keysym: RFBKeysym.delete)
+                        specialKey("Ins", keysym: RFBKeysym.insert)
+                        specialKey("Home", keysym: RFBKeysym.home)
+                        specialKey("End", keysym: RFBKeysym.end)
+                        specialKey("PgUp", keysym: RFBKeysym.pageUp)
+                        specialKey("PgDn", keysym: RFBKeysym.pageDown)
+                        specialKey("←", keysym: RFBKeysym.left)
+                        specialKey("↑", keysym: RFBKeysym.up)
+                        specialKey("↓", keysym: RFBKeysym.down)
+                        specialKey("→", keysym: RFBKeysym.right)
+                        specialKey("F1", keysym: RFBKeysym.f1)
+                        specialKey("F2", keysym: RFBKeysym.f2)
+                        specialKey("F3", keysym: RFBKeysym.f3)
+                        specialKey("F4", keysym: RFBKeysym.f4)
+                        specialKey("F5", keysym: RFBKeysym.f5)
+                        specialKey("F6", keysym: RFBKeysym.f6)
+                        specialKey("F7", keysym: RFBKeysym.f7)
+                        specialKey("F8", keysym: RFBKeysym.f8)
+                        specialKey("F9", keysym: RFBKeysym.f9)
+                        specialKey("F10", keysym: RFBKeysym.f10)
+                        specialKey("F11", keysym: RFBKeysym.f11)
+                        specialKey("F12", keysym: RFBKeysym.f12)
+                    }
                 }
                 .padding(.horizontal, 2)
             }
@@ -1218,6 +1916,20 @@ struct KVMVNCConsoleView: View {
         .padding(.horizontal, 12)
         .padding(.top, 8)
         .background(.regularMaterial)
+    }
+
+    /// 粘贴：可键入文本直接敲进客户机（所有客户机可用）；
+    /// 含不可映射字符（中文等）时改走 ClientCutText（需客户机 vdagent）并提示
+    private func pasteFromClipboard() {
+        pasteHint = ""
+        guard let text = UIPasteboard.general.string, !text.isEmpty else { return }
+        if text.allSatisfy({ RFBKeysym.keysym(for: $0) != nil }) {
+            console.sendText(text)
+        } else {
+            console.sendClientCutText(text)
+            pasteHint = L10n.t("文本含无法键入的字符，已发送到客户机剪贴板（需客户机安装 spice-vdagent）")
+        }
+        Haptic.selection()
     }
 
     /// 键盘回车 / 回车按钮：发送 Enter（QEMU 扩展键码）并清空组合缓冲
@@ -1261,9 +1973,28 @@ struct KVMVNCConsoleView: View {
         .buttonStyle(.plain)
     }
 
+    /// 组合键（如 Ctrl+Alt+Del）：修饰按下 → 击键 → 逆序释放
+    private func specialCombo(_ label: String, keysym: UInt32, modifiers: [UInt32]) -> some View {
+        Button {
+            console.sendKey(keysym: keysym,
+                            keycode: RFBKeysym.keycode(for: keysym),
+                            modifiers: modifiers)
+            resetModifiers()
+            Haptic.selection()
+        } label: {
+            Text(label)
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.2), in: Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func resetModifiers() {
         ctrlOn = false
         altOn = false
         shiftOn = false
+        winOn = false
     }
 }

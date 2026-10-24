@@ -2,11 +2,9 @@
 //  KVMVMDetailView.swift
 //  1PanelClient
 //
-//  虚拟机详情（logs/高级功能-KVM.md 抓包 2026-10-23）：状态与控制台信息 / 基本信息 /
-//  磁盘与网卡。工具栏：右上角 健康检查（POST health/check，结果弹层按 PASS/WARN/FAIL
-//  列项）与电源菜单。实时监控（KVMVMMonitorView）与快照（KVMSnapshotListView）已独立
-//  成页，入口在虚拟机卡片快捷按钮。VNC 控制台（二进制 RFB over WS）暂不实现，
-//  仅展示 type/port/listen。
+//  虚拟机详情（logs/高级功能-KVM.md 抓包 2026-10-23）：状态 / 基本信息 /
+//  磁盘与网卡。工具栏：电源菜单。控制台与健康检查入口在虚拟机卡片快捷按钮
+//  （KVMVMListView），监控 / 快照 / 磁盘管理为独立页。
 //
 
 import SwiftUI
@@ -15,11 +13,6 @@ struct KVMVMDetailView: View {
     @ObservedObject var vm: KVMViewModel
     /// 进入时的快照；展示时优先取列表里的实时对象（电源操作后状态随刷新变化）
     let initial: KVMVirtualMachine
-
-    // 健康检查
-    @State private var healthReport: KVMHealthReport?
-    @State private var isCheckingHealth = false
-    @State private var showHealth = false
 
     // 电源操作
     @State private var pendingOperate: KVMOperate?
@@ -43,20 +36,6 @@ struct KVMVMDetailView: View {
         .navigationTitle(machine.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // 健康检查移至右上角（结果以弹层展示，通过/警告/失败计数见弹层）
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await runHealthCheck() }
-                } label: {
-                    if isCheckingHealth {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "stethoscope")
-                    }
-                }
-                .disabled(isCheckingHealth)
-                .accessibilityLabel(L10n.t("健康检查"))
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     ForEach(KVMOperate.available(for: machine)) { operate in
@@ -100,14 +79,9 @@ struct KVMVMDetailView: View {
                 Text(L10n.f("将对虚拟机「%@」执行 %@ 操作，是否继续？", machine.displayName, operate.displayName))
             }
         }
-        .sheet(isPresented: $showHealth) {
-            if let report = healthReport {
-                KVMHealthReportSheet(machine: machine, report: report)
-            }
-        }
     }
 
-    // MARK: 状态 / 控制台
+    // MARK: 状态
 
     private var statusSection: some View {
         Section {
@@ -116,22 +90,8 @@ struct KVMVMDetailView: View {
                 Spacer()
                 KVMStatusBadge(status: machine.status)
             }
-            if let graphics = machine.graphics {
-                NavigationLink {
-                    KVMVNCConsoleView(server: vm.server, machineName: machine.displayName)
-                } label: {
-                    HStack {
-                        Label(L10n.t("控制台"), systemImage: "rectangle.on.rectangle")
-                        Spacer()
-                        Text("\(graphics.type ?? "vnc").uppercased() \(graphics.listen ?? ""):\(graphics.port ?? "")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
         } footer: {
-            Text(L10n.t("控制台为 VNC 图形界面：轻点左键、长按右键、拖动移动指针，捏合缩放；右上角键盘可输入。"))
+            Text(L10n.t("控制台与健康检查入口在虚拟机列表卡片上。"))
         }
     }
 
@@ -212,19 +172,6 @@ struct KVMVMDetailView: View {
             } header: {
                 SectionLabel(title: L10n.t("网卡"), systemImage: "network")
             }
-        }
-    }
-
-    private func runHealthCheck() async {
-        isCheckingHealth = true
-        defer { isCheckingHealth = false }
-        do {
-            healthReport = try await vm.healthCheck(machine)
-            showHealth = true
-        } catch {
-            guard !APIError.isCancellation(error) else { return }
-            vm.alertMessage = L10n.f("健康检查失败：%@", error.localizedDescription)
-            vm.showAlert = true
         }
     }
 }

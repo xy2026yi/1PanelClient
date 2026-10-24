@@ -178,8 +178,16 @@ struct KVMISORow: View {
                 Text(iso.path ?? "-")
                     .font(.dataMonospacedFootnote)
                     .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                    .lineLimit(2)          // 完整路径折两行（超长中段省略）
                     .truncationMode(.middle)
+                    .contextMenu {
+                        Button {
+                            UIPasteboard.general.string = iso.path ?? ""
+                            Haptic.selection()
+                        } label: {
+                            Label(L10n.t("复制路径"), systemImage: "doc.on.doc")
+                        }
+                    }
                 if let error = iso.error, !error.isEmpty {
                     Text(error)
                         .font(.caption2)

@@ -132,6 +132,7 @@ struct KVMNetworkListView: View {
 
     @State private var showCreate = false
     @State private var deleteNetwork: KVMNetwork?
+    @State private var detailTarget: KVMNetworkDetailTarget?
     @State private var forceDelete = false
 
     var body: some View {
@@ -151,7 +152,7 @@ struct KVMNetworkListView: View {
                     }
                 }
             } else {
-                // 每个网络一张卡：信息行 + 启停 / 自启 / 删除按钮行
+                // 每个网络一张卡：信息行（点击看详情）+ 启停 / 自启 / 删除按钮行
                 ForEach(vm.networks) { network in
                     networkCard(network)
                 }
@@ -171,6 +172,9 @@ struct KVMNetworkListView: View {
         }
         .navigationDestination(isPresented: $showCreate) {
             KVMNetworkFormView(vm: vm)
+        }
+        .sheet(item: $detailTarget) { target in
+            KVMNetworkDetailSheet(network: target.network, focus: target.focus)
         }
         .sheet(item: $deleteNetwork) { network in
             TextInputConfirmSheet(
@@ -193,12 +197,14 @@ struct KVMNetworkListView: View {
 
     // MARK: 卡片
 
-    /// 单个网络卡：头行（图标 / 名称 / 类型 / 状态）+ 地址信息 + 快捷按钮行
+    /// 单个网络卡：头行（图标 / 名称 / 类型 / 状态 / CIDR，点击看详情）+ 按钮区
+    /// （计数按钮 虚拟机数·已用 IP 数 → 详情；操作按钮 启停 / 自启 / 删除）。
+    /// 网关 / DHCP / 桥接 / 自启等明细均收进半屏详情弹层
     private func networkCard(_ network: KVMNetwork) -> some View {
         Section {
             HStack(spacing: 12) {
                 IconBadge(systemName: "network", color: .teal)
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
                         Text(network.displayName)
                             .font(.body.bold())
@@ -207,28 +213,10 @@ struct KVMNetworkListView: View {
                                     ?? (network.type ?? "-"), color: .indigo)
                     }
                     if let cidr = network.cidr, !cidr.isEmpty {
-                        Text(L10n.f("%@ · 网关 %@", cidr, network.gateway ?? "-"))
-                            .font(.caption)
+                        Text(cidr)
+                            .font(.callout.monospaced())
                             .foregroundStyle(.secondary)
                     }
-                    if let start = network.dhcpStart, let end = network.dhcpEnd, !start.isEmpty {
-                        Text("DHCP \(start) – \(end)")
-                            .font(.dataMonospacedFootnote)
-                            .foregroundStyle(.tertiary)
-                    }
-                    HStack(spacing: 8) {
-                        if let bridge = network.bridgeName, !bridge.isEmpty {
-                            Text(bridge)
-                        } else if let iface = network.sourceInterface, !iface.isEmpty {
-                            Text(iface)
-                        }
-                        Text(L10n.f("%ld 台虚拟机", network.vmCount ?? 0))
-                        if network.autoStart == true {
-                            Text(L10n.t("开机自启"))
-                        }
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
                     if let error = network.error, !error.isEmpty {
                         Text(error)
                             .font(.caption2)
@@ -239,18 +227,34 @@ struct KVMNetworkListView: View {
                 Spacer()
                 StatusBadge(text: network.isActive ? L10n.t("运行中") : L10n.t("已停止"),
                             color: network.isActive ? .statusRunning : .secondary)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
             .padding(.vertical, 4)
             .listRowSeparator(.hidden)
+            .contentShape(Rectangle())
+            .onTapGesture { detailTarget = KVMNetworkDetailTarget(network: network, focus: .all) }
 
             networkActionRow(network)
         }
     }
 
-    /// 启停 / 自启 / 删除三枚按钮（启停与自启按当前状态翻转文案、图标与颜色）
+    /// 按钮区（3 列网格，与卡片操作按钮同款样式）：计数按钮 虚拟机数·已用 IP 数
+    /// （弹对应聚焦弹窗；全部信息由点卡片的详情弹窗展示）+ 启停 / 自启 / 删除
     private func networkActionRow(_ network: KVMNetwork) -> some View {
         let autoOn = network.autoStart == true
-        return HStack(spacing: 8) {
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+            CardActionButton(title: L10n.f("%ld 台虚拟机", network.vmCount ?? 0),
+                             icon: "desktopcomputer", color: .indigo) {
+                detailTarget = KVMNetworkDetailTarget(network: network, focus: .vms)
+            }
+            if let used = network.usedIPs?.count, used > 0 {
+                CardActionButton(title: L10n.f("%ld 个已用 IP", used),
+                                 icon: "number", color: .cyan) {
+                    detailTarget = KVMNetworkDetailTarget(network: network, focus: .usedIPs)
+                }
+            }
             if network.isActive {
                 CardActionButton(title: L10n.t("停止"), icon: "stop.fill", color: .orange) {
                     Task { await vm.setNetworkActive(network, active: false) }
@@ -273,6 +277,154 @@ struct KVMNetworkListView: View {
         }
         .padding(.top, 2)
         .padding(.bottom, 4)
+    }
+}
+
+// MARK: - 网络详情（半屏弹层）
+
+/// 资源详情弹层的聚焦模式：点卡片看全部；点计数按钮只看对应区块
+enum KVMResourceDetailFocus: String {
+    case all, vms, usedIPs
+}
+
+/// 网络详情弹层目标（网络 + 聚焦）
+struct KVMNetworkDetailTarget: Identifiable {
+    let network: KVMNetwork
+    let focus: KVMResourceDetailFocus
+    var id: String { "\(network.id)-\(focus.rawValue)" }
+}
+
+/// 网络卡点开：基本信息 / 地址分配 / 关联虚拟机 / 已用 IP（usedIPs 对象数组，
+/// networks/list 抓包 2026-10-24：{ip, vmName, mac, source}）。
+/// focus=.vms / .usedIPs 时只显示对应区块（计数按钮入口）
+struct KVMNetworkDetailSheet: View {
+    let network: KVMNetwork
+    var focus: KVMResourceDetailFocus = .all
+    @Environment(\.dismiss) private var dismiss
+
+    private var title: String {
+        switch focus {
+        case .all: return network.displayName
+        case .vms: return L10n.t("关联虚拟机")
+        case .usedIPs: return L10n.t("已用 IP")
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if focus == .all {
+                    Section {
+                        InfoRow(L10n.t("名称"), value: network.displayName)
+                        InfoRow(L10n.t("类型"), value: KVMNetworkType(rawValue: (network.type ?? "").lowercased())?.displayName ?? (network.type ?? "-"))
+                        InfoRow(L10n.t("状态"), value: network.isActive ? L10n.t("运行中") : L10n.t("已停止"))
+                        InfoRow(L10n.t("开机自启"), value: network.autoStart == true ? L10n.t("已启用") : L10n.t("已停用"))
+                        if let registered = network.registered {
+                            InfoRow(L10n.t("libvirt 注册"), value: registered ? L10n.t("已注册") : L10n.t("未注册"))
+                        }
+                        if let createdAt = network.createdAt, !createdAt.isEmpty {
+                            InfoRow(L10n.t("创建时间"), value: createdAt)
+                        }
+                        if let desc = network.description, !desc.isEmpty {
+                            InfoRow(L10n.t("描述"), value: desc)
+                        }
+                    } header: {
+                        SectionLabel(title: L10n.t("基本信息"), systemImage: "network")
+                    }
+
+                    if (network.cidr?.isEmpty == false) || (network.bridgeName?.isEmpty == false)
+                        || (network.sourceInterface?.isEmpty == false) {
+                        Section {
+                            if let cidr = network.cidr, !cidr.isEmpty {
+                                InfoRow(L10n.t("网络 CIDR"), value: cidr, monospaced: true)
+                                InfoRow(L10n.t("网关"), value: network.gateway ?? "-", monospaced: true)
+                            }
+                            if let start = network.dhcpStart, let end = network.dhcpEnd, !start.isEmpty {
+                                InfoRow(L10n.t("DHCP 范围"), value: "\(start) – \(end)", monospaced: true)
+                            }
+                            if let bridge = network.bridgeName, !bridge.isEmpty {
+                                InfoRow(L10n.t("桥接名称"), value: bridge, monospaced: true)
+                            }
+                            if let iface = network.sourceInterface, !iface.isEmpty {
+                                InfoRow(L10n.t("宿主机网卡"), value: iface, monospaced: true)
+                            }
+                        } header: {
+                            SectionLabel(title: L10n.t("地址分配"), systemImage: "point.3.connected.trianglepath.dotted")
+                        }
+                    }
+                }
+
+                if focus == .all || focus == .vms {
+                    let vms = network.vms ?? []
+                    if !vms.isEmpty {
+                        Section {
+                            ForEach(vms, id: \.id) { ref in
+                                HStack {
+                                    Image(systemName: "desktopcomputer")
+                                        .foregroundStyle(.tint)
+                                    Text(ref.name ?? "#\(ref.id ?? 0)")
+                                    Spacer()
+                                }
+                            }
+                        } header: {
+                            SectionLabel(title: L10n.f("关联虚拟机（%ld）", vms.count), systemImage: "square.stack.3d.up")
+                        }
+                    } else if focus == .vms {
+                        ContentUnavailableView(L10n.t("暂无关联虚拟机"), systemImage: "desktopcomputer")
+                            .listRowBackground(Color.clear)
+                    }
+                }
+
+                if focus == .all || focus == .usedIPs {
+                    let usedIPs = network.usedIPs ?? []
+                    if !usedIPs.isEmpty {
+                        Section {
+                            ForEach(usedIPs) { used in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack {
+                                        Text(used.displayIP)
+                                            .font(.callout.monospaced())
+                                        Spacer()
+                                        Text(used.vmName ?? "-")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Text(used.mac ?? "-")
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        } header: {
+                            SectionLabel(title: L10n.f("已用 IP（%ld）", usedIPs.count), systemImage: "number")
+                        } footer: {
+                            Text(L10n.t("由 libvirt DHCP 分配给虚拟机的地址。"))
+                        }
+                    } else if focus == .usedIPs {
+                        ContentUnavailableView(L10n.t("暂无已用 IP"), systemImage: "number")
+                            .listRowBackground(Color.clear)
+                    }
+                }
+
+                if focus == .all, let error = network.error, !error.isEmpty {
+                    Section {
+                        Text(error)
+                            .font(.callout)
+                            .foregroundStyle(.red)
+                    } header: {
+                        SectionLabel(title: L10n.t("错误信息"), systemImage: "exclamationmark.triangle")
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("关闭")) { dismiss() }
+                }
+            }
+        }
+        .presentationDetents(focus == .all ? [.medium, .large] : [.medium])
     }
 }
 
@@ -455,6 +607,7 @@ struct KVMStorageListView: View {
 
     @State private var showCreate = false
     @State private var deletePool: KVMStoragePool?
+    @State private var detailTarget: KVMStorageDetailTarget?
     @State private var forceDelete = false
 
     var body: some View {
@@ -495,6 +648,9 @@ struct KVMStorageListView: View {
         .navigationDestination(isPresented: $showCreate) {
             KVMStorageFormView(vm: vm)
         }
+        .sheet(item: $detailTarget) { target in
+            KVMStorageDetailSheet(pool: target.pool, focus: target.focus)
+        }
         .sheet(item: $deletePool) { pool in
             TextInputConfirmSheet(
                 title: L10n.t("删除存储池"),
@@ -516,7 +672,8 @@ struct KVMStorageListView: View {
 
     // MARK: 卡片
 
-    /// 单个存储池卡：头行（图标 / 名称 / 类型 / 状态）+ 路径 + 容量条 + 快捷按钮行
+    /// 单个存储池卡：头行（图标 / 名称 / 类型 / 状态，点击看详情）+ 路径 + 容量条
+    /// + 按钮区（虚拟机数 → 详情；启停 / 自启 / 删除）。自启等明细收进详情弹层
     private func storageCard(_ pool: KVMStoragePool) -> some View {
         Section {
             HStack(spacing: 12) {
@@ -532,8 +689,16 @@ struct KVMStorageListView: View {
                     Text(pool.path ?? "-")
                         .font(.dataMonospacedFootnote)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(2)      // 完整路径折两行（超长中段省略）
                         .truncationMode(.middle)
+                        .contextMenu {
+                            Button {
+                                UIPasteboard.general.string = pool.path ?? ""
+                                Haptic.selection()
+                            } label: {
+                                Label(L10n.t("复制路径"), systemImage: "doc.on.doc")
+                            }
+                        }
                     if pool.capacity != nil {
                         VStack(alignment: .leading, spacing: 2) {
                             ProgressView(value: min(max((pool.usedPercent ?? 0) / 100, 0), 1))
@@ -545,14 +710,6 @@ struct KVMStorageListView: View {
                                 .monospacedDigit()
                         }
                     }
-                    HStack(spacing: 8) {
-                        Text(L10n.f("%ld 台虚拟机", pool.vmCount ?? 0))
-                        if pool.autoStart == true {
-                            Text(L10n.t("开机自启"))
-                        }
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
                     if let error = pool.error, !error.isEmpty {
                         Text(error)
                             .font(.caption2)
@@ -563,18 +720,28 @@ struct KVMStorageListView: View {
                 Spacer()
                 StatusBadge(text: pool.isActive ? L10n.t("运行中") : L10n.t("已停止"),
                             color: pool.isActive ? .statusRunning : .secondary)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
             .padding(.vertical, 4)
             .listRowSeparator(.hidden)
+            .contentShape(Rectangle())
+            .onTapGesture { detailTarget = KVMStorageDetailTarget(pool: pool, focus: .all) }
 
             storageActionRow(pool)
         }
     }
 
-    /// 启停 / 自启 / 删除三枚按钮（启停与自启按当前状态翻转文案、图标与颜色）
+    /// 按钮区：虚拟机数（弹聚焦弹窗只看关联虚拟机；全部信息由点卡片的详情弹窗展示）
+    /// + 启停 / 自启 / 删除（启停与自启按当前状态翻转文案、图标与颜色）
     private func storageActionRow(_ pool: KVMStoragePool) -> some View {
         let autoOn = pool.autoStart == true
         return HStack(spacing: 8) {
+            CardActionButton(title: L10n.f("%ld 台虚拟机", pool.vmCount ?? 0),
+                             icon: "desktopcomputer", color: .indigo) {
+                detailTarget = KVMStorageDetailTarget(pool: pool, focus: .vms)
+            }
             if pool.isActive {
                 CardActionButton(title: L10n.t("停止"), icon: "stop.fill", color: .orange) {
                     Task { await vm.setStorageActive(pool, active: false) }
@@ -597,6 +764,110 @@ struct KVMStorageListView: View {
         }
         .padding(.top, 2)
         .padding(.bottom, 4)
+    }
+}
+
+// MARK: - 存储池详情（半屏弹层）
+
+/// 存储池详情弹层目标（存储池 + 聚焦）
+struct KVMStorageDetailTarget: Identifiable {
+    let pool: KVMStoragePool
+    let focus: KVMResourceDetailFocus
+    var id: String { "\(pool.id)-\(focus.rawValue)" }
+}
+
+/// 存储池卡点开：基本信息（含自启/创建时间/描述）/ 路径与容量 / 关联虚拟机 / 错误。
+/// focus=.vms 时只显示关联虚拟机（计数按钮入口）
+struct KVMStorageDetailSheet: View {
+    let pool: KVMStoragePool
+    var focus: KVMResourceDetailFocus = .all
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if focus == .all {
+                    Section {
+                        InfoRow(L10n.t("名称"), value: pool.displayName)
+                        InfoRow(L10n.t("类型"), value: (pool.type ?? "").lowercased() == "dir" ? L10n.t("本地目录") : (pool.type ?? "-"))
+                        InfoRow(L10n.t("状态"), value: pool.isActive ? L10n.t("运行中") : L10n.t("已停止"))
+                        InfoRow(L10n.t("开机自启"), value: pool.autoStart == true ? L10n.t("已启用") : L10n.t("已停用"))
+                        if let createdAt = pool.createdAt, !createdAt.isEmpty {
+                            InfoRow(L10n.t("创建时间"), value: createdAt)
+                        }
+                        if let desc = pool.description, !desc.isEmpty {
+                            InfoRow(L10n.t("描述"), value: desc)
+                        }
+                    } header: {
+                        SectionLabel(title: L10n.t("基本信息"), systemImage: "internaldrive")
+                    }
+
+                    Section {
+                        Text(pool.path ?? "-")
+                            .font(.callout.monospaced())
+                            .textSelection(.enabled)
+                            .contextMenu {
+                                Button {
+                                    UIPasteboard.general.string = pool.path ?? ""
+                                    Haptic.selection()
+                                } label: {
+                                    Label(L10n.t("复制路径"), systemImage: "doc.on.doc")
+                                }
+                            }
+                        if pool.capacity != nil {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ProgressView(value: min(max((pool.usedPercent ?? 0) / 100, 0), 1))
+                                    .tint((pool.usedPercent ?? 0) > 90 ? .red : .blue)
+                                Text(MetricFormat.usedOverTotal(pool.usedBytes, pool.capacity)
+                                     + (pool.usedPercent.map { String(format: "（%.1f%%）", $0) } ?? ""))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                            }
+                        }
+                    } header: {
+                        SectionLabel(title: L10n.t("路径与容量"), systemImage: "folder")
+                    }
+                }
+
+                let vms = pool.vms ?? []
+                if !vms.isEmpty {
+                    Section {
+                        ForEach(vms, id: \.id) { ref in
+                            HStack {
+                                Image(systemName: "desktopcomputer")
+                                    .foregroundStyle(.tint)
+                                Text(ref.name ?? "#\(ref.id ?? 0)")
+                                Spacer()
+                            }
+                        }
+                    } header: {
+                        SectionLabel(title: L10n.f("关联虚拟机（%ld）", vms.count), systemImage: "square.stack.3d.up")
+                    }
+                } else if focus == .vms {
+                    ContentUnavailableView(L10n.t("暂无关联虚拟机"), systemImage: "desktopcomputer")
+                        .listRowBackground(Color.clear)
+                }
+
+                if focus == .all, let error = pool.error, !error.isEmpty {
+                    Section {
+                        Text(error)
+                            .font(.callout)
+                            .foregroundStyle(.red)
+                    } header: {
+                        SectionLabel(title: L10n.t("错误信息"), systemImage: "exclamationmark.triangle")
+                    }
+                }
+            }
+            .navigationTitle(focus == .vms ? L10n.t("关联虚拟机") : pool.displayName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("关闭")) { dismiss() }
+                }
+            }
+        }
+        .presentationDetents(focus == .all ? [.medium, .large] : [.medium])
     }
 }
 

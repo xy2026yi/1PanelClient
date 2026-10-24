@@ -680,7 +680,7 @@ nonisolated struct KVMNetwork: Decodable, Identifiable, Hashable {
     let vmCount: Int?
     let vms: [KVMResourceRef]?
     let registered: Bool?
-    let usedIPs: [String]?
+    let usedIPs: [KVMUsedIP]?
     let error: String?
 
     private enum CodingKeys: String, CodingKey {
@@ -706,8 +706,7 @@ nonisolated struct KVMNetwork: Decodable, Identifiable, Hashable {
         vmCount = try? c.decode(Int.self, forKey: .vmCount)
         vms = try? c.decode([KVMResourceRef].self, forKey: .vms)
         registered = try? c.decode(Bool.self, forKey: .registered)
-        // 抓包为 null，元素形态未知：按字符串数组尝试，不符则置 nil
-        usedIPs = try? c.decode([String].self, forKey: .usedIPs)
+        usedIPs = try? c.decode([KVMUsedIP].self, forKey: .usedIPs)
         error = try? c.decode(String.self, forKey: .error)
     }
 
@@ -715,6 +714,17 @@ nonisolated struct KVMNetwork: Decodable, Identifiable, Hashable {
     var isActive: Bool { (status ?? "").lowercased() == "running" || (status ?? "").lowercased() == "active" }
     /// 有关联虚拟机时不可删除（网页端同款限制）
     var hasVMs: Bool { (vmCount ?? 0) > 0 }
+}
+
+/// 网络已用 IP 项（networks/list.usedIPs 抓包 2026-10-24：{ip, vmName, mac, source}）
+nonisolated struct KVMUsedIP: Decodable, Identifiable, Hashable {
+    let ip: String?
+    let vmName: String?
+    let mac: String?
+    let source: String?
+
+    var id: String { "\(ip ?? "")|\(vmName ?? "")|\(mac ?? "")" }
+    var displayIP: String { ip ?? "-" }
 }
 
 /// 网络类型（表单形态 3）
@@ -801,4 +811,37 @@ nonisolated struct KVMStorageCreateRequest: Encodable {
     let path: String
     let autoStart: Bool
     let description: String
+}
+
+// MARK: - 孤立数据清理
+
+/// 孤立数据候选项（orphans/scan|clean 抓包 2026-10-24）：
+/// type: orphan_domain_disk 等；size 字节；modifiedAt Unix 秒。
+/// clean 请求体直接复用扫描结果项（{items:[...]}，字段同构）
+nonisolated struct KVMOrphanItem: Codable, Identifiable, Hashable {
+    let type: String
+    let path: String
+    let size: Int64?
+    let modifiedAt: Int64?
+
+    var id: String { "\(type)|\(path)" }
+
+    /// 类型展示名（网页端语义；未知类型原样展示）
+    var typeDisplayName: String {
+        switch type {
+        case "orphan_domain_disk": return L10n.t("孤立虚拟机磁盘")
+        default: return type
+        }
+    }
+
+    var modifiedAtText: String? {
+        guard let modifiedAt, modifiedAt > 0 else { return nil }
+        return Date(timeIntervalSince1970: TimeInterval(modifiedAt)).formatted(
+            date: .abbreviated, time: .shortened)
+    }
+}
+
+/// POST /xpack/vms/orphans/clean 请求体
+nonisolated struct KVMOrphansCleanRequest: Encodable {
+    let items: [KVMOrphanItem]
 }

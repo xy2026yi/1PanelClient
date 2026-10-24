@@ -217,6 +217,44 @@ final class KVMViewModel: ObservableObject {
         }
     }
 
+    // MARK: 孤立数据清理（orphans/scan|clean 抓包 2026-10-24）
+
+    @Published private(set) var orphans: [KVMOrphanItem] = []
+    @Published private(set) var isScanningOrphans = false
+    @Published private(set) var isCleaningOrphans = false
+    /// 是否已执行过扫描（区分「未扫描」与「扫描后无孤立数据」空态）
+    @Published private(set) var hasScannedOrphans = false
+
+    /// 扫描孤立数据（未被虚拟机 / 快照 / 已登记模版引用的候选文件）
+    func scanOrphans() async {
+        isScanningOrphans = true
+        defer { isScanningOrphans = false }
+        do {
+            orphans = try await client.send(path: APIEndpoint.kvmOrphansScan.path,
+                                            as: [KVMOrphanItem].self)
+            hasScannedOrphans = true
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            alert(L10n.f("扫描失败：%@", detail(error)))
+        }
+    }
+
+    /// 清理所选项；服务端返回清理后的候选列表，直接作为新扫描结果
+    func cleanOrphans(_ items: [KVMOrphanItem]) async {
+        isCleaningOrphans = true
+        defer { isCleaningOrphans = false }
+        do {
+            orphans = try await client.send(path: APIEndpoint.kvmOrphansClean.path,
+                                            body: KVMOrphansCleanRequest(items: items),
+                                            as: [KVMOrphanItem].self)
+            hasScannedOrphans = true
+            toastMessage = L10n.f("已清理 %ld 项", items.count)
+        } catch {
+            guard !APIError.isCancellation(error) else { return }
+            alert(L10n.f("清理失败：%@", detail(error)))
+        }
+    }
+
     /// 创建 → 返回 taskID（表单自行 push 进度页，完成后分步收栈）；失败 nil
     func create(_ request: KVMCreateRequest) async -> String? {
         await sendTask(.kvmCreate, body: request, present: false,

@@ -723,6 +723,8 @@ enum APIEndpoint {
     case kvmDelete                 // POST 删除 {taskID, id, force}
     case kvmOperate                // POST 电源 {name, operate: start|shutdown|reboot|suspend|resume|destroy}
     case kvmSync                   // POST 同步 libvirt 域到面板（无 body）
+    case kvmOrphansScan            // POST 孤立数据扫描（无 body）→ 候选文件列表
+    case kvmOrphansClean           // POST 孤立数据清理 {items} → 清理后的列表
     case kvmStats                  // POST 实时监控 {name}（累计型计数）
     case kvmHealthCheck            // POST 健康检查 {name} → {pass, warn, fail, items}
     case kvmConsole                // POST 控制台信息 {name} → {type, port, listen}
@@ -1348,6 +1350,8 @@ enum APIEndpoint {
         case .kvmDelete:             return "/api/v2/xpack/vms/del"
         case .kvmOperate:            return "/api/v2/xpack/vms/operate"
         case .kvmSync:               return "/api/v2/xpack/vms/sync"
+        case .kvmOrphansScan:        return "/api/v2/xpack/vms/orphans/scan"
+        case .kvmOrphansClean:       return "/api/v2/xpack/vms/orphans/clean"
         case .kvmStats:              return "/api/v2/xpack/vms/stats"
         case .kvmHealthCheck:        return "/api/v2/xpack/vms/health/check"
         case .kvmConsole:            return "/api/v2/xpack/vms/console"

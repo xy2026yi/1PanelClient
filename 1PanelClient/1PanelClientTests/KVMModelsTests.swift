@@ -249,6 +249,53 @@ struct KVMModelsTests {
         #expect(network.vms?.first?.name == "test")
     }
 
+    @Test("网络 usedIPs 对象数组解码（2026-10-24 抓包：{ip, vmName, mac, source}）")
+    func decodeNetworkUsedIPs() throws {
+        let json = """
+        {"id":1,"name":"default","type":"nat","bridgeName":"virbr0","sourceInterface":"",
+         "cidr":"192.168.122.0/24","gateway":"192.168.122.1","dhcpStart":"192.168.122.2",
+         "dhcpEnd":"192.168.122.254","autoStart":true,"description":"",
+         "createdAt":"2026-10-23 10:11:07","status":"Running","vmCount":1,
+         "vms":[{"id":4,"name":"teat1"}],"registered":true,
+         "usedIPs":[{"ip":"192.168.122.169","vmName":"teat1","mac":"52:54:00:96:83:c8","source":"default"}],
+         "error":""}
+        """
+        let network = try JSONDecoder().decode(KVMNetwork.self, from: Data(json.utf8))
+        let used = try #require(network.usedIPs?.first)
+        #expect(used.ip == "192.168.122.169")
+        #expect(used.vmName == "teat1")
+        #expect(used.mac == "52:54:00:96:83:c8")
+        #expect(used.source == "default")
+        #expect(used.displayIP == "192.168.122.169")
+    }
+
+    @Test("孤立数据候选项解码与清理请求体回写（字段同构，clean 复用扫描项）")
+    func decodeOrphans() throws {
+        let json = """
+        [{"type":"orphan_domain_disk","path":"/var/lib/libvirt/images/test.qcow2","size":0,"modifiedAt":1792805521}]
+        """
+        let items = try JSONDecoder().decode([KVMOrphanItem].self, from: Data(json.utf8))
+        let item = try #require(items.first)
+        #expect(item.typeDisplayName == L10n.t("孤立虚拟机磁盘"))
+        #expect(item.modifiedAtText != nil)
+        #expect(item.id == "orphan_domain_disk|/var/lib/libvirt/images/test.qcow2")
+
+        // 未知类型原样展示
+        let unknown = KVMOrphanItem(type: "orphan_iso", path: "/x.iso", size: 1, modifiedAt: nil)
+        #expect(unknown.typeDisplayName == "orphan_iso")
+        #expect(unknown.modifiedAtText == nil)
+
+        // 清理请求体字段与扫描项同构（{items:[...]} 逐字段还原）
+        let body = try JSONEncoder().encode(KVMOrphansCleanRequest(items: items))
+        let envelope = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+        let envelopeItems = try #require(envelope?["items"] as? [[String: Any]])
+        #expect(envelopeItems.count == 1)
+        #expect(envelopeItems[0]["type"] as? String == "orphan_domain_disk")
+        #expect(envelopeItems[0]["path"] as? String == "/var/lib/libvirt/images/test.qcow2")
+        #expect(envelopeItems[0]["size"] as? Int64 == 0)
+        #expect(envelopeItems[0]["modifiedAt"] as? Int64 == 1792805521)
+    }
+
     @Test("存储池解码：用量与百分比派生")
     func decodeStorage() throws {
         let json = """
@@ -436,6 +483,8 @@ struct KVMModelsTests {
         #expect(APIEndpoint.kvmStorageCreate.path == "/api/v2/xpack/vms/storages")
         #expect(APIEndpoint.kvmOperate.method == "POST")
         #expect(APIEndpoint.kvmSync.method == "POST")
+        #expect(APIEndpoint.kvmOrphansScan.path == "/api/v2/xpack/vms/orphans/scan")
+        #expect(APIEndpoint.kvmOrphansClean.path == "/api/v2/xpack/vms/orphans/clean")
     }
 
     @Test("KVM 入高级功能门禁与管理分组")
