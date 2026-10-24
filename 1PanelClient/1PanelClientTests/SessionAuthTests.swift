@@ -140,7 +140,7 @@ struct SessionAuthTests {
 
     // MARK: - 纯逻辑：取钥决策
 
-    @Test("取钥决策：Enable+key 直接用；Enable+空 key 需生成；Disable 需确认开启")
+    @Test("取钥决策矩阵：legacy 行状态为权威——Revoked 残留旧 key 不可信走生成")
     func keyAcquisitionDecision() {
         func info(_ status: String?, _ key: String?) -> CurrentUserInfo {
             CurrentUserInfo(
@@ -150,16 +150,38 @@ struct SessionAuthTests {
                 apiKeyValidityTime: 120
             )
         }
-        #expect(
-            BootstrapDecision.keyAcquisition(from: info("Enable", "xIvaBQRBeMO93s7IO1xgomK2fE0DBhVt"))
-                == .useExisting("xIvaBQRBeMO93s7IO1xgomK2fE0DBhVt")
-        )
-        // 全新面板：接口已开但从未生成过 legacy key → api/generate
-        #expect(BootstrapDecision.keyAcquisition(from: info("Enable", "")) == .needsGenerate)
-        #expect(BootstrapDecision.keyAcquisition(from: info("Enable", nil)) == .needsGenerate)
-        #expect(BootstrapDecision.keyAcquisition(from: info("Disable", "xIva")) == .needsEnableConfirm)
-        #expect(BootstrapDecision.keyAcquisition(from: info("Disable", nil)) == .needsEnableConfirm)
-        #expect(BootstrapDecision.keyAcquisition(from: info(nil, nil)) == .needsEnableConfirm)
+        func row(_ status: String?) -> ApiKeyItem {
+            ApiKeyItem(id: "legacy", kind: "legacy", name: "Legacy API Key",
+                       status: status, revision: 3287886918601956)
+        }
+        // 行 Enable + key 在手 → 直接用
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Enable", "xIva"), legacyRow: row("Enable")) == .useExisting("xIva"))
+        // 行 Enable 但无 key（全新面板）→ 生成
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Enable", ""), legacyRow: row("Enable")) == .needsGenerate)
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Enable", nil), legacyRow: row("Enable")) == .needsGenerate)
+        // 行 Revoked：current 残留旧 key 明文也不可信 → 生成
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Enable", "deadKey"), legacyRow: row("Revoked")) == .needsGenerate)
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Disable", "deadKey"), legacyRow: row("Revoked")) == .needsGenerate)
+        // 行 Disable → 开启确认（key 在不在都翻开关重取）
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Disable", "xIva"), legacyRow: row("Disable")) == .needsEnableConfirm)
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Disable", nil), legacyRow: row("Disable")) == .needsEnableConfirm)
+        // 行缺失（旧面板/投影未初始化）→ 回退 current 口径
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Enable", "xIva"), legacyRow: nil) == .useExisting("xIva"))
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Enable", ""), legacyRow: nil) == .needsGenerate)
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Disable", nil), legacyRow: nil) == .needsEnableConfirm)
+        // 未知状态值按 Disable 处理（enable→重取链路自纠正）
+        #expect(BootstrapDecision.keyAcquisition(
+            current: info("Enable", "xIva"), legacyRow: row("SomethingElse")) == .needsEnableConfirm)
     }
 
     @Test("generateApiKey：data 裸字符串形态（v1 同源）")

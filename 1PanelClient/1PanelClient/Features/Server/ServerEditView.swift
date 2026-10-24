@@ -218,7 +218,7 @@ struct ServerEditView: View {
             }
         } message: {
             Text(bootstrapPhase == .confirmGenerate
-                 ? L10n.t("面板已开启 API 接口但还没有接口密钥。引导将生成一个新的接口密钥。稍后可在面板网页端撤销。")
+                 ? L10n.t("面板当前没有可用的接口密钥（从未生成或已被撤销）。引导将生成一个新的接口密钥。稍后可在面板网页端撤销。")
                  : L10n.t("面板尚未开启 API 接口。引导将开启该功能并使用/生成接口密钥（面板会留下一条登录记录）。稍后可在面板网页端撤销。"))
         }
     }
@@ -445,12 +445,14 @@ struct ServerEditView: View {
         }
     }
 
-    /// 步骤 3：current 取钥（Enable 直接用现有密钥——零新建、零开关改动、零副作用）
+    /// 步骤 3：current + keys/search 取钥（legacy 行 Enable 且明文在手——零新建、
+    /// 零开关改动、零副作用；Revoked/无 key 走生成，Disable 走开启确认）
     private func acquireKey(_ client: SessionAuthClient) async {
         bootstrapPhase = .working
         do {
             let info = try await client.currentUser()
-            switch BootstrapDecision.keyAcquisition(from: info) {
+            let legacyRow = try await client.searchApiKeys().first(where: { $0.id == "legacy" })
+            switch BootstrapDecision.keyAcquisition(current: info, legacyRow: legacyRow) {
             case .useExisting(let key):
                 finishBootstrap(key: key)
             case .needsEnableConfirm:
@@ -464,7 +466,8 @@ struct ServerEditView: View {
     }
 
     /// 确认后的面板侧变更：
-    /// - confirmGenerate：api/generate 直接生成（接口已开但从未有过 legacy key）
+    /// - confirmGenerate：api/generate 生成（行 Revoked 或从未有过 key）；生成后若
+    ///   接口开关未在位（Revoked 面板生成不必然翻开关）补 keys/status Enable
     /// - confirmEnable：keys/status 翻 legacy 行 Enable → 重取 current；
     ///   key 仍为空（全新面板开关不自动生成密钥时）再补 api/generate
     private func performConfirmedMutation() async {
@@ -473,7 +476,12 @@ struct ServerEditView: View {
         bootstrapPhase = .working
         do {
             if generateOnly {
-                finishBootstrap(key: try await client.generateApiKey())
+                let key = try await client.generateApiKey()
+                let info = try await client.currentUser()
+                if info.apiInterfaceStatus != "Enable" {
+                    try await client.enableApiInterface()
+                }
+                finishBootstrap(key: key)
                 return
             }
             try await client.enableApiInterface()

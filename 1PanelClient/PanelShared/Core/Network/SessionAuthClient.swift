@@ -149,6 +149,18 @@ final class SessionAuthClient {
         return key
     }
 
+    /// API 密钥列表（POST keys/search {page,pageSize}）。legacy 行的 status 是接口
+    /// 功能的权威口径（Enable/Disable/Revoked 三态抓包实证）——current 的
+    /// apiInterfaceStatus 区分不出「停用」与「已撤销但残留旧 key 明文」
+    func searchApiKeys() async throws -> [ApiKeyItem] {
+        let page = try await post(
+            Path.apiKeysSearch,
+            body: ApiKeysSearchRequest(page: 1, pageSize: 20),
+            as: PageEnvelope<ApiKeyItem>.self
+        )
+        return page.items ?? []
+    }
+
     /// 步骤 3b：接口功能 Disable 时的显式开启（session + CSRF 双提交）。
     /// 接口功能开关即 API 密钥页 Legacy 行的启停（v2.3.2 起 keys/* 体系，2026-10-24
     /// v2.4.1 网页端实捕）：keys/search 取 legacy 行的 revision（乐观锁）→
@@ -156,12 +168,8 @@ final class SessionAuthClient {
     /// v2.3.1 及更早、请求体从未实证），明确报版本问题并回落手动粘贴路径
     func enableApiInterface() async throws {
         do {
-            let page = try await post(
-                Path.apiKeysSearch,
-                body: ApiKeysSearchRequest(page: 1, pageSize: 20),
-                as: PageEnvelope<ApiKeyItem>.self
-            )
-            guard let legacy = page.items?.first(where: { $0.id == "legacy" }) else {
+            let items = try await searchApiKeys()
+            guard let legacy = items.first(where: { $0.id == "legacy" }) else {
                 throw SessionAuthError.business(200, L10n.t("面板未找到接口密钥配置，请改用手动粘贴"))
             }
             let _: EmptyResponse = try await post(
@@ -298,19 +306,37 @@ final class SessionAuthClient {
 
 nonisolated enum BootstrapDecision {
 
-    /// current 响应后的取钥路径：Enable 直接用现有密钥（零副作用首选）；
-    /// Enable 但 key 为空（全新面板从未生成过 legacy key）需确认后调 api/generate 生成；
-    /// Disable 需确认翻开关后重取（key 仍为空再补生成）
+    /// current 响应 + keys/search legacy 行后的取钥路径
     enum KeyAcquisition: Equatable {
-        /// 直接取 current.apiKey
+        /// 直接取 current.apiKey（legacy 行 Enable 且明文在手——零副作用首选）
         case useExisting(String)
-        /// 需确认「将生成新的接口密钥」（api/generate）
+        /// 需确认「将生成新的接口密钥」（api/generate）：行 Enable 但无 key（全新面板）、
+        /// 或行 Revoked（旧 key 明文可能残留但已失效，不可信）
         case needsGenerate
         /// 需确认「将启用面板接口密钥功能」（keys/status 翻 legacy 行 Enable 后重取）
         case needsEnableConfirm
     }
 
-    static func keyAcquisition(from info: CurrentUserInfo) -> KeyAcquisition {
+    /// legacy 行 status 为权威口径：Revoked 时 current 仍可能返回旧 key 明文
+    /// （settings 残留），直接使用会存进死 key；行缺失（旧面板/投影未初始化）时
+    /// 回退 current 口径。未知状态值按 Disable 处理（enable→重取链路自纠正）
+    static func keyAcquisition(
+        current info: CurrentUserInfo,
+        legacyRow: ApiKeyItem?
+    ) -> KeyAcquisition {
+        if let legacy = legacyRow {
+            switch legacy.status {
+            case "Enable":
+                if let key = info.apiKey, !key.isEmpty {
+                    return .useExisting(key)
+                }
+                return .needsGenerate
+            case "Revoked":
+                return .needsGenerate
+            default:
+                return .needsEnableConfirm
+            }
+        }
         if info.apiInterfaceStatus == "Enable" {
             if let key = info.apiKey, !key.isEmpty {
                 return .useExisting(key)
