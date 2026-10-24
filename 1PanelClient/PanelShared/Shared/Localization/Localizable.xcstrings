@@ -16862,17 +16862,6 @@
         }
       }
     },
-    "已有接口密钥？手动粘贴" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Already have an API key? Paste it manually"
-          }
-        }
-      }
-    },
     "已构建" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18464,28 +18453,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quick Commands"
-          }
-        }
-      }
-    },
-    "快速开始会登录一次面板并自动获取接口密钥，日常使用仍以密钥连接。引导失败时可在高级选项中手动粘贴密钥。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quick Start signs in to the panel once and fetches the API key automatically; daily use still connects with the key. If bootstrap fails, paste the key manually under Advanced Options."
-          }
-        }
-      }
-    },
-    "快速开始（账号密码）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quick Start (Account & Password)"
           }
         }
       }
@@ -20250,17 +20217,6 @@
         }
       }
     },
-    "接口密钥（已填入）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "API Key (filled)"
-          }
-        }
-      }
-    },
     "接口未返回数据" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21896,6 +21852,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not load install parameters"
+          }
+        }
+      }
+    },
+    "无法引导" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot Bootstrap"
           }
         }
       }
@@ -28335,6 +28302,17 @@
         }
       }
     },
+    "用面板账号密码自动获取接口密钥，无需到网页端手动复制；也可以直接粘贴已有 API Key。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch the API key automatically with the panel account and password — no need to copy it from the web UI. You can also paste an existing API Key directly."
+          }
+        }
+      }
+    },
     "由 libvirt DHCP 分配给虚拟机的地址。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28562,17 +28540,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Virus scan task \"%@\" detected infected files"
-          }
-        }
-      }
-    },
-    "登录一次面板即可自动填入接口密钥，无需到网页端手动复制。开启了两步验证的面板会要求输入动态口令。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in once and the API key is filled in automatically — no need to copy it from the web UI. Panels with two-factor authentication will ask for an OTP code."
           }
         }
       }
@@ -39463,6 +39430,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Panel version too old (API key management requires v2.3.2+). Paste the key manually instead"
+          }
+        }
+      }
+    },
+    "面板登录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Sign-in"
           }
         }
       }
