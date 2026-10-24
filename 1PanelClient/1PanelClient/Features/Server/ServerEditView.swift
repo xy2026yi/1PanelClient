@@ -178,8 +178,7 @@ struct ServerEditView: View {
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             baseURL: baseURL.trimmingCharacters(in: .whitespacesAndNewlines),
             apiKey: apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
-            // username 用完即清不落盘；安全入口码留档供下次引导免重填
-            username: nil,
+            // 安全入口码留档供下次引导免重填；账号密码从不落盘
             entranceCode: entrance.isEmpty ? nil : entrance
         )
         if editing != nil { manager.update(s) } else { manager.add(s) }

@@ -98,8 +98,8 @@ final class ServerManager: ObservableObject {
                 "name": s.name,
                 "baseURL": s.normalizedBaseURL
             ]
-            // 安全入口码跟随服务器持久化（引导流下次免重填）；username 按
-            // 「用完即清、不长期保留」纪律不落盘
+            // 安全入口码跟随服务器持久化（引导流下次免重填）；面板账号/密码
+            // 只在引导弹窗内短暂存在，用完即弃，不落任何存储（方案 §3.3）
             if let entrance = s.entranceCode, !entrance.isEmpty {
                 d["entranceCode"] = entrance
             }

@@ -434,12 +434,14 @@ struct ServerBootstrapView: View {
     }
 
     /// 步骤 3：current + keys/search 取钥（legacy 行 Enable 且明文在手——零新建、
-    /// 零开关改动、零副作用；Revoked/无 key 走创建，Disable 走开启确认）
+    /// 零开关改动、零副作用；Revoked/无 key 走创建，Disable 走开启确认）。
+    /// keys/search 尽力而为：失败（旧面板 404 / 瞬时网络）回落 current 口径判定，
+    /// 不让中间步骤卡死取钥（legacy 行缺失同款纪律）
     private func acquireKey(_ client: SessionAuthClient) async {
         bootstrapPhase = .working
         do {
             let info = try await client.currentUser()
-            let legacyRow = try await client.searchApiKeys().first(where: { $0.id == "legacy" })
+            let legacyRow = try? await client.searchApiKeys().first(where: { $0.id == "legacy" })
             switch BootstrapDecision.keyAcquisition(current: info, legacyRow: legacyRow) {
             case .useExisting(let key):
                 finishBootstrap(key: key)
@@ -513,6 +515,11 @@ struct ServerBootstrapView: View {
     private func finishBootstrap(key: String) {
         let entrance = entranceCode.trimmingCharacters(in: .whitespacesAndNewlines)
         Haptic.success()
+        // 服务端会话顺手收口（fire-and-forget：finishTasksAndInvalidate 允许在途
+        // 请求完成，不阻塞弹窗关闭；失败无碍——jar 随即销毁，客户端已无凭据）
+        if let client = bootstrapClient {
+            Task { try? await client.logout() }
+        }
         // session 即弃：jar 销毁、密码即清（不长期保留）
         teardownBootstrapClient()
         // 明文回传主表单（填入 API Key 字段）并关闭弹窗

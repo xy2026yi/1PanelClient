@@ -507,6 +507,21 @@ struct SessionAuthTests {
         }
     }
 
+    @Test("logout：引导收口 POST 匿名端点")
+    func logoutWire() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        BootstrapMockURLProtocol.setHandler { request in
+            #expect(request.url?.path.hasSuffix("/core/auth/logout") == true)
+            #expect(request.httpMethod == "POST")
+            return (Self.response(request), Self.envelope("null"))
+        }
+        try await client.logout()
+    }
+
     // MARK: - MockURLProtocol 辅助
 
     /// logs/抓取.md 实捕 panel_public_key cookie 值（与 PanelPasswordCryptoTests 同源）

@@ -19,6 +19,7 @@ final class SessionAuthClient {
     private enum Path {
         static let setting = "/api/v2/core/auth/setting"          // GET 匿名；jar 自动收 panel_public_key
         static let login = "/api/v2/core/auth/login"              // POST 匿名
+        static let logout = "/api/v2/core/auth/logout"            // POST 匿名（清服务端会话）
         static let mfaLogin = "/api/v2/core/auth/mfalogin"        // POST 匿名
         static let captcha = "/api/v2/core/auth/captcha"          // GET 匿名
         static let current = "/api/v2/core/auth/current"          // GET session
@@ -174,6 +175,13 @@ final class SessionAuthClient {
             as: PageEnvelope<ApiKeyItem>.self
         )
         return page.items ?? []
+    }
+
+    /// 注销服务端会话（引导结束的顺手收口：免得 psession 悬挂到面板超时设置。
+    /// 匿名白名单端点，无需会话也受理；带 jar 时自动附 CSRF）。尽力而为——
+    /// 失败无碍，cookie jar 随即销毁，客户端侧已无凭据
+    func logout() async throws {
+        let _: EmptyResponse = try await post(Path.logout, as: EmptyResponse.self)
     }
 
     /// 步骤 3b：接口功能 Disable 时的显式开启（session + CSRF 双提交）。
@@ -425,7 +433,13 @@ enum SessionAuthError: LocalizedError {
         case .http(let code, let message):
             return "HTTP \(code): \(message)"
         case .network(let error):
-            return L10n.f("网络错误: %@", error.localizedDescription)
+            // 复用主 API 链路的弱网指引（超时/无法连接的排查文案与本地网络权限
+            // 提示，APIError C1/C3 沉淀），引导弹窗遇到同类问题不再只报系统原文
+            if let apiError = error as? APIError {
+                return apiError.errorDescription
+            }
+            return APIError.networkError(error).errorDescription
+                ?? L10n.f("网络错误: %@", error.localizedDescription)
         case .decoding(let message):
             return L10n.f("数据解析失败: %@", message)
         case .invalidURL:
