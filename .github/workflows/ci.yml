@@ -1,8 +1,9 @@
 name: CI
 
+# 不再监听 push(main)：分支保护保证进 main 的代码必经 PR 且 PR 已全绿，
+# PR 上的 CI 即权威验证，merge 后再跑一遍是重复（GitHub 合并时以 PR head 的
+# check 结果满足 main 的 required checks，保护不失效）。手动兜底走 workflow_dispatch。
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
