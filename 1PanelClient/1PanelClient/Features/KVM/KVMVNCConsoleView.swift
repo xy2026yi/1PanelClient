@@ -206,7 +206,11 @@ nonisolated final class TightZlibStream {
     func reset() {
         guard active else { return }
         compression_stream_destroy(&stream)
-        _ = compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB)
+        guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB)
+                == COMPRESSION_STATUS_OK else {
+            active = false   // 置失效：后续 inflate 返回 nil，由调用方判失败断连
+            return
+        }
         pending.removeAll()
         skippedHeader = false
     }
@@ -252,8 +256,10 @@ nonisolated final class TightZlibStream {
 // MARK: - RFB 字节流拼装
 
 /// RFB 字节流 → 服务端消息。WS 帧边界与消息边界不对齐（代理按 TCP 块切分），
-/// 内部缓存拼装；feed 可任意切块（单测按乱块喂入验证）
-nonisolated final class RFBMessageAssembler {
+/// 内部缓存拼装；feed 可任意切块（单测按乱块喂入验证）。
+/// actor 隔离：Tight/hextile 解码含 zlib inflate，在协作线程池执行（全屏矩形
+/// 在主线程会掉帧）；feed/reset/failure 全部经 actor 串行化，无并发访问
+actor RFBMessageAssembler {
     /// 首个致命错误（未知消息类型 / 未宣告的编码 / 非法长度）；出错后 feed 恒返回空。
     /// 出连接应断开
     private(set) var failure: String?
@@ -903,6 +909,8 @@ final class KVMVNCSession: ObservableObject {
     @Published private(set) var updateBatches = 0
     /// 已接收字节（握手诊断：卡「连接中」时可判断服务端是否回话）
     @Published private(set) var receivedBytes = 0
+    /// 瞬时提示（客户机剪贴板同步等；视图 toastOverlay 展示并自动清除）
+    @Published var toastMessage: String?
 
     let server: ServerConfig
     let vmName: String
@@ -945,9 +953,10 @@ final class KVMVNCSession: ObservableObject {
         state = .connecting
         handshakePhase = .version
         handshakeBuffer = []
-        assembler.reset()
+        await assembler.reset()
         framebuffer = nil
         framebufferImage = nil
+        cursor = nil
         updateBatches = 0
         receivedBytes = 0
 
@@ -1033,7 +1042,7 @@ final class KVMVNCSession: ObservableObject {
                 let message = try await task.receive()
                 guard gen == self.generation else { return }
                 guard case .data(let data) = message else { continue }  // VNC 只有二进制帧
-                ingest(data)
+                await ingest(data, gen: gen)
             } catch {
                 guard gen == self.generation, !Task.isCancelled else { return }
                 fail(L10n.f("连接已断开：%@", error.localizedDescription))
@@ -1059,8 +1068,10 @@ final class KVMVNCSession: ObservableObject {
     // MARK: 握手与消息分发
 
     /// 握手用 [UInt8] 而非 Data：Data.removeFirst 不重置 startIndex，
-    /// 逐段消费后绝对位置 subdata 会取错字节（真机卡「连接中」根因）
-    private func ingest(_ data: Data) {
+    /// 逐段消费后绝对位置 subdata 会取错字节（真机卡「连接中」根因）。
+    /// async：解析经 actor 在协作线程池执行（见 applyAssemblerOutput）
+    private func ingest(_ data: Data, gen: Int) async {
+        guard gen == generation else { return }  // await 恢复时可能已重连
         receivedBytes += data.count
         switch handshakePhase {
         case .version:
@@ -1074,7 +1085,7 @@ final class KVMVNCSession: ObservableObject {
             }
             send(RFBClientEncoder.protocolVersion())
             handshakePhase = .securityTypes
-            continueHandshake()
+            await continueHandshake(gen: gen)
 
         case .securityTypes:
             handshakeBuffer.append(contentsOf: data)
@@ -1092,7 +1103,7 @@ final class KVMVNCSession: ObservableObject {
             handshakeBuffer.removeFirst(1 + Int(typeCount))
             send(RFBClientEncoder.securitySelect())
             handshakePhase = .securityResult
-            continueHandshake()
+            await continueHandshake(gen: gen)
 
         case .securityResult:
             handshakeBuffer.append(contentsOf: data)
@@ -1104,7 +1115,7 @@ final class KVMVNCSession: ObservableObject {
             }
             send(RFBClientEncoder.clientInit())
             handshakePhase = .serverInit
-            continueHandshake()
+            await continueHandshake(gen: gen)
 
         case .serverInit:
             handshakeBuffer.append(contentsOf: data)
@@ -1131,22 +1142,26 @@ final class KVMVNCSession: ObservableObject {
             state = .connected
             if !handshakeBuffer.isEmpty {
                 // ServerInit 之后可能紧跟首批更新，直接进入正常阶段消费
-                for message in assembler.feed(Data(handshakeBuffer)) {
-                    handle(message)
-                }
+                let buffered = Data(handshakeBuffer)
                 handshakeBuffer.removeAll()
-                if let reason = assembler.failure {
-                    fail(reason)
-                }
+                await applyAssemblerOutput(buffered, gen: gen)
             }
 
         case .normal:
-            for message in assembler.feed(data) {
-                handle(message)
-            }
-            if let reason = assembler.failure {
-                fail(reason)
-            }
+            await applyAssemblerOutput(data, gen: gen)
+        }
+    }
+
+    /// 喂入解析器并按序处理消息（actor 隔离——Tight/hextile 解码含 zlib inflate，
+    /// 大矩形在主线程会掉帧）；解析期间若已断开/重连（gen 变化）则丢弃结果，
+    /// 防止旧连接消息画到新连接的帧缓冲上
+    private func applyAssemblerOutput(_ data: Data, gen: Int) async {
+        for message in await assembler.feed(data) {
+            guard gen == generation else { return }
+            handle(message)
+        }
+        if gen == generation, let reason = await assembler.failure {
+            fail(reason)
         }
     }
 
@@ -1159,11 +1174,11 @@ final class KVMVNCSession: ObservableObject {
     }
 
     /// 握手各阶段缓冲里可能已带后续报文，原地继续消费
-    private func continueHandshake() {
+    private func continueHandshake(gen: Int) async {
         guard !handshakeBuffer.isEmpty else { return }
         let buffered = Data(handshakeBuffer)
         handshakeBuffer.removeAll()
-        ingest(buffered)
+        await ingest(buffered, gen: gen)
     }
 
     private func handle(_ message: RFBServerMessage) {
@@ -1198,8 +1213,11 @@ final class KVMVNCSession: ObservableObject {
         case .bell:
             Haptic.selection()
         case .serverCutText(let text):
-            // 客户机剪贴板 → 系统剪贴板（qemu 仅在扩展剪贴板协商后下发，多为休眠路径）
-            if !text.isEmpty { UIPasteboard.general.string = text }
+            // 客户机剪贴板 → 系统剪贴板；会覆盖用户已复制内容，toast 明示
+            if !text.isEmpty {
+                UIPasteboard.general.string = text
+                toastMessage = L10n.t("已同步客户机剪贴板到本机")
+            }
         case .ignored:
             break
         }
@@ -1479,6 +1497,14 @@ struct KVMVNCConsoleView: View {
         }
         .task { await console.connect() }
         .onDisappear { console.disconnect() }
+        .toastOverlay(message: $console.toastMessage)
+        .onChange(of: console.toastMessage) { _, message in
+            guard message != nil else { return }
+            Task {
+                try? await Task.sleep(for: .seconds(2))
+                console.toastMessage = nil
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             // 回前台自动重连（后台挂起后 WS 已断，状态为 failed）
             if phase == .active, case .failed = console.state {
@@ -1586,7 +1612,13 @@ struct KVMVNCConsoleView: View {
                         }
                     )
                     .onTapGesture {
-                        consoleFocused = true
+                        // 键盘栏可见时把焦点还给输入框（勿抢——否则软键盘收起而栏还挂着）；
+                        // 隐藏时控制台持焦点以接管外接键盘
+                        if isKeyboardVisible {
+                            keyboardFocused = true
+                        } else {
+                            consoleFocused = true
+                        }
                         guard !dragMode else { return }  // 按下/释放已构成单击
                         tapLast()
                     }
@@ -1724,17 +1756,18 @@ struct KVMVNCConsoleView: View {
         dispatchPointer(buttonMask: 0, x: point.x, y: point.y)
     }
 
-    /// 双指滚动 → 滚轮事件（约 40pt = 1 格；手指下移 = 滚轮向下 = 按钮 5/0x10）
+    /// 双指滚动 → 滚轮事件（约 40pt = 1 格；iOS 触控惯例「内容跟随手指」：
+    /// 手指上移 = 内容上移 = 视口向文档末尾 = 滚轮向下（按钮 5/0x10））
     private func wheelScrolled(_ delta: CGFloat) {
         guard console.state == .connected else { return }
         wheelAccumulator += delta
-        let downward = wheelAccumulator > 0
         let ticks = Int(abs(wheelAccumulator) / 40)
         guard ticks > 0 else { return }
-        wheelAccumulator -= CGFloat(ticks) * 40 * (downward ? 1 : -1)
+        let scrollDown = wheelAccumulator < 0   // 负位移 = 手指上移 = 滚轮向下
+        wheelAccumulator -= CGFloat(ticks) * 40 * (wheelAccumulator > 0 ? 1 : -1)
         let anchor = lastFramebufferPoint ?? (Int(console.framebufferSize.width / 2),
                                               Int(console.framebufferSize.height / 2))
-        let mask: UInt8 = downward ? 0x10 : 0x08
+        let mask: UInt8 = scrollDown ? 0x10 : 0x08
         for _ in 0..<ticks {
             dispatchPointer(buttonMask: mask, x: anchor.0, y: anchor.1)
             dispatchPointer(buttonMask: 0, x: anchor.0, y: anchor.1)

@@ -48,17 +48,10 @@ struct KVMOrphansView: View {
                 }
             }
         }
-        .refreshable { await vm.scanOrphans() }
+        .refreshable { await rescan() }
         .task {
-            if !vm.hasScannedOrphans { await vm.scanOrphans() }
-        }
-        .onChange(of: vm.orphans) { _, items in
-            // 重扫 / 清理后：默认全选，失效勾选自然剔除
-            selected = Set(items.map(\.id))
-        }
-        .onAppear {
-            if selected.isEmpty, !vm.orphans.isEmpty {
-                selected = Set(vm.orphans.map(\.id))
+            if !vm.hasScannedOrphans {
+                await rescan()
             }
         }
         .alert(L10n.t("确认清理"), isPresented: $showCleanConfirm) {
@@ -66,11 +59,23 @@ struct KVMOrphansView: View {
             Button(L10n.t("清理"), role: .destructive) {
                 let items = selectedItems
                 guard !items.isEmpty else { return }
-                Task { await vm.cleanOrphans(items) }
+                Task {
+                    // 清理成功（含内部重扫）后全不选——连按误删面最小化；
+                    // 失败保持原勾选便于重试
+                    if await vm.cleanOrphans(items) {
+                        selected.removeAll()
+                    }
+                }
             }
         } message: {
             Text(L10n.f("将删除 %ld 个文件，清理操作不可恢复。请确认文件不再使用。", selected.count))
         }
+    }
+
+    /// 扫描 + 默认全选（候选文件本就未被引用，逐项排除比逐项勾选更省）
+    private func rescan() async {
+        await vm.scanOrphans()
+        selected = Set(vm.orphans.map(\.id))
     }
 
     // MARK: 摘要卡（状态 + 扫描主按钮）
@@ -89,7 +94,7 @@ struct KVMOrphansView: View {
                 }
                 Spacer()
                 Button {
-                    Task { await vm.scanOrphans() }
+                    Task { await rescan() }
                 } label: {
                     if vm.isScanningOrphans {
                         ProgressView()

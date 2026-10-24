@@ -982,8 +982,8 @@ struct PanelUpgradeView: View {
                         updateBanner(latestVersion: latest)
                     }
 
-                    ForEach(Array(releases.enumerated()), id: \.element.id) { index, release in
-                        releaseCard(release, isExpanded: index == 0 || expandedVersions.contains(release.id))
+                    ForEach(releases) { release in
+                        releaseCard(release, isExpanded: expandedVersions.contains(release.id))
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 if expandedVersions.contains(release.id) {
@@ -1105,6 +1105,10 @@ struct PanelUpgradeView: View {
             releases = try await releasesResponse
             latestSettingInfo = await settingsResponse
             latestUpgradeInfo = await upgradeResponse
+            // 加载后默认展开最新一条（用户可点击收起/展开任意条）
+            if expandedVersions.isEmpty, let first = releases.first {
+                expandedVersions.insert(first.id)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

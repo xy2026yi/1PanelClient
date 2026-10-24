@@ -239,19 +239,23 @@ final class KVMViewModel: ObservableObject {
         }
     }
 
-    /// 清理所选项；服务端返回清理后的候选列表，直接作为新扫描结果
-    func cleanOrphans(_ items: [KVMOrphanItem]) async {
+    /// 清理所选项。响应语义未定（抓包回显已删项，非剩余列表），成功后重扫取权威列表。
+    /// 返回是否成功（供视图决定勾选复位策略）
+    @discardableResult
+    func cleanOrphans(_ items: [KVMOrphanItem]) async -> Bool {
         isCleaningOrphans = true
         defer { isCleaningOrphans = false }
         do {
-            orphans = try await client.send(path: APIEndpoint.kvmOrphansClean.path,
-                                            body: KVMOrphansCleanRequest(items: items),
-                                            as: [KVMOrphanItem].self)
-            hasScannedOrphans = true
+            _ = try await client.send(path: APIEndpoint.kvmOrphansClean.path,
+                                      body: KVMOrphansCleanRequest(items: items),
+                                      as: [KVMOrphanItem].self)
             toastMessage = L10n.f("已清理 %ld 项", items.count)
+            await scanOrphans()
+            return true
         } catch {
-            guard !APIError.isCancellation(error) else { return }
+            guard !APIError.isCancellation(error) else { return false }
             alert(L10n.f("清理失败：%@", detail(error)))
+            return false
         }
     }
 

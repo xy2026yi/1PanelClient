@@ -16092,6 +16092,17 @@
         }
       }
     },
+    "已同步客户机剪贴板到本机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guest clipboard synced to this device"
+          }
+        }
+      }
+    },
     "已启动" : {
       "extractionState" : "manual",
       "localizations" : {

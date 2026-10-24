@@ -124,7 +124,7 @@ struct KVMVNCRFBTests {
     }
 
     @Test("RAW 矩形按任意切块拼装 + 批次完成消息")
-    func assemblerRawChunked() {
+    func assemblerRawChunked() async {
         let assembler = RFBMessageAssembler()
         var messages: [RFBServerMessage] = []
         let pixels: [UInt8] = (0..<2 * 3 * 4).map { UInt8($0) }   // 2×3 像素
@@ -134,7 +134,7 @@ struct KVMVNCRFBTests {
         var index = stream.startIndex
         while index < stream.endIndex {
             let end = stream.index(index, offsetBy: 7, limitedBy: stream.endIndex) ?? stream.endIndex
-            messages.append(contentsOf: assembler.feed(Data(stream[index..<end])))
+            messages.append(contentsOf: await assembler.feed(Data(stream[index..<end])))
             index = end
         }
 
@@ -148,7 +148,7 @@ struct KVMVNCRFBTests {
     }
 
     @Test("同批多矩形：逐个落位后仅一次完成；CopyRect / DesktopSize / Bell")
-    func assemblerVariants() {
+    func assemblerVariants() async {
         let assembler = RFBMessageAssembler()
         var messages: [RFBServerMessage] = []
 
@@ -158,7 +158,7 @@ struct KVMVNCRFBTests {
                        + RFBBytes.be16(2) + RFBBytes.be16(2) + RFBBytes.be32(1)   // CopyRect @5,6 2×2
                        + RFBBytes.be16(0) + RFBBytes.be16(0))                     // src 0,0
         stream.append(contentsOf: makeRawBatch(x: 0, y: 0, width: 1, height: 1, pixel: [9, 9, 9, 9]).dropFirst(4))
-        messages.append(contentsOf: assembler.feed(stream))
+        messages.append(contentsOf: await assembler.feed(stream))
         #expect(messages.count == 3)   // copyRect + rawRect + updateComplete
 
         // DesktopSize 伪编码（重设 800×600）
@@ -166,12 +166,12 @@ struct KVMVNCRFBTests {
         var resize = Data([0x00, 0x00]) + RFBBytes.be16(1)
         resize.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
                        + RFBBytes.be16(800) + RFBBytes.be16(600) + RFBBytes.be32(UInt32(bitPattern: -223)))
-        messages.append(contentsOf: assembler.feed(resize))
+        messages.append(contentsOf: await assembler.feed(resize))
         #expect(messages.contains(.desktopSize(width: 800, height: 600)))
         #expect(messages.last == .updateComplete)
 
         // Bell
-        messages = assembler.feed(Data([0x02]))
+        messages = await assembler.feed(Data([0x02]))
         #expect(messages == [.bell])
 
         // ServerCutText
@@ -179,24 +179,24 @@ struct KVMVNCRFBTests {
         var cut = Data([0x03, 0x00, 0x00, 0x00])
         cut.append(contentsOf: RFBBytes.be32(2))
         cut.append(contentsOf: Data("hi".utf8))
-        messages = assembler.feed(cut)
+        messages = await assembler.feed(cut)
         #expect(messages == [.serverCutText("hi")])
     }
 
     @Test("未宣告编码触发致命错误（failure 置位，后续 feed 返回空）")
-    func assemblerUnknownEncoding() {
+    func assemblerUnknownEncoding() async {
         let assembler = RFBMessageAssembler()
         var stream = Data([0x00, 0x00]) + RFBBytes.be16(1)
         stream.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
                        + RFBBytes.be16(1) + RFBBytes.be16(1) + RFBBytes.be32(16))  // ZRLE 未宣告
-        _ = assembler.feed(stream)
-        #expect(assembler.failure?.contains("16") == true)
-        #expect(assembler.feed(Data([0x02])).isEmpty)
+        _ = await assembler.feed(stream)
+        #expect(await assembler.failure?.contains("16") == true)
+        #expect(await assembler.feed(Data([0x02])).isEmpty)
     }
 
 
     @Test("Hextile 瓦片展开：背景/前景/子矩形，产出 RAW 像素")
-    func hextileExpansion() {
+    func hextileExpansion() async {
         let assembler = RFBMessageAssembler()
         var messages: [RFBServerMessage] = []
         // 16×16 hextile：控制位 2|4|8（指定背景+前景+1 个子矩形）
@@ -205,7 +205,7 @@ struct KVMVNCRFBTests {
         stream.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
                        + RFBBytes.be16(16) + RFBBytes.be16(16) + RFBBytes.be32(5))
         stream.append(contentsOf: [0x0e, 11, 22, 33, 0, 44, 55, 66, 0, 1, 0x12, 0x11])
-        messages.append(contentsOf: assembler.feed(stream))
+        messages.append(contentsOf: await assembler.feed(stream))
 
         guard case .rawRect(_, _, 16, 16, let pixels)? = messages.first else {
             Issue.record("应展开为 rawRect，实际 \(messages)")
@@ -224,7 +224,7 @@ struct KVMVNCRFBTests {
     }
 
     @Test("光标伪编码产出 cursor 消息；0 尺寸 = 隐藏；ServerCutText 负长度（qemu 扩展帧）")
-    func pseudoAndNegativeCutText() {
+    func pseudoAndNegativeCutText() async {
         let assembler = RFBMessageAssembler()
         var messages: [RFBServerMessage] = []
         // 2×2 光标 @ 热区 (1,1)：2*2*4 像素 + 1 字节掩码行
@@ -234,7 +234,7 @@ struct KVMVNCRFBTests {
                        + RFBBytes.be16(2) + RFBBytes.be16(2) + RFBBytes.be32(UInt32(bitPattern: -239)))
         cursor.append(contentsOf: pixelBytes)
         cursor.append(contentsOf: [0x40, 0x00])  // 掩码：首像素不透明（位 0x80），其余透明
-        messages.append(contentsOf: assembler.feed(cursor))
+        messages.append(contentsOf: await assembler.feed(cursor))
         #expect(messages.first == .cursor(hotX: 1, hotY: 1, width: 2, height: 2,
                                           pixels: Data(pixelBytes), mask: Data([0x40, 0x00])))
         #expect(messages.last == .updateComplete)
@@ -244,7 +244,7 @@ struct KVMVNCRFBTests {
         var hide = Data([0x00, 0x00]) + RFBBytes.be16(1)
         hide.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
                     + RFBBytes.be16(0) + RFBBytes.be16(0) + RFBBytes.be32(UInt32(bitPattern: -239)))
-        messages.append(contentsOf: assembler.feed(hide))
+        messages.append(contentsOf: await assembler.feed(hide))
         #expect(messages.first == .cursor(hotX: 0, hotY: 0, width: 0, height: 0,
                                           pixels: Data(), mask: Data()))
         #expect(messages.last == .updateComplete)
@@ -254,7 +254,7 @@ struct KVMVNCRFBTests {
         var cut = Data([0x03, 0x00, 0x00, 0x00])
         cut.append(contentsOf: RFBBytes.be32(UInt32(bitPattern: -8)))
         cut.append(contentsOf: [UInt8](repeating: 9, count: 8))
-        messages = assembler.feed(cut)
+        messages = await assembler.feed(cut)
         guard case .serverCutText? = messages.first else {
             Issue.record("负长度 cuttext 应被消费为 serverCutText，实际 \(messages)")
             return
@@ -262,7 +262,7 @@ struct KVMVNCRFBTests {
     }
 
     @Test("LastRect：声明计数未满即清零结束本批，不再解析后续矩形")
-    func assemblerLastRect() {
+    func assemblerLastRect() async {
         let assembler = RFBMessageAssembler()
         // 一批声明 3 矩形：1 个 RAW + LastRect（剩余 2 个不再期待）
         var stream = Data([0x00, 0x00]) + RFBBytes.be16(3)
@@ -271,14 +271,14 @@ struct KVMVNCRFBTests {
         stream.append(contentsOf: RFBBytes.be16(0) + RFBBytes.be16(0)
                        + RFBBytes.be16(0) + RFBBytes.be16(0)
                        + RFBBytes.be32(UInt32(bitPattern: -224)))   // LastRect 0×0
-        let messages = assembler.feed(stream)
+        let messages = await assembler.feed(stream)
         #expect(messages.count == 3)   // rawRect + ignored(LastRect) + updateComplete
         #expect(messages[0] == .rawRect(x: 0, y: 0, width: 1, height: 1, pixels: Data([1, 2, 3, 4])))
         #expect(messages[1] == .ignored)
         #expect(messages[2] == .updateComplete)
 
         // 后续字节按新消息解析（LastRect 未吞掉下一批）
-        let next = assembler.feed(Data([0x02]))
+        let next = await assembler.feed(Data([0x02]))
         #expect(next == [.bell])
     }
 
@@ -305,23 +305,23 @@ struct KVMVNCRFBTests {
     }
 
     @Test("Tight fill：0x80 + 3 字节 RGB → 纯色矩形（帧缓冲字节序 [pad,B,G,R]）")
-    func tightFill() {
+    func tightFill() async {
         let assembler = RFBMessageAssembler()
         let stream = makeTightRect(x: 0, y: 0, width: 2, height: 2,
                                    payload: [0x80, 0xff, 0x80, 0x00])  // RGB(255,128,0)
-        let messages = assembler.feed(stream)
+        let messages = await assembler.feed(stream)
         #expect(messages[0] == .rawRect(x: 0, y: 0, width: 2, height: 2,
                                         pixels: Data((0..<(2 * 2)).flatMap { _ in [0x00, 0x00, 0x80, 0xff] })))
         #expect(messages.last == .updateComplete)
     }
 
     @Test("Tight copy 未压缩（usz<12 直发）与 fill 同帧缓冲字节序")
-    func tightCopyRaw() {
+    func tightCopyRaw() async {
         let assembler = RFBMessageAssembler()
         // 2×1（usz=6 < 12）：ctl 0x00（流 0 隐式 copy）+ 6 字节 RGB
         let stream = makeTightRect(x: 1, y: 1, width: 2, height: 1,
                                    payload: [0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff])
-        let messages = assembler.feed(stream)
+        let messages = await assembler.feed(stream)
         // 红(ff,00,00) → [00,00,00,ff]；蓝(00,00,ff) → [00,ff,00,00]
         #expect(messages[0] == .rawRect(x: 1, y: 1, width: 2, height: 1,
                                         pixels: Data([0x00, 0x00, 0x00, 0xff,
@@ -329,7 +329,7 @@ struct KVMVNCRFBTests {
     }
 
     @Test("Tight copy zlib：紧凑长度 + 跳 RFC1950 头，逐字节乱块喂入")
-    func tightCopyZlib() {
+    func tightCopyZlib() async {
         let assembler = RFBMessageAssembler()
         // 4×1（usz=12 → zlib）；流 0。blob1 为 rgb 红/绿/蓝/白 的 zlib 流首段（含 789c 头）
         let blob1 = Data(hexString: "789cfacfc0c0f01f848100000000ffff")
@@ -339,28 +339,28 @@ struct KVMVNCRFBTests {
         // 逐字节喂入（WS 切块极端情形）
         var messages: [RFBServerMessage] = []
         for byte in stream {
-            messages.append(contentsOf: assembler.feed(Data([byte])))
+            messages.append(contentsOf: await assembler.feed(Data([byte])))
         }
         #expect(messages.first == .rawRect(x: 0, y: 0, width: 4, height: 1,
                                            pixels: Data(hexString: "000000ff0000ff0000ff000000ffffff")))
         #expect(messages.last == .updateComplete)
-        #expect(assembler.failure == nil)
+        #expect(await assembler.failure == nil)
     }
 
     @Test("Tight zlib 同流续段：无头 blob 依赖流字典续解（持久状态）")
-    func tightStreamContinuation() {
+    func tightStreamContinuation() async {
         let assembler = RFBMessageAssembler()
         // 首段（含头）流 0
         let blob1 = Data(hexString: "789cfacfc0c0f01f848100000000ffff")
-        _ = assembler.feed(makeTightRect(x: 0, y: 0, width: 4, height: 1,
+        _ = await assembler.feed(makeTightRect(x: 0, y: 0, width: 4, height: 1,
                                          payload: copyPayload(stream: 0, blob: blob1)))
-        #expect(assembler.failure == nil)
+        #expect(await assembler.failure == nil)
         // 续段（同 Python 流第二段，无 789c 头）——同一 stream 0 续解
         let blob1b = Data(hexString: "12543276094d2bef98b96af71900000000ffff")
-        let messages = assembler.feed(makeTightRect(
+        let messages = await assembler.feed(makeTightRect(
             x: 4, y: 0, width: 4, height: 1, payload: copyPayload(stream: 0, blob: blob1b)))
         guard case .rawRect(let x, _, 4, 1, let pixels)? = messages.first else {
-            Issue.record("续段应解出 rawRect，实际 \(messages) failure=\(assembler.failure ?? "")")
+            Issue.record("续段应解出 rawRect，实际 \(messages) failure=\(await assembler.failure ?? "")")
             return
         }
         #expect(x == 4)
@@ -368,7 +368,7 @@ struct KVMVNCRFBTests {
     }
 
     @Test("Tight gradient：delta 预测还原（含回绕加），独立流含头 blob")
-    func tightGradient() {
+    func tightGradient() async {
         // decodeGradient 纯函数：3×2 手工推演值（末像素 466 & 0xff = 210 回绕）
         let gradInput: [UInt8] = [10, 20, 30, 5, 5, 5, 0, 0, 0,
                                   1, 1, 1, 200, 100, 50, 250, 250, 250]
@@ -382,9 +382,9 @@ struct KVMVNCRFBTests {
         #expect(blobG.count == 27)
         var payload: [UInt8] = [0x70, 0x02, 27]
         payload.append(contentsOf: blobG)
-        let messages = assembler.feed(makeTightRect(x: 2, y: 3, width: 3, height: 2, payload: payload))
+        let messages = await assembler.feed(makeTightRect(x: 2, y: 3, width: 3, height: 2, payload: payload))
         guard case .rawRect(_, _, 3, 2, let pixels)? = messages.first else {
-            Issue.record("应为 rawRect，实际 \(messages) failure=\(assembler.failure ?? "")")
+            Issue.record("应为 rawRect，实际 \(messages) failure=\(await assembler.failure ?? "")")
             return
         }
         // 期望帧缓冲字节（Python 逐像素换算）：[pad,B,G,R]
@@ -392,7 +392,7 @@ struct KVMVNCRFBTests {
     }
 
     @Test("Tight palette：≤2 色 1bpp 索引直发；>2 色 8bpp 索引 zlib")
-    func tightPalette() {
+    func tightPalette() async {
         let assembler = RFBMessageAssembler()
 
         // 16×1 mono：ctl 0x50（流 1 + 显式过滤器）+ filter 1 + nc=2 + 调色板 6 字节 +
@@ -400,7 +400,7 @@ struct KVMVNCRFBTests {
         var mono: [UInt8] = [0x50, 0x01, 0x01]
         mono += [0x00, 0x00, 0x00, 0xff, 0xff, 0xff]        // 黑、白
         mono += [0xaa, 0x80]                                 // 10101010 10000000
-        let messages = assembler.feed(makeTightRect(x: 0, y: 0, width: 16, height: 1, payload: mono))
+        let messages = await assembler.feed(makeTightRect(x: 0, y: 0, width: 16, height: 1, payload: mono))
         guard case .rawRect(_, _, 16, 1, let pixels)? = messages.first else {
             Issue.record("mono 应为 rawRect，实际 \(messages)")
             return
@@ -419,9 +419,9 @@ struct KVMVNCRFBTests {
         palette8 += [0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff]  // 红/绿/蓝
         palette8.append(16)
         palette8 += Array(blobP)
-        let messages2 = assembler.feed(makeTightRect(x: 0, y: 0, width: 8, height: 2, payload: palette8))
+        let messages2 = await assembler.feed(makeTightRect(x: 0, y: 0, width: 8, height: 2, payload: palette8))
         guard case .rawRect(_, _, 8, 2, let pixels2)? = messages2.first else {
-            Issue.record("palette8 应为 rawRect，实际 \(messages2) failure=\(assembler.failure ?? "")")
+            Issue.record("palette8 应为 rawRect，实际 \(messages2) failure=\(await assembler.failure ?? "")")
             return
         }
         // 索引 0=红 → 000000ff；1=绿 → 0000ff00；2=蓝 → 00ff0000
@@ -433,33 +433,33 @@ struct KVMVNCRFBTests {
     }
 
     @Test("Tight zlib 流重置位：reset 后重新跳 RFC1950 头")
-    func tightStreamReset() {
+    func tightStreamReset() async {
         let assembler = RFBMessageAssembler()
         // 先用流 0 解一段（带头的 blob）
         let blob1 = Data(hexString: "789cfacfc0c0f01f848100000000ffff")
-        _ = assembler.feed(makeTightRect(x: 0, y: 0, width: 4, height: 1,
+        _ = await assembler.feed(makeTightRect(x: 0, y: 0, width: 4, height: 1,
                                          payload: copyPayload(stream: 0, blob: blob1)))
-        #expect(assembler.failure == nil)
+        #expect(await assembler.failure == nil)
 
         // ctl 0x01：低位重置流 0（其余同隐式 copy 流 0）+ 新流压缩的 blob（含新头）
         let blobN = Data(hexString: "789c125030700848286898b060c30100000000ffff")
         #expect(blobN.count == 21)
-        let messages = assembler.feed(makeTightRect(
+        let messages = await assembler.feed(makeTightRect(
             x: 0, y: 0, width: 4, height: 1, payload: copyPayload(stream: 0, blob: blobN, resetStreams: 0x01)))
         guard case .rawRect(_, _, 4, 1, let pixels)? = messages.first else {
-            Issue.record("重置后应正常解出 rawRect，实际 \(messages) failure=\(assembler.failure ?? "")")
+            Issue.record("重置后应正常解出 rawRect，实际 \(messages) failure=\(await assembler.failure ?? "")")
             return
         }
         #expect(pixels == Data(hexString: "00302010006050400090807000c0b0a0"))
     }
 
     @Test("Tight 未宣告类型（JPEG/PNG）触发致命错误")
-    func tightUnexpectedType() {
+    func tightUnexpectedType() async {
         let assembler = RFBMessageAssembler()
         // ctl 0x90 = JPEG（未宣告质量等级不应出现）
         let stream = makeTightRect(x: 0, y: 0, width: 4, height: 1, payload: [0x90, 0x02, 0xff, 0xd8])
-        _ = assembler.feed(stream)
-        #expect(assembler.failure?.contains("JPEG") == true)
+        _ = await assembler.feed(stream)
+        #expect(await assembler.failure?.contains("JPEG") == true)
     }
 
     // MARK: 帧缓冲
