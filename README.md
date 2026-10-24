@@ -9,7 +9,7 @@ Unofficial third-party iOS client for [1Panel](https://1panel.cn) — the open-s
 
 ## 面板版本适配 / Panel Version Compatibility
 
-当前适配的 1Panel 面板版本为 v2.4.0 **（防火墙模块基于 v2.3.0 重构后 API，v2.4.0 进一步移除规则同步/纳管；旧版面板进入防火墙页会提示升级）**。
+当前适配的 1Panel 面板版本为 v2.4.1 **（防火墙模块基于 v2.3.0 重构后 API，v2.4.0 进一步移除规则同步/纳管；旧版面板进入防火墙页会提示升级）**。
 
 接口请求与页面显示均基于该版本抓包对齐；面板版本过高或过低时，接口字段口径可能不一致，导致数据显示异常或部分功能不可用。遇到显示 / 功能问题时，请先确认服务端面板版本是否为适配版本。
 
@@ -22,7 +22,7 @@ Unofficial third-party iOS client for [1Panel](https://1panel.cn) — the open-s
 | v0.2.2 – v0.2.3 | v2.3.2 | |
 | v0.2.4 | v2.3.2 | 现行；面板 v2.3.2 系列最后一版 |
 
-This client is currently aligned with 1Panel **v2.4.0** (the firewall module targets the v2.3.0+ rebuilt API without rule sync/adopt; older panels are prompted to upgrade).
+This client is currently aligned with 1Panel **v2.4.1** (the firewall module targets the v2.3.0+ rebuilt API without rule sync/adopt; older panels are prompted to upgrade).
 Requests and UI are aligned against this version via packet captures; if the panel version is newer or older, API field shapes may differ, causing display issues or unavailable features. Each release's notes (and the AltStore update prompt) state the panel version it targets.
 
 ## 文档 / Documentation
