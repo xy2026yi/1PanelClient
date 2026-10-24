@@ -199,6 +199,62 @@ struct KVMVMListView: View {
     @State private var healthResult: KVMHealthCheckResult?
 
     var body: some View {
+        listContent
+            .navigationDestination(isPresented: $showCreate) {
+                KVMVMFormView(vm: vm)
+            }
+            .navigationDestination(item: $route) { route in
+                routeDestination(route)
+            }
+            .sheet(item: $actionVM) { machine in
+                ActionBottomSheet(
+                    title: machine.displayName,
+                    items: actionItems(machine),
+                    onDismiss: { actionVM = nil }
+                )
+                .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(machine).count))])
+                .presentationDragIndicator(.visible)
+            }
+            .sheet(item: $healthResult) { result in
+                KVMHealthReportSheet(machine: result.machine, report: result.report)
+            }
+            .sheet(item: $renameVM) { machine in
+                KVMRenameSheet(machine: machine) { newName in
+                    await vm.rename(machine, to: newName) != nil
+                }
+            }
+            .sheet(item: $templateVM) { machine in
+                KVMToTemplateSheet(machine: machine, storagePools: vm.storages.compactMap(\.name)) { name, pool, desc in
+                    await vm.convertToTemplate(machine, templateName: name, storagePool: pool, description: desc) != nil
+                }
+                .task { if vm.storages.isEmpty { await vm.loadStorages() } }
+            }
+            .sheet(item: $deleteVM) { machine in
+                deleteSheet(machine)
+            }
+            .alert(
+                pendingOperate?.operate.displayName ?? "",
+                isPresented: Binding(get: { pendingOperate != nil },
+                                     set: { if !$0 { pendingOperate = nil } })
+            ) {
+                Button(L10n.t("取消"), role: .cancel) { pendingOperate = nil }
+                Button(L10n.t("确认"), role: .destructive) {
+                    Haptic.warning()
+                    if let operate = pendingOperate {
+                        Task { await vm.operate(operate.vm, operate.operate) }
+                    }
+                    pendingOperate = nil
+                }
+            } message: {
+                if let operate = pendingOperate {
+                    Text(L10n.f("将对虚拟机「%@」执行 %@ 操作，是否继续？",
+                                operate.vm.displayName, operate.operate.displayName))
+                }
+            }
+    }
+
+    /// 列表与工具栏/轮询（body 整链在 Xcode 26.6 下类型检查超时，拆段独立检查）
+    private var listContent: some View {
         List {
             if vm.vms.isEmpty {
                 vmEmptySection
@@ -242,77 +298,34 @@ struct KVMVMListView: View {
         .adaptivePolling(interval: 5, isActive: { vm.hasTransitioningVM }) {
             await vm.loadVMs()
         }
-        .navigationDestination(isPresented: $showCreate) {
-            KVMVMFormView(vm: vm)
+    }
+
+    @ViewBuilder
+    private func routeDestination(_ route: KVMVMRoute) -> some View {
+        switch route {
+        case .detail(let machine): KVMVMDetailView(vm: vm, machine: machine)
+        case .edit(let machine): KVMVMFormView(vm: vm, machine: machine)
+        case .monitor(let machine): KVMVMMonitorView(vm: vm, machine: machine)
+        case .disks(let machine): KVMDiskManageView(vm: vm, machine: machine)
+        case .snapshots(let machine): KVMSnapshotListView(vm: vm, machine: machine)
+        case .console(let machine):
+            KVMVNCConsoleView(server: vm.server, machineName: machine.displayName)
         }
-        .navigationDestination(item: $route) { route in
-            switch route {
-            case .detail(let machine): KVMVMDetailView(vm: vm, machine: machine)
-            case .edit(let machine): KVMVMFormView(vm: vm, machine: machine)
-            case .monitor(let machine): KVMVMMonitorView(vm: vm, machine: machine)
-            case .disks(let machine): KVMDiskManageView(vm: vm, machine: machine)
-            case .snapshots(let machine): KVMSnapshotListView(vm: vm, machine: machine)
-            case .console(let machine):
-                KVMVNCConsoleView(server: vm.server, machineName: machine.displayName)
-            }
-        }
-        .sheet(item: $actionVM) { machine in
-            ActionBottomSheet(
-                title: machine.displayName,
-                items: actionItems(machine),
-                onDismiss: { actionVM = nil }
-            )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(machine).count))])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(item: $healthResult) { result in
-            KVMHealthReportSheet(machine: result.machine, report: result.report)
-        }
-        .sheet(item: $renameVM) { machine in
-            KVMRenameSheet(machine: machine) { newName in
-                await vm.rename(machine, to: newName) != nil
-            }
-        }
-        .sheet(item: $templateVM) { machine in
-            KVMToTemplateSheet(machine: machine, storagePools: vm.storages.compactMap(\.name)) { name, pool, desc in
-                await vm.convertToTemplate(machine, templateName: name, storagePool: pool, description: desc) != nil
-            }
-            .task { if vm.storages.isEmpty { await vm.loadStorages() } }
-        }
-        .sheet(item: $deleteVM) { machine in
-            TextInputConfirmSheet(
-                title: L10n.t("删除虚拟机"),
-                message: L10n.f("将删除虚拟机「%@」及其磁盘文件，不可恢复。请输入虚拟机名称以确认删除。", machine.displayName),
-                expectedText: machine.displayName
-            ) {
-                await vm.delete(machine, force: forceDelete)
-            } options: {
-                Section {
-                    Toggle(L10n.t("强制删除"), isOn: $forceDelete)
-                } footer: {
-                    Text(L10n.t("强制删除会先强行停止运行中的虚拟机再删除"))
-                }
-            }
-        }
-        .alert(
-            pendingOperate.map { $0.operate.displayName } ?? "",
-            isPresented: Binding(
-                get: { pendingOperate != nil },
-                set: { if !$0 { pendingOperate = nil } }
-            )
+    }
+
+    /// 删除确认（输入名称 + 强删开关）
+    private func deleteSheet(_ machine: KVMVirtualMachine) -> some View {
+        TextInputConfirmSheet(
+            title: L10n.t("删除虚拟机"),
+            message: L10n.f("将删除虚拟机「%@」及其磁盘文件，不可恢复。请输入虚拟机名称以确认删除。", machine.displayName),
+            expectedText: machine.displayName
         ) {
-            Button(L10n.t("取消"), role: .cancel) { pendingOperate = nil }
-            Button(L10n.t("确认"), role: .destructive) {
-                Haptic.warning()
-                if let pending = pendingOperate {
-                    Task { await vm.operate(pending.vm, pending.operate) }
-                }
-                pendingOperate = nil
-            }
-        } message: {
-            if let pending = pendingOperate {
-                Text(L10n.f("将对虚拟机「%@」执行 %@ 操作，是否继续？",
-                            pending.vm.displayName, pending.operate.displayName))
+            await vm.delete(machine, force: forceDelete)
+        } options: {
+            Section {
+                Toggle(L10n.t("强制删除"), isOn: $forceDelete)
+            } footer: {
+                Text(L10n.t("强制删除会先强行停止运行中的虚拟机再删除"))
             }
         }
     }

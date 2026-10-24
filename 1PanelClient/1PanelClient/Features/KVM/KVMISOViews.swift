@@ -266,6 +266,62 @@ struct KVMISOFormView: View {
     private var isTransferring: Bool { uploadProgress != nil || downloadSession != nil }
 
     var body: some View {
+        formContent
+            .navigationTitle(isEdit ? L10n.t("编辑镜像") : L10n.t("添加镜像"))
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(isTransferring)
+            .interactiveDismissDisabled(isTransferring)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await submit() }
+                    } label: {
+                        if isSubmitting && !isTransferring {
+                            ProgressView()
+                        } else {
+                            Text(isEdit ? L10n.t("保存") : L10n.t("添加")).bold()
+                        }
+                    }
+                    .disabled(!isValid || isSubmitting || isTransferring)
+                }
+            }
+    }
+
+    /// 表单与交互修饰符（body 整链在 Xcode 26.6 下类型检查超时，拆段独立检查）
+    private var formContent: some View {
+        formBody
+            .fileImporter(isPresented: $showFileImporter,
+                          allowedContentTypes: [.diskImage, .data],
+                          allowsMultipleSelection: false) { result in
+                if case .success(let urls) = result, let url = urls.first {
+                    pickedFile = url
+                    let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+                    pickedFileSize = (attrs?[.size] as? Int64) ?? 0
+                    if name.isEmpty { name = url.lastPathComponent }
+                }
+            }
+            .onChange(of: downloadURL) { _, url in
+                // 名称跟随下载地址的文件名（用户已改名则不覆盖）
+                if source == .download, let last = URL(string: url)?.lastPathComponent, !last.isEmpty,
+                   name.isEmpty || name == previousURLFileName {
+                    name = last
+                }
+                previousURLFileName = URL(string: url)?.lastPathComponent ?? ""
+            }
+            .onAppear {
+                guard let iso, name.isEmpty else { return }
+                name = iso.name ?? ""
+                type = KVMISOType(rawValue: (iso.type ?? "").lowercased()) ?? .debian
+                path = iso.path ?? ""
+                description = iso.description ?? ""
+            }
+            .onDisappear {
+                uploadTask?.cancel()
+                downloadSession?.stop()
+            }
+    }
+
+    private var formBody: some View {
         Form {
             Section {
                 OutlinedTextField(label: L10n.t("名称"), text: $name)
@@ -288,53 +344,6 @@ struct KVMISOFormView: View {
             if isTransferring {
                 transferSection
             }
-        }
-        .navigationTitle(isEdit ? L10n.t("编辑镜像") : L10n.t("添加镜像"))
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(isTransferring)
-        .interactiveDismissDisabled(isTransferring)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if isSubmitting && !isTransferring {
-                        ProgressView()
-                    } else {
-                        Text(isEdit ? L10n.t("保存") : L10n.t("添加")).bold()
-                    }
-                }
-                .disabled(!isValid || isSubmitting || isTransferring)
-            }
-        }
-        .fileImporter(isPresented: $showFileImporter,
-                      allowedContentTypes: [.diskImage, .data],
-                      allowsMultipleSelection: false) { result in
-            if case .success(let urls) = result, let url = urls.first {
-                pickedFile = url
-                let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
-                pickedFileSize = (attrs?[.size] as? Int64) ?? 0
-                if name.isEmpty { name = url.lastPathComponent }
-            }
-        }
-        .onChange(of: downloadURL) { _, url in
-            // 名称跟随下载地址的文件名（用户已改名则不覆盖）
-            if source == .download, let last = URL(string: url)?.lastPathComponent, !last.isEmpty,
-               name.isEmpty || name == previousURLFileName {
-                name = last
-            }
-            previousURLFileName = URL(string: url)?.lastPathComponent ?? ""
-        }
-        .onAppear {
-            guard let iso, name.isEmpty else { return }
-            name = iso.name ?? ""
-            type = KVMISOType(rawValue: (iso.type ?? "").lowercased()) ?? .debian
-            path = iso.path ?? ""
-            description = iso.description ?? ""
-        }
-        .onDisappear {
-            uploadTask?.cancel()
-            downloadSession?.stop()
         }
     }
 

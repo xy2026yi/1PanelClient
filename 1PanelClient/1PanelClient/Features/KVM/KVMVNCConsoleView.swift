@@ -1464,37 +1464,46 @@ struct KVMVNCConsoleView: View {
     }
 
     var body: some View {
+        statefulContent
+            .navigationTitle(L10n.t("虚拟机控制台"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { consoleToolbar }
+    }
+
+    /// 工具栏（拖拽/触摸模式切换 + 键盘开关）
+    @ToolbarContentBuilder
+    private var consoleToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                dragMode.toggle()
+                leftDragActive = false
+                Haptic.selection()
+            } label: {
+                Image(systemName: dragMode ? "hand.draw.fill" : "hand.draw")
+            }
+            .accessibilityLabel(dragMode ? L10n.t("拖拽模式（按住左键拖动）")
+                                         : L10n.t("触摸模式（轻点左键，长按右键）"))
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                isKeyboardVisible.toggle()
+                keyboardFocused = isKeyboardVisible
+                consoleFocused = !isKeyboardVisible
+                if isKeyboardVisible { pasteHint = "" }
+            } label: {
+                Image(systemName: "keyboard")
+            }
+            .accessibilityLabel(L10n.t("键盘"))
+        }
+    }
+
+    /// body 整链在 Xcode 26.6（CI 低一档工具链）下类型检查超时，拆段独立检查
+    private var statefulContent: some View {
         VStack(spacing: 0) {
             consoleArea
             if isKeyboardVisible { keyboardBar }
         }
         .background(Color.black.ignoresSafeArea())
-        .navigationTitle(L10n.t("虚拟机控制台"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    dragMode.toggle()
-                    leftDragActive = false
-                    Haptic.selection()
-                } label: {
-                    Image(systemName: dragMode ? "hand.draw.fill" : "hand.draw")
-                }
-                .accessibilityLabel(dragMode ? L10n.t("拖拽模式（按住左键拖动）")
-                                             : L10n.t("触摸模式（轻点左键，长按右键）"))
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isKeyboardVisible.toggle()
-                    keyboardFocused = isKeyboardVisible
-                    consoleFocused = !isKeyboardVisible
-                    if isKeyboardVisible { pasteHint = "" }
-                } label: {
-                    Image(systemName: "keyboard")
-                }
-                .accessibilityLabel(L10n.t("键盘"))
-            }
-        }
         .task { await console.connect() }
         .onDisappear { console.disconnect() }
         .toastOverlay(message: $console.toastMessage)
@@ -1548,85 +1557,7 @@ struct KVMVNCConsoleView: View {
                     cursorOverlay(cursor, at: point, in: geo.size)
                 }
 
-                // 输入层：UIKit 双指滚轮 + SwiftUI 触控手势，固定容器坐标系
-                //（视图坐标 → 帧缓冲坐标统一走 framebufferPoint）
-                ScrollWheelOverlay(model: gestureModel)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                lastPointerLocation = value.location
-                                if isPinching {
-                                    // 捏合进行中（双指）→ 平移画面
-                                    offset = CGSize(
-                                        width: offset.width + value.translation.width - panAnchor.width,
-                                        height: offset.height + value.translation.height - panAnchor.height)
-                                    panAnchor = value.translation
-                                } else if console.state == .connected {
-                                    if dragMode {
-                                        // 拖拽模式：按下即左键、移动持续按住
-                                        if leftDragActive {
-                                            dragPointer(to: value.location, in: geo.size)
-                                        } else if let point = framebufferPoint(at: value.location, in: geo.size) {
-                                            leftDragActive = true
-                                            dispatchPointer(buttonMask: 1, x: point.x, y: point.y)
-                                        }
-                                    } else if !gestureModel.twoFingerPanActive {
-                                        movePointer(to: value.location, in: geo.size)
-                                    }
-                                }
-                            }
-                            .onEnded { _ in
-                                if leftDragActive {
-                                    // 释放锚定最近有效位置（手指移出画面边缘也必须释放按键）
-                                    let anchor = lastFramebufferPoint ?? (0, 0)
-                                    dispatchPointer(buttonMask: 0, x: anchor.x, y: anchor.y)
-                                    leftDragActive = false
-                                }
-                            }
-                    )
-                    .simultaneousGesture(
-                        MagnificationGesture()
-                            .onChanged { value in
-                                if !isPinching {
-                                    // ±3% 内的抖动不视为捏合——把纯双指平移让给滚轮
-                                    guard abs(value - 1) > 0.03 else { return }
-                                    isPinching = true
-                                    panAnchor = .zero
-                                    lastPinchValue = value
-                                }
-                                let ratio = value / lastPinchValue
-                                lastPinchValue = value
-                                displayScale = min(max(displayScale * ratio, fitScale), 5)
-                            }
-                            .onEnded { _ in
-                                isPinching = false
-                                lastPinchValue = 1
-                                clampOffset(in: geo.size)
-                            }
-                    )
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                            guard !dragMode else { return }  // 拖拽模式长按 = 按住左键
-                            rightClickLast()
-                        }
-                    )
-                    .onTapGesture {
-                        // 键盘栏可见时把焦点还给输入框（勿抢——否则软键盘收起而栏还挂着）；
-                        // 隐藏时控制台持焦点以接管外接键盘
-                        if isKeyboardVisible {
-                            keyboardFocused = true
-                        } else {
-                            consoleFocused = true
-                        }
-                        guard !dragMode else { return }  // 按下/释放已构成单击
-                        tapLast()
-                    }
-                    .focusable()
-                    .focused($consoleFocused)
-                    .onKeyPress(phases: [.down, .repeat]) { press in
-                        handleHardwareKey(press)
-                    }
+                inputLayer(in: geo.size)
 
                 statusBar
             }
@@ -1643,6 +1574,89 @@ struct KVMVNCConsoleView: View {
                 refit(in: geo.size)
             }
         }
+    }
+
+    /// 输入层：UIKit 双指滚轮 + SwiftUI 触控手势，固定容器坐标系
+    ///（视图坐标 → 帧缓冲坐标统一走 framebufferPoint）。
+    /// 独立方法——手势长链在 consoleArea 内联时旧工具链类型检查超时
+    private func inputLayer(in container: CGSize) -> some View {
+        ScrollWheelOverlay(model: gestureModel)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        lastPointerLocation = value.location
+                        if isPinching {
+                            // 捏合进行中（双指）→ 平移画面
+                            offset = CGSize(
+                                width: offset.width + value.translation.width - panAnchor.width,
+                                height: offset.height + value.translation.height - panAnchor.height)
+                            panAnchor = value.translation
+                        } else if console.state == .connected {
+                            if dragMode {
+                                // 拖拽模式：按下即左键、移动持续按住
+                                if leftDragActive {
+                                    dragPointer(to: value.location, in: container)
+                                } else if let point = framebufferPoint(at: value.location, in: container) {
+                                    leftDragActive = true
+                                    dispatchPointer(buttonMask: 1, x: point.x, y: point.y)
+                                }
+                            } else if !gestureModel.twoFingerPanActive {
+                                movePointer(to: value.location, in: container)
+                            }
+                        }
+                    }
+                    .onEnded { _ in
+                        if leftDragActive {
+                            // 释放锚定最近有效位置（手指移出画面边缘也必须释放按键）
+                            let anchor = lastFramebufferPoint ?? (0, 0)
+                            dispatchPointer(buttonMask: 0, x: anchor.x, y: anchor.y)
+                            leftDragActive = false
+                        }
+                    }
+            )
+            .simultaneousGesture(
+                MagnificationGesture()
+                    .onChanged { value in
+                        if !isPinching {
+                            // ±3% 内的抖动不视为捏合——把纯双指平移让给滚轮
+                            guard abs(value - 1) > 0.03 else { return }
+                            isPinching = true
+                            panAnchor = .zero
+                            lastPinchValue = value
+                        }
+                        let ratio = value / lastPinchValue
+                        lastPinchValue = value
+                        displayScale = min(max(displayScale * ratio, fitScale), 5)
+                    }
+                    .onEnded { _ in
+                        isPinching = false
+                        lastPinchValue = 1
+                        clampOffset(in: container)
+                    }
+            )
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                    guard !dragMode else { return }  // 拖拽模式长按 = 按住左键
+                    rightClickLast()
+                }
+            )
+            .onTapGesture {
+                // 键盘栏可见时把焦点还给输入框（勿抢——否则软键盘收起而栏还挂着）；
+                // 隐藏时控制台持焦点以接管外接键盘
+                if isKeyboardVisible {
+                    keyboardFocused = true
+                } else {
+                    consoleFocused = true
+                }
+                guard !dragMode else { return }  // 按下/释放已构成单击
+                tapLast()
+            }
+            .focusable()
+            .focused($consoleFocused)
+            .onKeyPress(phases: [.down, .repeat]) { press in
+                handleHardwareKey(press)
+            }
     }
 
     /// 光标叠加：帧缓冲坐标 → 容器坐标（与画面同变换），热区对齐指针位置

@@ -34,6 +34,33 @@ struct KVMOrphansView: View {
     private var isBusy: Bool { vm.isScanningOrphans || vm.isCleaningOrphans }
 
     var body: some View {
+        listContent
+            .refreshable { await rescan() }
+            .task {
+                if !vm.hasScannedOrphans {
+                    await rescan()
+                }
+            }
+            .alert(L10n.t("确认清理"), isPresented: $showCleanConfirm) {
+                Button(L10n.t("取消"), role: .cancel) {}
+                Button(L10n.t("清理"), role: .destructive) {
+                    let items = selectedItems
+                    guard !items.isEmpty else { return }
+                    Task {
+                        // 清理成功（含内部重扫）后全不选——连按误删面最小化；
+                        // 失败保持原勾选便于重试
+                        if await vm.cleanOrphans(items) {
+                            selected.removeAll()
+                        }
+                    }
+                }
+            } message: {
+                Text(L10n.f("将删除 %ld 个文件，清理操作不可恢复。请确认文件不再使用。", selected.count))
+            }
+    }
+
+    /// 列表与工具栏（body 整链在 Xcode 26.6 下类型检查超时，拆段独立检查）
+    private var listContent: some View {
         List {
             summarySection
             candidatesSection
@@ -47,28 +74,6 @@ struct KVMOrphansView: View {
                     cleanBar
                 }
             }
-        }
-        .refreshable { await rescan() }
-        .task {
-            if !vm.hasScannedOrphans {
-                await rescan()
-            }
-        }
-        .alert(L10n.t("确认清理"), isPresented: $showCleanConfirm) {
-            Button(L10n.t("取消"), role: .cancel) {}
-            Button(L10n.t("清理"), role: .destructive) {
-                let items = selectedItems
-                guard !items.isEmpty else { return }
-                Task {
-                    // 清理成功（含内部重扫）后全不选——连按误删面最小化；
-                    // 失败保持原勾选便于重试
-                    if await vm.cleanOrphans(items) {
-                        selected.removeAll()
-                    }
-                }
-            }
-        } message: {
-            Text(L10n.f("将删除 %ld 个文件，清理操作不可恢复。请确认文件不再使用。", selected.count))
         }
     }
 

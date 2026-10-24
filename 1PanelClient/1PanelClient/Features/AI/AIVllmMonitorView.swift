@@ -156,6 +156,44 @@ struct AIVllmMonitorView: View {
     }
 
     var body: some View {
+        statefulContent
+            .navigationTitle(L10n.f("监控 · %@", instance.displayName))
+            .navigationBarTitleDisplayMode(.inline)
+            .refreshable { await vm.loadAll() }
+            .toastOverlay(message: $vm.toastMessage)
+    }
+
+    /// body 整条修饰符链在 Xcode 26.6（CI 低一档工具链）下类型检查超时，
+    /// 拆为三段计算属性各自独立检查（rootContent / 状态交互组 / 导航刷新组）
+    private var statefulContent: some View {
+        rootContent
+            .alert(L10n.t("清空监控记录"), isPresented: $showCleanConfirm) {
+                Button(L10n.t("取消"), role: .cancel) {}
+                Button(L10n.t("清空"), role: .destructive) {
+                    Haptic.warning()
+                    Task {
+                        if !(await vm.clean()) { showError = true }
+                    }
+                }
+            } message: {
+                Text(L10n.f("将删除实例「%@」的全部历史监控数据，该操作无法回滚，是否继续？", instance.displayName))
+            }
+            .alert(L10n.t("提示"), isPresented: $showError) {
+                Button(L10n.t("好的"), role: .cancel) {}
+            } message: {
+                Text(vm.errorMessage ?? "")
+            }
+            .onChange(of: scenePhase) { _, phase in
+                isSceneActive = phase == .active
+            }
+            .onChange(of: vm.hours) { _, _ in Task { await vm.loadHistory() } }
+            .onChange(of: vm.group) { _, _ in Task { await vm.loadHistory() } }
+            .onChange(of: vm.aggregation) { _, _ in Task { await vm.loadHistory() } }
+            // 实时 5 秒一轮（服务端按需即时采集）；历史按面板采集间隔落库，60 秒一轮足够
+            .task { await pollLoop() }
+    }
+
+    private var rootContent: some View {
         Group {
             if vm.isLoading && vm.current == nil && vm.history == nil {
                 LoadingStateView()
@@ -172,34 +210,6 @@ struct AIVllmMonitorView: View {
                 content
             }
         }
-        .navigationTitle(L10n.f("监控 · %@", instance.displayName))
-        .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await vm.loadAll() }
-        .toastOverlay(message: $vm.toastMessage)
-        .alert(L10n.t("清空监控记录"), isPresented: $showCleanConfirm) {
-            Button(L10n.t("取消"), role: .cancel) {}
-            Button(L10n.t("清空"), role: .destructive) {
-                Haptic.warning()
-                Task {
-                    if !(await vm.clean()) { showError = true }
-                }
-            }
-        } message: {
-            Text(L10n.f("将删除实例「%@」的全部历史监控数据，该操作无法回滚，是否继续？", instance.displayName))
-        }
-        .alert(L10n.t("提示"), isPresented: $showError) {
-            Button(L10n.t("好的"), role: .cancel) {}
-        } message: {
-            Text(vm.errorMessage ?? "")
-        }
-        .onChange(of: scenePhase) { _, phase in
-            isSceneActive = phase == .active
-        }
-        .onChange(of: vm.hours) { _, _ in Task { await vm.loadHistory() } }
-        .onChange(of: vm.group) { _, _ in Task { await vm.loadHistory() } }
-        .onChange(of: vm.aggregation) { _, _ in Task { await vm.loadHistory() } }
-        // 实时 5 秒一轮（服务端按需即时采集）；历史按面板采集间隔落库，60 秒一轮足够
-        .task { await pollLoop() }
     }
 
     /// 轮询循环提取为独立方法——Xcode 26.6（CI 低一档工具链）对 .task 闭包内联的
