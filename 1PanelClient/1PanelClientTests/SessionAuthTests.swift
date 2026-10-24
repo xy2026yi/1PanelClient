@@ -259,7 +259,7 @@ struct SessionAuthTests {
             return (Self.response(request), Self.envelope("null"))
         }
         // POST keys/search + keys/status + GET current 三段全走一遍
-        try await client.enableApiInterface(preserving: Self.info(status: "Disable", key: ""))
+        try await client.enableApiInterface()
         let info = try await client.currentUser()
         #expect(info.name == "admin")
     }
@@ -289,7 +289,7 @@ struct SessionAuthTests {
             Issue.record("不应触达其他端点")
             return (Self.response(request), Self.envelope("null"))
         }
-        try await client.enableApiInterface(preserving: Self.info(status: "Disable", key: ""))
+        try await client.enableApiInterface()
     }
 
     @Test("enable 流程：legacy 行缺失 → 明确报错不盲发启停")
@@ -307,7 +307,7 @@ struct SessionAuthTests {
             return (Self.response(request), Self.envelope("null"))
         }
         do {
-            try await client.enableApiInterface(preserving: Self.info(status: "Disable", key: ""))
+            try await client.enableApiInterface()
             Issue.record("应抛出业务错误")
         } catch let error as SessionAuthError {
             if case .business = error {} else {
@@ -316,30 +316,30 @@ struct SessionAuthTests {
         }
     }
 
-    @Test("enable 流程：keys/* 端点 404（旧面板）→ 回落 api/update 回传现有配置")
-    func enableFallbackOnMissingKeysEndpoints() async throws {
+    @Test("enable 流程：keys/* 404（面板低于 v2.3.2）→ 报版本错误，不触达 api/update")
+    func enable404SurfacesVersionError() async throws {
         let client = SessionAuthClient(
             baseURL: baseURL,
             protocolClasses: [BootstrapMockURLProtocol.self]
         )
         defer { client.invalidate() }
         BootstrapMockURLProtocol.setHandler { request in
-            if request.url?.path.hasSuffix("/core/auth/api/keys/search") == true
-                || request.url?.path.hasSuffix("/core/auth/api/keys/status") == true {
+            if request.url?.path.hasSuffix("/core/auth/api/keys/search") == true {
                 return (HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: "HTTP/1.1",
                                         headerFields: ["Content-Type": "application/json"])!,
                         #"{"code":404,"message":"not found","data":null}"#.data(using: .utf8)!)
             }
-            if request.url?.path.hasSuffix("/core/auth/api/update") == true {
-                let body = (try? JSONSerialization.jsonObject(with: Self.requestBody(request) ?? Data())) as? [String: Any]
-                #expect(body?["apiInterfaceStatus"] as? String == "Enable")
-                #expect(body?["apiKey"] as? String == "keep")
-                return (Self.response(request), Self.envelope("null"))
-            }
-            Issue.record("不应触达其他端点")
+            Issue.record("keys/search 404 后不应再触达任何端点（含 api/update）")
             return (Self.response(request), Self.envelope("null"))
         }
-        try await client.enableApiInterface(preserving: Self.info(status: "Disable", key: "keep"))
+        do {
+            try await client.enableApiInterface()
+            Issue.record("应抛出业务错误")
+        } catch let error as SessionAuthError {
+            if case .business = error {} else {
+                Issue.record("应映射为 business（版本问题），实际 \(error)")
+            }
+        }
     }
 
     @Test("mfalogin：ErrMFA → mfaFailed（保持 OTP 重输状态用）")
@@ -429,13 +429,6 @@ struct SessionAuthTests {
         return nil
     }
 
-    private static func info(status: String?, key: String?) -> CurrentUserInfo {
-        CurrentUserInfo(
-            name: "admin", role: "ADMIN", mfaStatus: "Disable",
-            apiInterfaceStatus: status, apiKey: key,
-            ipWhiteList: "", apiTrustedProxies: "", apiKeyValidityTime: 120
-        )
-    }
 }
 
 /// 引导流 mock：静态 handler 以锁保护（URLProtocol 回调在 URLSession 内部队列）

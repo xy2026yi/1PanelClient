@@ -24,7 +24,6 @@ final class SessionAuthClient {
         static let current = "/api/v2/core/auth/current"          // GET session
         static let apiKeysSearch = "/api/v2/core/auth/api/keys/search"  // POST session + CSRF
         static let apiKeysStatus = "/api/v2/core/auth/api/keys/status"  // POST session + CSRF
-        static let apiUpdate = "/api/v2/core/auth/api/update"     // POST session + CSRF（旧面板回落）
     }
 
     /// 引导基础地址（规范化：去尾部 /）
@@ -127,12 +126,11 @@ final class SessionAuthClient {
     }
 
     /// 步骤 3b：接口功能 Disable 时的显式开启（session + CSRF 双提交）。
-    /// 首选 v2.4.1 网页端实捕路径（2026-10-24 抓包）：接口功能开关即 API 密钥页
-    /// Legacy 行的启停——keys/search 取 legacy 行的 revision（乐观锁）→
-    /// keys/status 翻 Enable；旧面板无 keys/* 端点（v2.4.0 Swagger 仅在册
-    /// api/update）时回落 api/update（回传 current 现有配置仅翻状态位，形状未
-    /// 逐字段实证，失败即报错回落手动粘贴路径）
-    func enableApiInterface(preserving info: CurrentUserInfo) async throws {
+    /// 接口功能开关即 API 密钥页 Legacy 行的启停（v2.3.2 起 keys/* 体系，2026-10-24
+    /// v2.4.1 网页端实捕）：keys/search 取 legacy 行的 revision（乐观锁）→
+    /// keys/status 翻 Enable。keys/* 404 即面板低于 v2.3.2（旧通道 api/update 属
+    /// v2.3.1 及更早、请求体从未实证），明确报版本问题并回落手动粘贴路径
+    func enableApiInterface() async throws {
         do {
             let page = try await post(
                 Path.apiKeysSearch,
@@ -152,18 +150,10 @@ final class SessionAuthClient {
                 as: EmptyResponse.self
             )
         } catch let error as SessionAuthError {
-            // keys/* 为 v2.4.1 新增端点：旧面板 404 → api/update 回落
             guard case .http(404, _) = error else { throw error }
-            let _: EmptyResponse = try await post(
-                Path.apiUpdate,
-                body: ApiConfigUpdateRequest(
-                    apiInterfaceStatus: "Enable",
-                    apiKey: info.apiKey ?? "",
-                    ipWhiteList: info.ipWhiteList ?? "",
-                    apiTrustedProxies: info.apiTrustedProxies ?? "",
-                    apiKeyValidityTime: info.apiKeyValidityTime ?? 120
-                ),
-                as: EmptyResponse.self
+            throw SessionAuthError.business(
+                404,
+                L10n.t("面板版本过低（接口密钥管理需 v2.3.2 及以上），请改用手动粘贴密钥")
             )
         }
     }
@@ -400,16 +390,7 @@ nonisolated struct MfaLoginRequest: Encodable {
     let authMethod: String
 }
 
-/// POST /core/auth/api/update 请求体（旧面板回落路径）：回传 current 的现有配置、仅翻状态位
-nonisolated struct ApiConfigUpdateRequest: Encodable {
-    let apiInterfaceStatus: String
-    let apiKey: String
-    let ipWhiteList: String
-    let apiTrustedProxies: String
-    let apiKeyValidityTime: Int
-}
-
-/// POST /core/auth/api/keys/search 请求体（v2.4 多键体系分页，抓包 {page:1,pageSize:20}）
+/// POST /core/auth/api/keys/search 请求体（v2.3.2+ 多键体系分页，抓包 {page:1,pageSize:20}）
 nonisolated struct ApiKeysSearchRequest: Encodable {
     let page: Int
     let pageSize: Int

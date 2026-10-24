@@ -58,8 +58,6 @@ struct ServerEditView: View {
     @State private var captchaInput = ""
     @State private var mfaSessionID = ""
     @State private var otpInput = ""
-    /// confirmEnable 阶段暂存的 current 信息（开启请求需回传现有配置）
-    @State private var pendingUserInfo: CurrentUserInfo?
     @State private var showPlainHTTPBootstrapWarning = false
     /// 明文 HTTP 引导确认后本次表单内不再重复弹（每次重新进入引导仍会警告）
     @State private var bootstrapHTTPAllowed = false
@@ -390,7 +388,6 @@ struct ServerEditView: View {
             case .useExisting(let key):
                 finishBootstrap(key: key)
             case .needsEnableConfirm:
-                pendingUserInfo = info
                 bootstrapPhase = .confirmEnable
             }
         } catch {
@@ -398,19 +395,13 @@ struct ServerEditView: View {
         }
     }
 
-    /// Disable → 显式开启（keys/status 翻 Legacy 行 Enable，旧面板回落 api/update）
+    /// Disable → 显式开启（keys/status 翻 Legacy 行 Enable，v2.3.2+ 端点）
     /// → 重取 current 的 key
     private func confirmEnableAndFetch() async {
         guard let client = bootstrapClient else { return }
         bootstrapPhase = .working
         do {
-            let info: CurrentUserInfo
-            if let pending = pendingUserInfo {
-                info = pending
-            } else {
-                info = try await client.currentUser()
-            }
-            try await client.enableApiInterface(preserving: info)
+            try await client.enableApiInterface()
             let refreshed = try await client.currentUser()
             guard let key = refreshed.apiKey, !key.isEmpty else {
                 throw SessionAuthError.business(200, L10n.t("面板未返回接口密钥，请改用手动粘贴"))
@@ -494,7 +485,6 @@ struct ServerEditView: View {
         captchaInput = ""
         otpInput = ""
         mfaSessionID = ""
-        pendingUserInfo = nil
         didFetchSetting = false
     }
 

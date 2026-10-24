@@ -39533,6 +39533,17 @@
         }
       }
     },
+    "面板版本过低（接口密钥管理需 v2.3.2 及以上），请改用手动粘贴密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel version too old (API key management requires v2.3.2+). Paste the key manually instead"
+          }
+        }
+      }
+    },
     "面板登录异常" : {
       "extractionState" : "manual",
       "localizations" : {
