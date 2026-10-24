@@ -30,7 +30,8 @@ struct ServerEditView: View {
 
     // MARK: 快速开始（账号密码引导）
 
-    /// 引导流状态机：idle → working → (awaitingCaptcha | awaitingMFA | confirmEnable) → succeeded
+    /// 引导流状态机：idle → working → (awaitingCaptcha | awaitingMFA | resetPassword |
+    /// confirmEnable) → succeeded
     enum BootstrapPhase: Equatable {
         case idle
         case working
@@ -38,6 +39,8 @@ struct ServerEditView: View {
         case awaitingCaptcha
         /// MFA 动态口令输入（login 返回 mfaSession，尚非会话）
         case awaitingMFA
+        /// 面板密码已过期：改密表单（受限会话仅可访问 reset 端点，改完自动重登录续跑）
+        case resetPassword
         /// 接口功能未开启：等待用户确认「将启用面板接口密钥功能」（面板侧留痕）
         case confirmEnable
         /// 已取得密钥（session 即弃）
@@ -58,6 +61,9 @@ struct ServerEditView: View {
     @State private var captchaInput = ""
     @State private var mfaSessionID = ""
     @State private var otpInput = ""
+    // 密码过期改密表单（oldPassword 复用上方已输入的「面板密码」）
+    @State private var newPassword = ""
+    @State private var confirmNewPassword = ""
     @State private var showPlainHTTPBootstrapWarning = false
     /// 明文 HTTP 引导确认后本次表单内不再重复弹（每次重新进入引导仍会警告）
     @State private var bootstrapHTTPAllowed = false
@@ -76,13 +82,16 @@ struct ServerEditView: View {
         bootstrapPhase == .working
     }
 
-    /// 引导按钮可用性（地址/账号/密码齐备；验证码/OTP 显示时要求非空）
+    /// 引导按钮可用性（地址/账号/密码齐备；验证码/OTP/改密确认显示时要求有效）
     private var bootstrapReady: Bool {
         guard !baseURL.trimmingCharacters(in: .whitespaces).isEmpty,
               !username.trimmingCharacters(in: .whitespaces).isEmpty,
               !password.isEmpty else { return false }
         if bootstrapPhase == .awaitingCaptcha { return !captchaInput.isEmpty }
         if bootstrapPhase == .awaitingMFA { return !otpInput.isEmpty }
+        if bootstrapPhase == .resetPassword {
+            return !newPassword.isEmpty && newPassword == confirmNewPassword
+        }
         return true
     }
 
@@ -216,6 +225,10 @@ struct ServerEditView: View {
                 OutlinedTextField(label: L10n.t("动态口令"), prompt: "123456",
                                   text: $otpInput, keyboardType: .numberPad)
             }
+            if bootstrapPhase == .resetPassword {
+                OutlinedPasswordField(label: L10n.t("新密码"), text: $newPassword)
+                OutlinedPasswordField(label: L10n.t("确认新密码"), text: $confirmNewPassword)
+            }
 
             Button {
                 bootstrapTapped()
@@ -298,6 +311,8 @@ struct ServerEditView: View {
             return L10n.t("登录（已填验证码）")
         case .awaitingMFA:
             return L10n.t("登录（已填动态口令）")
+        case .resetPassword:
+            return L10n.t("重置密码并继续")
         default:
             return L10n.t("登录并获取密钥")
         }
@@ -318,6 +333,10 @@ struct ServerEditView: View {
         }
         if bootstrapPhase == .awaitingMFA {
             Task { await submitMFA() }
+            return
+        }
+        if bootstrapPhase == .resetPassword {
+            Task { await submitPasswordReset() }
             return
         }
         Task { await runBootstrap() }
@@ -353,9 +372,15 @@ struct ServerEditView: View {
     }
 
     private func handleLoginResult(_ result: LoginResult, client: SessionAuthClient) async throws {
-        // 密码过期：一期指引网页端修改（reset 表单后置）
+        // 密码过期：转改密表单（受限会话仅可访问 reset 端点；改完自动重登录续跑）
         if result.passwordExpired == true {
-            throw SessionAuthError.passwordExpired
+            newPassword = ""
+            confirmNewPassword = ""
+            captcha = nil
+            captchaInput = ""
+            bootstrapMessage = L10n.t("面板密码已过期，请设置新密码后继续")
+            bootstrapPhase = .resetPassword
+            return
         }
         // MFA：展示 OTP 输入，等待下一步（不自动重试）
         if result.mfaRequired, let sessionID = result.mfaSession {
@@ -365,6 +390,33 @@ struct ServerEditView: View {
             return
         }
         await acquireKey(client)
+    }
+
+    /// 密码过期改密提交：明文端点（§8）改密成功 → 受限会话即废 →
+    /// 以新密码重新登录续跑引导（验证码不沿用——上一次已消费，失败分支会重新拉取）
+    private func submitPasswordReset() async {
+        guard let client = bootstrapClient else { return }
+        bootstrapPhase = .working
+        bootstrapMessage = nil
+        do {
+            try await client.resetPassword(old: password, new: newPassword)
+            password = newPassword
+            newPassword = ""
+            confirmNewPassword = ""
+            let result = try await client.login(
+                username: username.trimmingCharacters(in: .whitespaces),
+                password: password,
+                captcha: "",
+                captchaID: ""
+            )
+            try await handleLoginResult(result, client: client)
+        } catch {
+            handleBootstrapError(error)
+            // 改密失败退回表单态（handleBootstrapError 的默认分支是 idle）
+            if bootstrapPhase == .idle {
+                bootstrapPhase = .resetPassword
+            }
+        }
     }
 
     /// MFA 第二步提交
@@ -440,8 +492,6 @@ struct ServerEditView: View {
         case .wrongEntrance:
             // 展开高级区引导补填安全入口码
             showAdvanced = true
-            bootstrapPhase = .idle
-        case .passwordExpired:
             bootstrapPhase = .idle
         default:
             bootstrapPhase = .idle

@@ -22,6 +22,7 @@ final class SessionAuthClient {
         static let mfaLogin = "/api/v2/core/auth/mfalogin"        // POST 匿名
         static let captcha = "/api/v2/core/auth/captcha"          // GET 匿名
         static let current = "/api/v2/core/auth/current"          // GET session
+        static let resetPassword = "/api/v2/core/auth/expired/reset"  // POST 受限会话（过期改密专用）
         static let apiKeysSearch = "/api/v2/core/auth/api/keys/search"  // POST session + CSRF
         static let apiKeysStatus = "/api/v2/core/auth/api/keys/status"  // POST session + CSRF
     }
@@ -123,6 +124,17 @@ final class SessionAuthClient {
     /// 步骤 3：当前用户信息——apiInterfaceStatus + legacy apiKey 明文（取钥锚点）
     func currentUser() async throws -> CurrentUserInfo {
         try await get(Path.current, as: CurrentUserInfo.self)
+    }
+
+    /// 密码过期强制重置（§8 抓包实证：**明文直传**——既非 Base64 也非登录混合加密，
+    /// 第三种编码通道，勿混用）。过期会话经 core 链 PasswordExpired 中间件仅可访问
+    /// reset 类端点，改密成功后旧会话即废，调用方须以新密码重新登录续跑引导
+    func resetPassword(old: String, new: String) async throws {
+        let _: EmptyResponse = try await post(
+            Path.resetPassword,
+            body: PasswordResetRequest(oldPassword: old, newPassword: new),
+            as: EmptyResponse.self
+        )
     }
 
     /// 步骤 3b：接口功能 Disable 时的显式开启（session + CSRF 双提交）。
@@ -310,8 +322,6 @@ enum SessionAuthError: LocalizedError {
     case mfaFailed
     /// ErrNotLogin：会话无效（current 等返回时）
     case notLogin
-    /// 登录响应标记密码已过期（一期指引改网页端修改，reset 表单后置）
-    case passwordExpired
     /// 其他业务码
     case business(Int, String)
     case http(Int, String)
@@ -348,8 +358,6 @@ enum SessionAuthError: LocalizedError {
             return L10n.t("动态口令不正确，请重新输入")
         case .notLogin:
             return L10n.t("登录会话已失效，请重新登录")
-        case .passwordExpired:
-            return L10n.t("面板密码已过期，请先在面板网页端修改密码后重试")
         case .business(let code, let message):
             return message.isEmpty ? L10n.f("业务错误（%ld）", code) : message
         case .http(let code, let message):
@@ -388,6 +396,12 @@ nonisolated struct MfaLoginRequest: Encodable {
     let secret: String
     let code: String
     let authMethod: String
+}
+
+/// POST /core/auth/expired/reset 请求体：**明文直传**（第三种编码通道，勿混用）
+nonisolated struct PasswordResetRequest: Encodable {
+    let oldPassword: String
+    let newPassword: String
 }
 
 /// POST /core/auth/api/keys/search 请求体（v2.3.2+ 多键体系分页，抓包 {page:1,pageSize:20}）
@@ -437,8 +451,8 @@ nonisolated struct CaptchaResponse: Decodable, Equatable {
     }
 }
 
-/// 登录成功响应（抓包 5 字段；passwordExpired 为过期面板版本的防御性可选字段，
-/// 存在即停止引导并指引网页端改密——一期不做 reset 表单）
+/// 登录成功响应（抓包 5 字段；passwordExpired 为过期标记的可选防御字段——
+/// 存在且为 true 时引导流转入改密表单：过期会话仅可访问 reset 端点，改完重登录）
 nonisolated struct LoginResult: Decodable, Equatable {
     let name: String?
     let role: String?

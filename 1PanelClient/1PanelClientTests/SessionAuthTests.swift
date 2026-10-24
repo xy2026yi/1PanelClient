@@ -73,6 +73,41 @@ struct SessionAuthTests {
         #expect(expired.passwordExpired == true)
     }
 
+    @Test("PasswordResetRequest 编码形状：明文直传（第三种编码通道，非 Base64/非混合加密）")
+    func passwordResetRequestEncoding() throws {
+        let request = PasswordResetRequest(oldPassword: "Old-明文", newPassword: "New-明文2")
+        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as! [String: Any]
+        #expect(json["oldPassword"] as? String == "Old-明文")
+        #expect(json["newPassword"] as? String == "New-明文2")
+        #expect(json.count == 2)
+        // 明文语义：值不含三段混合加密的分段结构，也不是 Base64 整编码
+        #expect(!(json["newPassword"] as? String ?? "").contains(":"))
+    }
+
+    @Test("resetPassword：受限会话下 POST expired/reset 明文体 + CSRF 双提交")
+    func resetPasswordWire() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        let jar = client.cookieJar
+        // 模拟登录成功后的会话 jar
+        jar.setCookie(Self.cookie(name: "psession", value: "sess123", domain: "panel.test"))
+        jar.setCookie(Self.cookie(name: "pcsrftoken", value: "csrf456", domain: "panel.test"))
+        #expect(await Self.waitForCookie(jar, "pcsrftoken", baseURL: baseURL) == "csrf456")
+        BootstrapMockURLProtocol.setHandler { request in
+            #expect(request.url?.path.hasSuffix("/core/auth/expired/reset") == true)
+            #expect(request.httpMethod == "POST")
+            #expect(request.value(forHTTPHeaderField: "X-CSRF-Token") == "csrf456")
+            let body = (try? JSONSerialization.jsonObject(with: Self.requestBody(request) ?? Data())) as? [String: Any]
+            #expect(body?["oldPassword"] as? String == "old-secret")
+            #expect(body?["newPassword"] as? String == "new-secret")
+            return (Self.response(request), Self.envelope("null"))
+        }
+        try await client.resetPassword(old: "old-secret", new: "new-secret")
+    }
+
     // MARK: - 纯逻辑：验证码 data URL
 
     @Test("验证码 data URL 解析（base64 段提取）")

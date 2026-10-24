@@ -1,28 +1,6 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {},
-    "%@" : {},
-    "%@ %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@"
-          }
-        }
-      }
-    },
-    "%@ %@ / %@ %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@ / %3$@ %4$@"
-          }
-        }
-      }
-    },
     "%@ (%%)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -67,16 +45,6 @@
         }
       }
     },
-    "%@ / %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ / %2$@"
-          }
-        }
-      }
-    },
     "%@ / %ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -95,36 +63,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ Docker failed: %@"
-          }
-        }
-      }
-    },
-    "%@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%@ · %@ %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@ %3$@"
-          }
-        }
-      }
-    },
-    "%@ · %@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@ · %3$@"
           }
         }
       }
@@ -217,27 +155,6 @@
         }
       }
     },
-    "%@%%" : {},
-    "%@%%  %@ / %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@%%  %2$@ / %3$@"
-          }
-        }
-      }
-    },
-    "%@%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@%2$@"
-          }
-        }
-      }
-    },
     "%@.%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -245,46 +162,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@.%@"
-          }
-        }
-      }
-    },
-    "%@: %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@: %2$@"
-          }
-        }
-      }
-    },
-    "%@:%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@:%2$@"
-          }
-        }
-      }
-    },
-    "%@@%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@@%2$@"
-          }
-        }
-      }
-    },
-    "%@×%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@×%2$@"
           }
         }
       }
@@ -1151,7 +1028,6 @@
         }
       }
     },
-    ":%@" : {},
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2248,7 +2124,6 @@
         }
       }
     },
-    "ID: %@" : {},
     "IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2721,7 +2596,6 @@
         }
       }
     },
-    "OpenResty %@" : {},
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2755,7 +2629,6 @@
         }
       }
     },
-    "PID %@" : {},
     "QEMU 日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3434,7 +3307,6 @@
         }
       }
     },
-    "[%@]" : {},
     "docker-compose" : {
       "localizations" : {
         "en" : {
@@ -3476,7 +3348,6 @@
         }
       }
     },
-    "fd %@" : {},
     "file.txt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3609,7 +3480,6 @@
         }
       }
     },
-    "v%@" : {},
     "vLLM" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3641,7 +3511,6 @@
         }
       }
     },
-    "· %@" : {},
     "—" : {
       "localizations" : {
         "en" : {
@@ -3652,7 +3521,6 @@
         }
       }
     },
-    "•" : {},
     "••••••••" : {
       "localizations" : {
         "en" : {
@@ -29721,6 +29589,17 @@
         }
       }
     },
+    "确认新密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm New Password"
+          }
+        }
+      }
+    },
     "确认消息" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38444,6 +38323,17 @@
         }
       }
     },
+    "重置密码并继续" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Password and Continue"
+          }
+        }
+      }
+    },
     "重置时勾选「备份规则后重置」会生成备份文件，生成后可在此恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39390,13 +39280,13 @@
         }
       }
     },
-    "面板密码已过期，请先在面板网页端修改密码后重试" : {
+    "面板密码已过期，请设置新密码后继续" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The panel password has expired. Change it on the panel's web UI first, then retry"
+            "value" : "The panel password has expired. Set a new password to continue"
           }
         }
       }
