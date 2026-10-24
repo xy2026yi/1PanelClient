@@ -1,6 +1,28 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "" : {},
+    "%@" : {},
+    "%@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%@ %@ / %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ / %3$@ %4$@"
+          }
+        }
+      }
+    },
     "%@ (%%)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -45,6 +67,16 @@
         }
       }
     },
+    "%@ / %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@"
+          }
+        }
+      }
+    },
     "%@ / %ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -63,6 +95,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ Docker failed: %@"
+          }
+        }
+      }
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ · %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ %3$@"
+          }
+        }
+      }
+    },
+    "%@ · %@ · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ · %3$@"
           }
         }
       }
@@ -155,6 +217,27 @@
         }
       }
     },
+    "%@%%" : {},
+    "%@%%  %@ / %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%%  %2$@ / %3$@"
+          }
+        }
+      }
+    },
+    "%@%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
+          }
+        }
+      }
+    },
     "%@.%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -162,6 +245,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@.%@"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@:%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@:%2$@"
+          }
+        }
+      }
+    },
+    "%@@%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@@%2$@"
+          }
+        }
+      }
+    },
+    "%@×%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@×%2$@"
           }
         }
       }
@@ -1028,6 +1151,7 @@
         }
       }
     },
+    ":%@" : {},
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2124,6 +2248,7 @@
         }
       }
     },
+    "ID: %@" : {},
     "IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2596,6 +2721,7 @@
         }
       }
     },
+    "OpenResty %@" : {},
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2629,6 +2755,7 @@
         }
       }
     },
+    "PID %@" : {},
     "QEMU 日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3307,6 +3434,7 @@
         }
       }
     },
+    "[%@]" : {},
     "docker-compose" : {
       "localizations" : {
         "en" : {
@@ -3348,6 +3476,7 @@
         }
       }
     },
+    "fd %@" : {},
     "file.txt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3480,6 +3609,7 @@
         }
       }
     },
+    "v%@" : {},
     "vLLM" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3511,6 +3641,7 @@
         }
       }
     },
+    "· %@" : {},
     "—" : {
       "localizations" : {
         "en" : {
@@ -3521,6 +3652,7 @@
         }
       }
     },
+    "•" : {},
     "••••••••" : {
       "localizations" : {
         "en" : {
@@ -39353,6 +39485,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "When a panel update is available"
+          }
+        }
+      }
+    },
+    "面板未找到接口密钥配置，请改用手动粘贴" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API key configuration not found on the panel. Paste the key manually instead"
           }
         }
       }

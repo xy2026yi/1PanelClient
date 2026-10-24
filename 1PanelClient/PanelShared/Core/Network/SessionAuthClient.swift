@@ -17,12 +17,14 @@ final class SessionAuthClient {
     // MARK: - 端点（/core/auth 前缀：APIAuth 整体排除 token，仅 session 可用）
 
     private enum Path {
-        static let setting = "/api/v2/core/auth/setting"        // GET 匿名；jar 自动收 panel_public_key
-        static let login = "/api/v2/core/auth/login"            // POST 匿名
-        static let mfaLogin = "/api/v2/core/auth/mfalogin"      // POST 匿名
-        static let captcha = "/api/v2/core/auth/captcha"        // GET 匿名
-        static let current = "/api/v2/core/auth/current"        // GET session
-        static let apiUpdate = "/api/v2/core/auth/api/update"   // POST session + CSRF
+        static let setting = "/api/v2/core/auth/setting"          // GET 匿名；jar 自动收 panel_public_key
+        static let login = "/api/v2/core/auth/login"              // POST 匿名
+        static let mfaLogin = "/api/v2/core/auth/mfalogin"        // POST 匿名
+        static let captcha = "/api/v2/core/auth/captcha"          // GET 匿名
+        static let current = "/api/v2/core/auth/current"          // GET session
+        static let apiKeysSearch = "/api/v2/core/auth/api/keys/search"  // POST session + CSRF
+        static let apiKeysStatus = "/api/v2/core/auth/api/keys/status"  // POST session + CSRF
+        static let apiUpdate = "/api/v2/core/auth/api/update"     // POST session + CSRF（旧面板回落）
     }
 
     /// 引导基础地址（规范化：去尾部 /）
@@ -125,18 +127,45 @@ final class SessionAuthClient {
     }
 
     /// 步骤 3b：接口功能 Disable 时的显式开启（session + CSRF 双提交）。
-    /// 请求体回传 current 的现有配置、仅翻状态位，避免面板侧其余配置被改写。
-    /// （v2.4 网页端对应 Legacy API Key 行启停，api/keys/status {id:"legacy"}——
-    /// 依方案 §3.1 走 api/update；若新面板拒绝该端点，引导失败回落手动粘贴路径）
+    /// 首选 v2.4.1 网页端实捕路径（2026-10-24 抓包）：接口功能开关即 API 密钥页
+    /// Legacy 行的启停——keys/search 取 legacy 行的 revision（乐观锁）→
+    /// keys/status 翻 Enable；旧面板无 keys/* 端点（v2.4.0 Swagger 仅在册
+    /// api/update）时回落 api/update（回传 current 现有配置仅翻状态位，形状未
+    /// 逐字段实证，失败即报错回落手动粘贴路径）
     func enableApiInterface(preserving info: CurrentUserInfo) async throws {
-        let body = ApiConfigUpdateRequest(
-            apiInterfaceStatus: "Enable",
-            apiKey: info.apiKey ?? "",
-            ipWhiteList: info.ipWhiteList ?? "",
-            apiTrustedProxies: info.apiTrustedProxies ?? "",
-            apiKeyValidityTime: info.apiKeyValidityTime ?? 120
-        )
-        let _: EmptyResponse = try await post(Path.apiUpdate, body: body, as: EmptyResponse.self)
+        do {
+            let page = try await post(
+                Path.apiKeysSearch,
+                body: ApiKeysSearchRequest(page: 1, pageSize: 20),
+                as: PageEnvelope<ApiKeyItem>.self
+            )
+            guard let legacy = page.items?.first(where: { $0.id == "legacy" }) else {
+                throw SessionAuthError.business(200, L10n.t("面板未找到接口密钥配置，请改用手动粘贴"))
+            }
+            let _: EmptyResponse = try await post(
+                Path.apiKeysStatus,
+                body: ApiKeyStatusRequest(
+                    id: "legacy",
+                    revision: legacy.revision ?? 0,
+                    status: "Enable"
+                ),
+                as: EmptyResponse.self
+            )
+        } catch let error as SessionAuthError {
+            // keys/* 为 v2.4.1 新增端点：旧面板 404 → api/update 回落
+            guard case .http(404, _) = error else { throw error }
+            let _: EmptyResponse = try await post(
+                Path.apiUpdate,
+                body: ApiConfigUpdateRequest(
+                    apiInterfaceStatus: "Enable",
+                    apiKey: info.apiKey ?? "",
+                    ipWhiteList: info.ipWhiteList ?? "",
+                    apiTrustedProxies: info.apiTrustedProxies ?? "",
+                    apiKeyValidityTime: info.apiKeyValidityTime ?? 120
+                ),
+                as: EmptyResponse.self
+            )
+        }
     }
 
     // MARK: - 请求构造
@@ -371,13 +400,36 @@ nonisolated struct MfaLoginRequest: Encodable {
     let authMethod: String
 }
 
-/// POST /core/auth/api/update 请求体：回传 current 的现有配置、仅翻状态位
+/// POST /core/auth/api/update 请求体（旧面板回落路径）：回传 current 的现有配置、仅翻状态位
 nonisolated struct ApiConfigUpdateRequest: Encodable {
     let apiInterfaceStatus: String
     let apiKey: String
     let ipWhiteList: String
     let apiTrustedProxies: String
     let apiKeyValidityTime: Int
+}
+
+/// POST /core/auth/api/keys/search 请求体（v2.4 多键体系分页，抓包 {page:1,pageSize:20}）
+nonisolated struct ApiKeysSearchRequest: Encodable {
+    let page: Int
+    let pageSize: Int
+}
+
+/// api/keys 列表项子集。id=="legacy" 行即接口功能开关所在行；
+/// revision 为乐观锁版本号（启停/更新/撤销请求须回传当前值，legacy 实测为巨大整数）
+nonisolated struct ApiKeyItem: Decodable, Equatable, Sendable {
+    let id: String?
+    let kind: String?
+    let name: String?
+    let status: String?
+    let revision: Int?
+}
+
+/// POST /core/auth/api/keys/status 请求体（启停，抓包三字段实证）
+nonisolated struct ApiKeyStatusRequest: Encodable {
+    let id: String
+    let revision: Int
+    let status: String
 }
 
 /// GET /core/auth/setting 响应（子集；抓包 needCaptcha/passkeySetting/panelName 实证）

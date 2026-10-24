@@ -246,15 +246,100 @@ struct SessionAuthTests {
             } else {
                 #expect(request.value(forHTTPHeaderField: "X-CSRF-Token") == nil)
             }
+            if request.url?.path.hasSuffix("/core/auth/api/keys/search") == true {
+                return (Self.response(request), Self.envelope(
+                    #"{"items":[{"id":"legacy","kind":"legacy","name":"Legacy API Key","status":"Disable","revision":3287886918601956}],"total":1}"#))
+            }
+            if request.url?.path.hasSuffix("/core/auth/api/keys/status") == true {
+                return (Self.response(request), Self.envelope(#"{"terminalClosePending":false}"#))
+            }
             if request.url?.path.hasSuffix("/core/auth/current") == true {
                 return (Self.response(request), Self.envelope(#"{"name":"admin","role":"ADMIN","apiInterfaceStatus":"Disable"}"#))
             }
             return (Self.response(request), Self.envelope("null"))
         }
-        // POST api/update（data null → EmptyResponse 兜底）+ GET current 两种方法都过一遍
+        // POST keys/search + keys/status + GET current 三段全走一遍
         try await client.enableApiInterface(preserving: Self.info(status: "Disable", key: ""))
         let info = try await client.currentUser()
         #expect(info.name == "admin")
+    }
+
+    @Test("enable 流程：keys/search 取 legacy revision → keys/status 原样回传翻 Enable")
+    func enableViaLegacyKeyStatus() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        BootstrapMockURLProtocol.setHandler { request in
+            if request.url?.path.hasSuffix("/core/auth/api/keys/search") == true {
+                let body = (try? JSONSerialization.jsonObject(with: Self.requestBody(request) ?? Data())) as? [String: Any]
+                #expect(body?["page"] as? Int == 1)
+                #expect(body?["pageSize"] as? Int == 20)
+                return (Self.response(request), Self.envelope(
+                    #"{"items":[{"id":"legacy","kind":"legacy","status":"Disable","revision":3287886918601956}],"total":1}"#))
+            }
+            if request.url?.path.hasSuffix("/core/auth/api/keys/status") == true {
+                let body = (try? JSONSerialization.jsonObject(with: Self.requestBody(request) ?? Data())) as? [String: Any]
+                #expect(body?["id"] as? String == "legacy")
+                #expect(body?["revision"] as? Int == 3287886918601956, "乐观锁 revision 必须取自 search 结果")
+                #expect(body?["status"] as? String == "Enable")
+                return (Self.response(request), Self.envelope(#"{"terminalClosePending":false}"#))
+            }
+            Issue.record("不应触达其他端点")
+            return (Self.response(request), Self.envelope("null"))
+        }
+        try await client.enableApiInterface(preserving: Self.info(status: "Disable", key: ""))
+    }
+
+    @Test("enable 流程：legacy 行缺失 → 明确报错不盲发启停")
+    func enableFailsWhenLegacyRowMissing() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        BootstrapMockURLProtocol.setHandler { request in
+            if request.url?.path.hasSuffix("/core/auth/api/keys/search") == true {
+                return (Self.response(request), Self.envelope(#"{"items":[],"total":0}"#))
+            }
+            Issue.record("legacy 缺失时不应继续 keys/status")
+            return (Self.response(request), Self.envelope("null"))
+        }
+        do {
+            try await client.enableApiInterface(preserving: Self.info(status: "Disable", key: ""))
+            Issue.record("应抛出业务错误")
+        } catch let error as SessionAuthError {
+            if case .business = error {} else {
+                Issue.record("应映射为 business，实际 \(error)")
+            }
+        }
+    }
+
+    @Test("enable 流程：keys/* 端点 404（旧面板）→ 回落 api/update 回传现有配置")
+    func enableFallbackOnMissingKeysEndpoints() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        BootstrapMockURLProtocol.setHandler { request in
+            if request.url?.path.hasSuffix("/core/auth/api/keys/search") == true
+                || request.url?.path.hasSuffix("/core/auth/api/keys/status") == true {
+                return (HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: "HTTP/1.1",
+                                        headerFields: ["Content-Type": "application/json"])!,
+                        #"{"code":404,"message":"not found","data":null}"#.data(using: .utf8)!)
+            }
+            if request.url?.path.hasSuffix("/core/auth/api/update") == true {
+                let body = (try? JSONSerialization.jsonObject(with: Self.requestBody(request) ?? Data())) as? [String: Any]
+                #expect(body?["apiInterfaceStatus"] as? String == "Enable")
+                #expect(body?["apiKey"] as? String == "keep")
+                return (Self.response(request), Self.envelope("null"))
+            }
+            Issue.record("不应触达其他端点")
+            return (Self.response(request), Self.envelope("null"))
+        }
+        try await client.enableApiInterface(preserving: Self.info(status: "Disable", key: "keep"))
     }
 
     @Test("mfalogin：ErrMFA → mfaFailed（保持 OTP 重输状态用）")

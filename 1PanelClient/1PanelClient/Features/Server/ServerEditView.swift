@@ -398,7 +398,8 @@ struct ServerEditView: View {
         }
     }
 
-    /// Disable → 显式开启（api/update 回传现有配置）→ 重取 current 的 key
+    /// Disable → 显式开启（keys/status 翻 Legacy 行 Enable，旧面板回落 api/update）
+    /// → 重取 current 的 key
     private func confirmEnableAndFetch() async {
         guard let client = bootstrapClient else { return }
         bootstrapPhase = .working
