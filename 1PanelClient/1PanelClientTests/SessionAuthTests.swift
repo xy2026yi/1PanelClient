@@ -140,7 +140,7 @@ struct SessionAuthTests {
 
     // MARK: - 纯逻辑：取钥决策
 
-    @Test("取钥决策：Enable+key 直接用；Disable/空 key 需确认开启")
+    @Test("取钥决策：Enable+key 直接用；Enable+空 key 需生成；Disable 需确认开启")
     func keyAcquisitionDecision() {
         func info(_ status: String?, _ key: String?) -> CurrentUserInfo {
             CurrentUserInfo(
@@ -154,10 +154,61 @@ struct SessionAuthTests {
             BootstrapDecision.keyAcquisition(from: info("Enable", "xIvaBQRBeMO93s7IO1xgomK2fE0DBhVt"))
                 == .useExisting("xIvaBQRBeMO93s7IO1xgomK2fE0DBhVt")
         )
+        // 全新面板：接口已开但从未生成过 legacy key → api/generate
+        #expect(BootstrapDecision.keyAcquisition(from: info("Enable", "")) == .needsGenerate)
+        #expect(BootstrapDecision.keyAcquisition(from: info("Enable", nil)) == .needsGenerate)
         #expect(BootstrapDecision.keyAcquisition(from: info("Disable", "xIva")) == .needsEnableConfirm)
-        #expect(BootstrapDecision.keyAcquisition(from: info("Enable", "")) == .needsEnableConfirm)
-        #expect(BootstrapDecision.keyAcquisition(from: info("Enable", nil)) == .needsEnableConfirm)
+        #expect(BootstrapDecision.keyAcquisition(from: info("Disable", nil)) == .needsEnableConfirm)
         #expect(BootstrapDecision.keyAcquisition(from: info(nil, nil)) == .needsEnableConfirm)
+    }
+
+    @Test("generateApiKey：data 裸字符串形态（v1 同源）")
+    func generateStringShape() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        BootstrapMockURLProtocol.setHandler { request in
+            #expect(request.url?.path.hasSuffix("/core/auth/api/generate") == true)
+            return (Self.response(request), Self.envelope(#""newPlainKey""#))
+        }
+        let key = try await client.generateApiKey()
+        #expect(key == "newPlainKey")
+    }
+
+    @Test("generateApiKey：data {apiKey} 对象形态（keys/create 同款）")
+    func generateObjectShape() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        BootstrapMockURLProtocol.setHandler { request in
+            (Self.response(request), Self.envelope(#"{"apiKey":"objKey"}"#))
+        }
+        let key = try await client.generateApiKey()
+        #expect(key == "objKey")
+    }
+
+    @Test("generateApiKey：data null / 空串 → 友好业务错误")
+    func generateEmptyShapes() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        BootstrapMockURLProtocol.setHandler { request in
+            (Self.response(request), Self.envelope("null"))
+        }
+        do {
+            _ = try await client.generateApiKey()
+            Issue.record("应抛出业务错误")
+        } catch let error as SessionAuthError {
+            if case .business = error {} else {
+                Issue.record("应映射为 business，实际 \(error)")
+            }
+        }
     }
 
     // MARK: - 纯逻辑：jar 读取

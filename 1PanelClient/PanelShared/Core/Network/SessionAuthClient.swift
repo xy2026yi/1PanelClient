@@ -23,6 +23,7 @@ final class SessionAuthClient {
         static let captcha = "/api/v2/core/auth/captcha"          // GET 匿名
         static let current = "/api/v2/core/auth/current"          // GET session
         static let resetPassword = "/api/v2/core/auth/expired/reset"  // POST 受限会话（过期改密专用）
+        static let apiGenerate = "/api/v2/core/auth/api/generate"       // POST session + CSRF
         static let apiKeysSearch = "/api/v2/core/auth/api/keys/search"  // POST session + CSRF
         static let apiKeysStatus = "/api/v2/core/auth/api/keys/status"  // POST session + CSRF
     }
@@ -137,6 +138,17 @@ final class SessionAuthClient {
         )
     }
 
+    /// 生成 legacy 接口密钥（api/generate，session-only；v2.4.1 Swagger 在册、网页端
+    /// 未调用故无抓包）。**仅在 current.apiKey 为空时调用**——generate 有轮换语义，
+    /// 会对已有 key 重置，伤害其他消费方
+    func generateApiKey() async throws -> String {
+        let data = try await post(Path.apiGenerate, as: GenerateApiKeyData.self)
+        guard let key = data.apiKey, !key.isEmpty else {
+            throw SessionAuthError.business(200, L10n.t("面板未返回接口密钥，请改用手动粘贴"))
+        }
+        return key
+    }
+
     /// 步骤 3b：接口功能 Disable 时的显式开启（session + CSRF 双提交）。
     /// 接口功能开关即 API 密钥页 Legacy 行的启停（v2.3.2 起 keys/* 体系，2026-10-24
     /// v2.4.1 网页端实捕）：keys/search 取 legacy 行的 revision（乐观锁）→
@@ -205,8 +217,8 @@ final class SessionAuthClient {
         try await send(makeRequest(path: path, method: "GET", body: nil), as: type)
     }
 
-    private func post<T: Decodable>(_ path: String, body: some Encodable, as type: T.Type) async throws -> T {
-        let data = try JSONEncoder().encode(body)
+    private func post<T: Decodable>(_ path: String, body: (any Encodable)? = nil, as type: T.Type) async throws -> T {
+        let data = try body.map { try JSONEncoder().encode($0) }
         return try await send(makeRequest(path: path, method: "POST", body: data), as: type)
     }
 
@@ -287,11 +299,14 @@ final class SessionAuthClient {
 nonisolated enum BootstrapDecision {
 
     /// current 响应后的取钥路径：Enable 直接用现有密钥（零副作用首选）；
-    /// Disable 需 UI 确认后显式开启（面板侧会留痕）再重取
+    /// Enable 但 key 为空（全新面板从未生成过 legacy key）需确认后调 api/generate 生成；
+    /// Disable 需确认翻开关后重取（key 仍为空再补生成）
     enum KeyAcquisition: Equatable {
         /// 直接取 current.apiKey
         case useExisting(String)
-        /// 需确认「将启用面板接口密钥功能」（confirmEnabled 后重取）
+        /// 需确认「将生成新的接口密钥」（api/generate）
+        case needsGenerate
+        /// 需确认「将启用面板接口密钥功能」（keys/status 翻 legacy 行 Enable 后重取）
         case needsEnableConfirm
     }
 
@@ -300,6 +315,7 @@ nonisolated enum BootstrapDecision {
             if let key = info.apiKey, !key.isEmpty {
                 return .useExisting(key)
             }
+            return .needsGenerate
         }
         return .needsEnableConfirm
     }
@@ -425,6 +441,35 @@ nonisolated struct ApiKeyStatusRequest: Encodable {
     let id: String
     let revision: Int
     let status: String
+}
+
+/// api/generate 响应 data 双形态容错（无抓包，防御解码）：
+/// data = 明文字符串（v1 同源行为）或 {apiKey} 对象（keys/create 同款）；
+/// data = null 经 EmptyInitializable 兜底为 apiKey=nil（调用方转友好错误）
+nonisolated struct GenerateApiKeyData: Decodable, EmptyInitializable {
+    let apiKey: String?
+
+    init(apiKey: String?) {
+        self.apiKey = apiKey
+    }
+
+    init(from decoder: Decoder) throws {
+        if let single = try? decoder.singleValueContainer(),
+           let str = try? single.decode(String.self) {
+            apiKey = str
+            return
+        }
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        apiKey = try container.decodeIfPresent(String.self, forKey: .apiKey)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case apiKey
+    }
+
+    static func emptyInstance() -> Self {
+        .init(apiKey: nil)
+    }
 }
 
 /// GET /core/auth/setting 响应（子集；抓包 needCaptcha/passkeySetting/panelName 实证）

@@ -43,6 +43,8 @@ struct ServerEditView: View {
         case resetPassword
         /// 接口功能未开启：等待用户确认「将启用面板接口密钥功能」（面板侧留痕）
         case confirmEnable
+        /// 接口已开启但无 legacy key（全新面板）：等待确认「将生成新的接口密钥」
+        case confirmGenerate
         /// 已取得密钥（session 即弃）
         case succeeded
     }
@@ -80,6 +82,10 @@ struct ServerEditView: View {
 
     private var isBootstrapBusy: Bool {
         bootstrapPhase == .working
+    }
+
+    private var isConfirmPhase: Bool {
+        bootstrapPhase == .confirmEnable || bootstrapPhase == .confirmGenerate
     }
 
     /// 引导按钮可用性（地址/账号/密码齐备；验证码/OTP/改密确认显示时要求有效）
@@ -189,23 +195,31 @@ struct ServerEditView: View {
         } message: {
             Text(L10n.t("当前为 HTTP 明文连接，账号与密码可被同一网络内的攻击者截获。建议为面板配置 HTTPS 后再引导；也可改用手动粘贴密钥。"))
         }
-        // 接口功能未开启的显式确认（方案 §3.4：开启 + 新密钥 + 登录日志均属面板侧正常留痕）
+        // 面板侧变更的显式确认（方案 §3.4：开启/生成密钥 + 登录日志均属面板侧正常留痕）。
+        // confirmEnable = 接口未开启（翻 legacy 行开关）；confirmGenerate = 已开启但
+        // 从未生成过 legacy key（全新面板，current.apiKey 为空）
         .confirmationDialog(
-            L10n.t("将启用面板接口密钥功能"),
+            bootstrapPhase == .confirmGenerate
+                ? L10n.t("将生成新的接口密钥")
+                : L10n.t("将启用面板接口密钥功能"),
             isPresented: .init(
-                get: { bootstrapPhase == .confirmEnable },
-                set: { if !$0 && bootstrapPhase == .confirmEnable { bootstrapPhase = .idle } }
+                get: { bootstrapPhase == .confirmEnable || bootstrapPhase == .confirmGenerate },
+                set: { if !$0 && isConfirmPhase { bootstrapPhase = .idle } }
             ),
             titleVisibility: .visible
         ) {
-            Button(L10n.t("启用并获取密钥")) {
-                Task { await confirmEnableAndFetch() }
+            Button(bootstrapPhase == .confirmGenerate
+                   ? L10n.t("生成密钥")
+                   : L10n.t("启用并获取密钥")) {
+                Task { await performConfirmedMutation() }
             }
             Button(L10n.t("取消"), role: .cancel) {
                 bootstrapPhase = .idle
             }
         } message: {
-            Text(L10n.t("面板尚未开启 API 接口。引导将在面板上开启该功能并使用/生成接口密钥（面板会留下一条登录记录）。稍后可在面板网页端撤销。"))
+            Text(bootstrapPhase == .confirmGenerate
+                 ? L10n.t("面板已开启 API 接口但还没有接口密钥。引导将生成一个新的接口密钥。稍后可在面板网页端撤销。")
+                 : L10n.t("面板尚未开启 API 接口。引导将开启该功能并使用/生成接口密钥（面板会留下一条登录记录）。稍后可在面板网页端撤销。"))
         }
     }
 
@@ -441,24 +455,34 @@ struct ServerEditView: View {
                 finishBootstrap(key: key)
             case .needsEnableConfirm:
                 bootstrapPhase = .confirmEnable
+            case .needsGenerate:
+                bootstrapPhase = .confirmGenerate
             }
         } catch {
             handleBootstrapError(error)
         }
     }
 
-    /// Disable → 显式开启（keys/status 翻 Legacy 行 Enable，v2.3.2+ 端点）
-    /// → 重取 current 的 key
-    private func confirmEnableAndFetch() async {
+    /// 确认后的面板侧变更：
+    /// - confirmGenerate：api/generate 直接生成（接口已开但从未有过 legacy key）
+    /// - confirmEnable：keys/status 翻 legacy 行 Enable → 重取 current；
+    ///   key 仍为空（全新面板开关不自动生成密钥时）再补 api/generate
+    private func performConfirmedMutation() async {
         guard let client = bootstrapClient else { return }
+        let generateOnly = bootstrapPhase == .confirmGenerate
         bootstrapPhase = .working
         do {
+            if generateOnly {
+                finishBootstrap(key: try await client.generateApiKey())
+                return
+            }
             try await client.enableApiInterface()
             let refreshed = try await client.currentUser()
-            guard let key = refreshed.apiKey, !key.isEmpty else {
-                throw SessionAuthError.business(200, L10n.t("面板未返回接口密钥，请改用手动粘贴"))
+            if let key = refreshed.apiKey, !key.isEmpty {
+                finishBootstrap(key: key)
+            } else {
+                finishBootstrap(key: try await client.generateApiKey())
             }
-            finishBootstrap(key: key)
         } catch {
             handleBootstrapError(error)
         }

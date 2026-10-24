@@ -15762,6 +15762,17 @@
         }
       }
     },
+    "将生成新的接口密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new API key will be generated"
+          }
+        }
+      }
+    },
     "将用新的证书内容替换「%@」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28148,6 +28159,17 @@
         }
       }
     },
+    "生成密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate Key"
+          }
+        }
+      }
+    },
     "生成随机密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39320,6 +39342,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The panel has not enabled its API interface yet. Bootstrap will enable it and use/generate an API key (a login record will be left on the panel). You can revoke it later on the panel's web UI."
+          }
+        }
+      }
+    },
+    "面板尚未开启 API 接口。引导将开启该功能并使用/生成接口密钥（面板会留下一条登录记录）。稍后可在面板网页端撤销。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The panel has not enabled its API interface yet. Bootstrap will enable it and use/generate an API key (a login record will be left on the panel). You can revoke it later on the panel's web UI."
+          }
+        }
+      }
+    },
+    "面板已开启 API 接口但还没有接口密钥。引导将生成一个新的接口密钥。稍后可在面板网页端撤销。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The panel's API interface is enabled but no API key exists yet. Bootstrap will generate a new API key. You can revoke it later on the panel's web UI."
           }
         }
       }
