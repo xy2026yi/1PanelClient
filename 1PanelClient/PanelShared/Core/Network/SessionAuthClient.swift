@@ -23,9 +23,9 @@ final class SessionAuthClient {
         static let captcha = "/api/v2/core/auth/captcha"          // GET 匿名
         static let current = "/api/v2/core/auth/current"          // GET session
         static let resetPassword = "/api/v2/core/auth/expired/reset"  // POST 受限会话（过期改密专用）
-        static let apiGenerate = "/api/v2/core/auth/api/generate"       // POST session + CSRF
         static let apiKeysSearch = "/api/v2/core/auth/api/keys/search"  // POST session + CSRF
         static let apiKeysStatus = "/api/v2/core/auth/api/keys/status"  // POST session + CSRF
+        static let apiKeysCreate = "/api/v2/core/auth/api/keys/create"  // POST session + CSRF
     }
 
     /// 引导基础地址（规范化：去尾部 /）
@@ -138,12 +138,27 @@ final class SessionAuthClient {
         )
     }
 
-    /// 生成 legacy 接口密钥（api/generate，session-only；v2.4.1 Swagger 在册、网页端
-    /// 未调用故无抓包）。**仅在 current.apiKey 为空时调用**——generate 有轮换语义，
-    /// 会对已有 key 重置，伤害其他消费方
-    func generateApiKey() async throws -> String {
-        let data = try await post(Path.apiGenerate, as: GenerateApiKeyData.self)
-        guard let key = data.apiKey, !key.isEmpty else {
+    /// 创建专用接口密钥（keys/create，v2.3.2+ 唯一的新 key 创建通道——
+    /// v2.3.1 及更早的独立 api/generate 在新面板已不存在）。参数为 app 运行所需
+    /// 最小配置：全 IP 白名单（app 需任意网络可达，用户可在面板收紧）、签名窗口
+    /// 120 分钟（面板默认）、永不过期；明文仅在响应中出现一次，直接交引导流落
+    /// Keychain。创建的是多键体系命名行，用户可在面板独立停用/撤销
+    func createApiKey() async throws -> String {
+        let resp = try await post(
+            Path.apiKeysCreate,
+            body: ApiKeyCreateRequest(
+                name: "1PanelClient",
+                description: "",
+                ipWhiteList: "0.0.0.0/0\n::/0",
+                apiTrustedProxies: "",
+                apiKeyValidityTime: 120,
+                expiresAt: nil,
+                allowAppBinding: false,
+                requestID: UUID().uuidString.lowercased()
+            ),
+            as: ApiKeyCreateResponse.self
+        )
+        guard let key = resp.apiKey, !key.isEmpty else {
             throw SessionAuthError.business(200, L10n.t("面板未返回接口密钥，请改用手动粘贴"))
         }
         return key
@@ -310,40 +325,38 @@ nonisolated enum BootstrapDecision {
     enum KeyAcquisition: Equatable {
         /// 直接取 current.apiKey（legacy 行 Enable 且明文在手——零副作用首选）
         case useExisting(String)
-        /// 需确认「将生成新的接口密钥」（api/generate）：行 Enable 但无 key（全新面板）、
-        /// 或行 Revoked（旧 key 明文可能残留但已失效，不可信）
-        case needsGenerate
-        /// 需确认「将启用面板接口密钥功能」（keys/status 翻 legacy 行 Enable 后重取）
+        /// 行 Disable 但密钥材料在（用户停过接口的升级面板）：确认翻开关后复用，不新建行
         case needsEnableConfirm
+        /// 需确认「将创建新的接口密钥」（keys/create）：行 Revoked（残留旧明文不可信）、
+        /// 行 Enable 但无 key（全新面板）、行缺失等其余形态
+        case needsCreateConfirm
     }
 
     /// legacy 行 status 为权威口径：Revoked 时 current 仍可能返回旧 key 明文
-    /// （settings 残留），直接使用会存进死 key；行缺失（旧面板/投影未初始化）时
-    /// 回退 current 口径。未知状态值按 Disable 处理（enable→重取链路自纠正）
+    /// （settings 残留），直接使用会存进死 key；行缺失时回退 current 口径
+    /// （升级面板投影异常时仍可复用现有密钥）
     static func keyAcquisition(
         current info: CurrentUserInfo,
         legacyRow: ApiKeyItem?
     ) -> KeyAcquisition {
-        if let legacy = legacyRow {
-            switch legacy.status {
-            case "Enable":
-                if let key = info.apiKey, !key.isEmpty {
-                    return .useExisting(key)
-                }
-                return .needsGenerate
-            case "Revoked":
-                return .needsGenerate
-            default:
-                return .needsEnableConfirm
-            }
-        }
-        if info.apiInterfaceStatus == "Enable" {
+        func decide(_ interfaceOn: Bool) -> KeyAcquisition {
             if let key = info.apiKey, !key.isEmpty {
-                return .useExisting(key)
+                return interfaceOn ? .useExisting(key) : .needsEnableConfirm
             }
-            return .needsGenerate
+            return .needsCreateConfirm
         }
-        return .needsEnableConfirm
+        guard let legacy = legacyRow else {
+            return decide(info.apiInterfaceStatus == "Enable")
+        }
+        switch legacy.status {
+        case "Enable":
+            return decide(true)
+        case "Disable":
+            return decide(false)
+        default:
+            // Revoked 及未知状态：残留明文不可信，一律创建专用键
+            return .needsCreateConfirm
+        }
     }
 }
 
@@ -469,33 +482,21 @@ nonisolated struct ApiKeyStatusRequest: Encodable {
     let status: String
 }
 
-/// api/generate 响应 data 双形态容错（无抓包，防御解码）：
-/// data = 明文字符串（v1 同源行为）或 {apiKey} 对象（keys/create 同款）；
-/// data = null 经 EmptyInitializable 兜底为 apiKey=nil（调用方转友好错误）
-nonisolated struct GenerateApiKeyData: Decodable, EmptyInitializable {
+/// POST /core/auth/api/keys/create 请求体（字段与网页端抓包一致；expiresAt nil=永不过期）
+nonisolated struct ApiKeyCreateRequest: Encodable {
+    let name: String
+    let description: String
+    let ipWhiteList: String
+    let apiTrustedProxies: String
+    let apiKeyValidityTime: Int
+    let expiresAt: String?
+    let allowAppBinding: Bool
+    let requestID: String
+}
+
+/// keys/create 响应 data：{item:{...}, apiKey:"明文"}——明文仅此一次
+nonisolated struct ApiKeyCreateResponse: Decodable {
     let apiKey: String?
-
-    init(apiKey: String?) {
-        self.apiKey = apiKey
-    }
-
-    init(from decoder: Decoder) throws {
-        if let single = try? decoder.singleValueContainer(),
-           let str = try? single.decode(String.self) {
-            apiKey = str
-            return
-        }
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        apiKey = try container.decodeIfPresent(String.self, forKey: .apiKey)
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case apiKey
-    }
-
-    static func emptyInstance() -> Self {
-        .init(apiKey: nil)
-    }
 }
 
 /// GET /core/auth/setting 响应（子集；抓包 needCaptcha/passkeySetting/panelName 实证）
