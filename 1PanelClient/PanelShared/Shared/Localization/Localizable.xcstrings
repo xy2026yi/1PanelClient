@@ -1061,13 +1061,24 @@
         }
       }
     },
-    "API Key 获取方式：面板 → 设置 → API 接口 → 开启并复制" : {
+    "API 可信代理" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To get the API Key: Panel → Settings → API Interface → enable and copy"
+            "value" : "API Trusted Proxies"
+          }
+        }
+      }
+    },
+    "API 可信代理：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API trusted proxies: %@"
           }
         }
       }
@@ -2230,6 +2241,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IP Allowlist"
+          }
+        }
+      }
+    },
+    "IP 白名单：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP whitelist: %@"
           }
         }
       }
@@ -5125,6 +5147,17 @@
         }
       }
     },
+    "仍要引导登录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bootstrap Anyway"
+          }
+        }
+      }
+    },
     "从HTTP Header中获取" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6863,6 +6896,17 @@
         }
       }
     },
+    "允许调用接口的来源网段（CIDR，每行一个）；默认不限制来源。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source networks allowed to call the API (one CIDR per line); empty means unrestricted."
+          }
+        }
+      }
+    },
     "允许非标准 Referer" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8377,6 +8421,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create container failed: %@"
+          }
+        }
+      }
+    },
+    "创建密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Key"
           }
         }
       }
@@ -10064,6 +10119,28 @@
         }
       }
     },
+    "动态口令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OTP Code"
+          }
+        }
+      }
+    },
+    "动态口令不正确，请重新输入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incorrect OTP code, please try again"
+          }
+        }
+      }
+    },
     "动态模块" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11637,6 +11714,17 @@
         }
       }
     },
+    "名称：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name: %@"
+          }
+        }
+      }
+    },
     "后台运行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12007,6 +12095,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apply & Update"
+          }
+        }
+      }
+    },
+    "启用并获取密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable and Fetch Key"
           }
         }
       }
@@ -12568,6 +12667,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Global"
+          }
+        }
+      }
+    },
+    "图形验证码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captcha"
           }
         }
       }
@@ -13540,6 +13650,17 @@
         }
       }
     },
+    "失败次数过多，该 IP 已被临时锁定。请稍后在面板网页端重试，或改用手动粘贴密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many failed attempts: this IP has been temporarily locked. Retry later on the panel's web UI, or paste the API key manually"
+          }
+        }
+      }
+    },
     "失败重试次数" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13844,6 +13965,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Security"
+          }
+        }
+      }
+    },
+    "安全入口不正确，请在高级选项中填写面板的安全入口码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incorrect security entrance. Fill in the panel's entrance code under Advanced Options"
+          }
+        }
+      }
+    },
+    "安全入口码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Security Entrance Code"
           }
         }
       }
@@ -14585,6 +14728,17 @@
         }
       }
     },
+    "密钥到期时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key Expires At"
+          }
+        }
+      }
+    },
     "密钥同步完成" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15014,6 +15168,17 @@
         }
       }
     },
+    "将以明文传输面板账号密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel account and password will be sent in plaintext"
+          }
+        }
+      }
+    },
     "将使用备份「%@」覆盖恢复，恢复期间服务可能短暂中断。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15043,6 +15208,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This closes all panel-kept terminal sessions, including ones in use by the web terminal. Continue?"
+          }
+        }
+      }
+    },
+    "将创建新的接口密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new API key will be created"
           }
         }
       }
@@ -15296,6 +15472,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A test alert will be sent to this address; saving is enabled once the request succeeds"
+          }
+        }
+      }
+    },
+    "将启用面板接口密钥功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The panel API interface will be enabled"
           }
         }
       }
@@ -16939,6 +17126,17 @@
         }
       }
     },
+    "已获取接口密钥，保存后即可以密钥连接" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API key fetched. Save to connect with the key"
+          }
+        }
+      }
+    },
     "已解绑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17914,6 +18112,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current (1 min)"
+          }
+        }
+      }
+    },
+    "当前为 HTTP 明文连接，账号与密码可被同一网络内的攻击者截获。建议为面板配置 HTTPS 后再引导；也可改用手动粘贴密钥。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is a plaintext HTTP connection: the account and password can be intercepted by attackers on the same network. Configure HTTPS for the panel before bootstrapping, or paste the API key manually instead."
           }
         }
       }
@@ -19876,6 +20085,17 @@
         }
       }
     },
+    "换一张" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Captcha"
+          }
+        }
+      }
+    },
     "换个关键词或排序试试" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20048,6 +20268,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exclusion Rules"
+          }
+        }
+      }
+    },
+    "接口未开启时将一并开启；密钥稍后可在面板网页端停用或撤销。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The API interface will be enabled too if it is off; you can disable or revoke the key later on the panel's web UI."
           }
         }
       }
@@ -21687,6 +21918,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not load install parameters"
+          }
+        }
+      }
+    },
+    "无法引导" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot Bootstrap"
           }
         }
       }
@@ -23843,6 +24085,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Validity Period"
+          }
+        }
+      }
+    },
+    "有效期至：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires at: %@"
+          }
+        }
+      }
+    },
+    "有效期：永不过期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Validity: never expires"
           }
         }
       }
@@ -26113,6 +26377,17 @@
         }
       }
     },
+    "永不过期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Never expires"
+          }
+        }
+      }
+    },
     "永久删除文件（不进入回收站，直接删除）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28126,6 +28401,17 @@
         }
       }
     },
+    "用面板账号密码自动获取接口密钥，无需到网页端手动复制；也可以直接粘贴已有 API Key。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch the API key automatically with the panel account and password — no need to copy it from the web UI. You can also paste an existing API Key directly."
+          }
+        }
+      }
+    },
     "由 libvirt DHCP 分配给虚拟机的地址。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28353,6 +28639,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Virus scan task \"%@\" detected infected files"
+          }
+        }
+      }
+    },
+    "登录会话已失效，请重新登录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login session has expired, please sign in again"
+          }
+        }
+      }
+    },
+    "登录密码加密失败（AES：%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to encrypt login password (AES: %ld)"
+          }
+        }
+      }
+    },
+    "登录密码加密失败（RSA）：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to encrypt login password (RSA): %@"
+          }
+        }
+      }
+    },
+    "登录并获取密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In and Fetch Key"
+          }
+        }
+      }
+    },
+    "登录（已填动态口令）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In (OTP entered)"
+          }
+        }
+      }
+    },
+    "登录（已填验证码）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In (captcha entered)"
           }
         }
       }
@@ -28716,6 +29068,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upgrade Directly"
+          }
+        }
+      }
+    },
+    "直连面板可留空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave empty for direct connections"
           }
         }
       }
@@ -29332,6 +29695,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restore Rules"
+          }
+        }
+      }
+    },
+    "确认新密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm New Password"
           }
         }
       }
@@ -30905,6 +31279,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Terminal Command"
+          }
+        }
+      }
+    },
+    "经反向代理部署面板时填写代理网段（CIDR，每行一个）；直连可留空。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the panel is behind a reverse proxy, fill in the proxy networks (one CIDR per line); leave empty for direct connections."
           }
         }
       }
@@ -34924,6 +35309,28 @@
         }
       }
     },
+    "请求签名有效窗口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Signature Window"
+          }
+        }
+      }
+    },
+    "请求签名有效窗口：%ld 分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request signature window: %ld minutes"
+          }
+        }
+      }
+    },
     "请求类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34931,6 +35338,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Request Method"
+          }
+        }
+      }
+    },
+    "请求被安全入口拦截，请检查安全入口码是否正确" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request blocked by the security entrance. Check that the entrance code is correct"
           }
         }
       }
@@ -35459,6 +35877,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account updated"
+          }
+        }
+      }
+    },
+    "账号或密码错误，请重新输入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incorrect account or password, please try again"
           }
         }
       }
@@ -38037,6 +38466,17 @@
         }
       }
     },
+    "重置密码并继续" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Password and Continue"
+          }
+        }
+      }
+    },
     "重置时勾选「备份规则后重置」会生成备份文件，生成后可在此恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38664,6 +39104,17 @@
         }
       }
     },
+    "随机数生成失败（%ld）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to generate random bytes (%ld)"
+          }
+        }
+      }
+    },
     "随机生成" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38884,6 +39335,17 @@
         }
       }
     },
+    "面板公钥无效，无法加密登录密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid panel public key: cannot encrypt the login password"
+          }
+        }
+      }
+    },
     "面板别名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38913,6 +39375,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Panel URL"
+          }
+        }
+      }
+    },
+    "面板密码" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Password"
           }
         }
       }
@@ -38950,6 +39423,17 @@
         }
       }
     },
+    "面板密码已过期，请设置新密码后继续" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The panel password has expired. Set a new password to continue"
+          }
+        }
+      }
+    },
     "面板对外访问地址（IP 或域名），留空表示未指定。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38968,6 +39452,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alerts fire before expiry based on the remaining days"
+          }
+        }
+      }
+    },
+    "面板尚未开启 API 接口。引导将开启该功能并复用面板现有的接口密钥（面板会留下一条登录记录）。稍后可在面板网页端停用或撤销。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The panel has not enabled its API interface yet. Bootstrap will enable it and reuse the panel's existing API key (a login record will be left on the panel). You can disable or revoke it later on the panel's web UI."
           }
         }
       }
@@ -39027,6 +39522,28 @@
         }
       }
     },
+    "面板未设置则留空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave empty if not set on the panel"
+          }
+        }
+      }
+    },
+    "面板未返回接口密钥，请改用手动粘贴" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The panel did not return an API key. Paste it manually instead"
+          }
+        }
+      }
+    },
     "面板版本过低" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39034,6 +39551,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Panel Version Too Old"
+          }
+        }
+      }
+    },
+    "面板版本过低（接口密钥管理需 v2.3.2 及以上），请改用手动粘贴密钥" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel version too old (API key management requires v2.3.2+). Paste the key manually instead"
+          }
+        }
+      }
+    },
+    "面板登录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Sign-in"
           }
         }
       }
@@ -39100,6 +39639,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The Docker socket address used by the panel; pick a sock file from the file browser to auto-fill"
+          }
+        }
+      }
+    },
+    "面板账号" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Account"
           }
         }
       }
@@ -39386,6 +39936,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verify Model"
+          }
+        }
+      }
+    },
+    "验证码错误，已刷新，请重新输入" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incorrect captcha. A new one has been loaded, please try again"
           }
         }
       }

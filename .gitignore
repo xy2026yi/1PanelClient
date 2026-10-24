@@ -8,6 +8,9 @@ xcuserdata/
 *.xcuserstate
 *.xcscmblueprint
 DerivedData/
+# 本地/CI 派生数据（xcodebuild -derivedDataPath）
+.ci-dd/
+.local-dd/
 
 # 打包产物（build-ipa.sh 生成）
 build/

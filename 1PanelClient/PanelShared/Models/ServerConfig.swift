@@ -10,12 +10,19 @@ nonisolated struct ServerConfig: Identifiable, Codable, Hashable, Sendable {
     var name: String
     var baseURL: String
     var apiKey: String
+    /// 安全入口码（明文，如 "3f89948beb"）：引导流请求头 EntranceCode 用；
+    /// 未设安全入口的面板为 nil。面板账号/密码只在引导弹窗内经 @State 短暂存在，
+    /// 不进本模型（用完即弃，方案 §3.3）。Codable 合成 decode 为 decodeIfPresent，
+    /// 老配置缺省零迁移
+    var entranceCode: String?
 
-    init(id: UUID = UUID(), name: String, baseURL: String, apiKey: String) {
+    init(id: UUID = UUID(), name: String, baseURL: String, apiKey: String,
+         entranceCode: String? = nil) {
         self.id = id
         self.name = name
         self.baseURL = baseURL
         self.apiKey = apiKey
+        self.entranceCode = entranceCode
     }
 
     var normalizedBaseURL: String {

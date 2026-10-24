@@ -2,6 +2,10 @@
 //  ServerEditView.swift
 //  1PanelClient
 //
+//  添加/编辑服务器：显示名称/面板地址/API Key（手动粘贴）+「登录并获取密钥」入口
+//  （账号密码引导流在独立弹窗 ServerBootstrapView 内完成，取到的明文回填本表单）。
+//  日常流量走 token 模式，本页只负责配置的录入与保存。
+//
 
 import SwiftUI
 
@@ -22,6 +26,13 @@ struct ServerEditView: View {
     @State private var httpsBlockMessage: String?
     @State private var showPlainHTTPWarning = false
     @AppStorage(SecurityGate.httpsOnlyKey) private var httpsOnly = false
+
+    // 登录并获取密钥（引导弹窗）
+    @State private var showBootstrap = false
+    /// 引导成功后留档的安全入口码（下次引导免重填；保存时随服务器持久化）
+    @State private var bootstrapEntranceCode = ""
+    /// 引导成功的行内提示（用户改动 API Key 后消失）
+    @State private var showKeyObtainedNote = false
 
     struct TestResult {
         let success: Bool
@@ -50,11 +61,27 @@ struct ServerEditView: View {
                 OutlinedTextField(label: L10n.t("面板地址"), prompt: "http://10.0.0.1:36130",
                               text: $baseURL, keyboardType: .URL)
                 OutlinedPasswordField(label: "API Key", text: $apiKey)
+                if showKeyObtainedNote {
+                    Label(L10n.t("已获取接口密钥，保存后即可以密钥连接"), systemImage: "checkmark.circle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.green)
+                }
                 if draftIsPlainHTTP {
                     Label(L10n.t("HTTP 明文连接：API Key 与数据可能被链路窃听，建议改用 https://"), systemImage: "lock.open")
                         .font(.footnote)
                         .foregroundStyle(.orange)
                 }
+            }
+
+            Section {
+                Button {
+                    showBootstrap = true
+                } label: {
+                    Text(L10n.t("登录并获取密钥"))
+                }
+                .disabled(baseURL.trimmingCharacters(in: .whitespaces).isEmpty)
+            } footer: {
+                Text(L10n.t("用面板账号密码自动获取接口密钥，无需到网页端手动复制；也可以直接粘贴已有 API Key。"))
             }
 
             Section {
@@ -76,12 +103,6 @@ struct ServerEditView: View {
                         .font(.footnote)
                 }
             }
-
-            Section(L10n.t("提示")) {
-                Text(L10n.t("API Key 获取方式：面板 → 设置 → API 接口 → 开启并复制"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
         }
         .navigationTitle(editing == nil ? L10n.t("添加服务器") : L10n.t("编辑服务器"))
         .navigationBarTitleDisplayMode(.inline)
@@ -98,6 +119,20 @@ struct ServerEditView: View {
             }
         }
         .onAppear { loadIfEditing() }
+        .onChange(of: apiKey) { _, _ in
+            showKeyObtainedNote = false
+        }
+        // 引导弹窗：地址用打开瞬间的快照，取到明文回填本表单
+        .sheet(isPresented: $showBootstrap) {
+            ServerBootstrapView(
+                baseURL: baseURL.trimmingCharacters(in: .whitespacesAndNewlines),
+                initialEntranceCode: bootstrapEntranceCode
+            ) { key, entrance in
+                apiKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+                bootstrapEntranceCode = entrance
+                showKeyObtainedNote = true
+            }
+        }
         .alert(L10n.t("无法保存"), isPresented: $showHTTPSBlockAlert) {
             Button(L10n.t("好的"), role: .cancel) {}
         } message: {
@@ -111,11 +146,14 @@ struct ServerEditView: View {
         }
     }
 
+    // MARK: - 保存 / 测试
+
     private func loadIfEditing() {
         guard let s = editing else { return }
         name = s.name
         baseURL = s.baseURL
         apiKey = s.apiKey
+        bootstrapEntranceCode = s.entranceCode ?? ""
     }
 
     private func save() {
@@ -134,11 +172,14 @@ struct ServerEditView: View {
     }
 
     private func performSave() {
+        let entrance = bootstrapEntranceCode.trimmingCharacters(in: .whitespacesAndNewlines)
         let s = ServerConfig(
             id: editing?.id ?? UUID(),
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             baseURL: baseURL.trimmingCharacters(in: .whitespacesAndNewlines),
-            apiKey: apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            apiKey: apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+            // 安全入口码留档供下次引导免重填；账号密码从不落盘
+            entranceCode: entrance.isEmpty ? nil : entrance
         )
         if editing != nil { manager.update(s) } else { manager.add(s) }
         manager.select(s)
