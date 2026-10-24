@@ -93,7 +93,7 @@ struct KVMOverviewView: View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(color == .secondary ? AnyShapeStyle(Color.secondary) : AnyShapeStyle(color))
+                .foregroundStyle(color)   // Color.secondary 直接可用（拆掉 AnyShapeStyle 三元，避免旧工具链类型检查超时）
             Text("\(count)")
                 .font(.title2.bold())
                 .monospacedDigit()
@@ -109,23 +109,21 @@ struct KVMOverviewView: View {
     // MARK: 资源分配
 
     private func resourceSection(_ overview: KVMOverview) -> some View {
-        Section {
+        let memoryRowTitle = L10n.t("内存已分配")
+        let memoryRowText: String = {
+            let used = bytesText(Int64(overview.allocatedMemoryMB) * 1024 * 1024)
+            guard let host = overview.hostMemoryBytes else { return used }
+            return used + "/" + bytesText(host)
+        }()
+        return Section {
             // CPU：已分配核数 ÷ 宿主机核数（dashboardCurrent.cpuTotal）
             resourceRow(
                 title: L10n.t("CPU 已分配"),
                 valueText: L10n.f("%ld/%ld 核", overview.allocatedCPU, overview.hostCPUCount ?? 0),
                 percent: overview.cpuPercent)
             // 内存：Σ vm.memory ÷ dashboardCurrent.memoryTotal（抓包 12.95% 精确一致）
-            if overview.hostMemoryBytes != nil {
-                resourceRow(
-                    title: L10n.t("内存已分配"),
-                    valueText: memoryText(overview.allocatedMemoryMB, host: overview.hostMemoryBytes!),
-                    percent: overview.memoryPercent)
-            } else {
-                resourceRow(title: L10n.t("内存已分配"),
-                            valueText: memoryText(overview.allocatedMemoryMB, host: nil),
-                            percent: nil)
-            }
+            resourceRow(title: memoryRowTitle, valueText: memoryRowText,
+                        percent: overview.memoryPercent)
             // 存储：Σ(池容量-可用) ÷ Σ池容量（storages/list）
             let (storageUsed, storageTotal) = storageTotals
             if storageTotal > 0 {
@@ -163,12 +161,6 @@ struct KVMOverviewView: View {
             }
         }
         .padding(.vertical, 2)
-    }
-
-    private func memoryText(_ mb: Int, host: Int64?) -> String {
-        let used = bytesText(Int64(mb) * 1024 * 1024)
-        guard let host else { return used }
-        return used + "/" + bytesText(host)
     }
 
     private func bytesText(_ bytes: Int64) -> String {

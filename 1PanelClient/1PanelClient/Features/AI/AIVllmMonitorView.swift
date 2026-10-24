@@ -199,18 +199,22 @@ struct AIVllmMonitorView: View {
         .onChange(of: vm.group) { _, _ in Task { await vm.loadHistory() } }
         .onChange(of: vm.aggregation) { _, _ in Task { await vm.loadHistory() } }
         // 实时 5 秒一轮（服务端按需即时采集）；历史按面板采集间隔落库，60 秒一轮足够
-        .task {
-            await vm.loadAll()
-            var elapsed = 0
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(5))
-                guard !Task.isCancelled, isSceneActive else { continue }
-                await vm.loadCurrent()
-                elapsed += 5
-                if elapsed >= 60 {
-                    elapsed = 0
-                    await vm.loadHistory()
-                }
+        .task { await pollLoop() }
+    }
+
+    /// 轮询循环提取为独立方法——Xcode 26.6（CI 低一档工具链）对 .task 闭包内联的
+    /// while + Duration 字面量整体类型检查超时（CI 实证 211 行），拆开后豁免
+    private func pollLoop() async {
+        await vm.loadAll()
+        var elapsed: Int = 0
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled, isSceneActive else { continue }
+            await vm.loadCurrent()
+            elapsed += 5
+            if elapsed >= 60 {
+                elapsed = 0
+                await vm.loadHistory()
             }
         }
     }
