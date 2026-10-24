@@ -561,8 +561,9 @@ struct KVMModelsTests {
         #expect(risks.contains { $0.message.contains("p-inactive") })
         #expect(risks.contains { $0.message.contains("p-full") })
         #expect(risks.contains { $0.message.contains("p-error") })
-        #expect(risks.contains { $0.message.contains("CPU") })
-        #expect(risks.contains { $0.message.contains("内存") })
+        // 断言用 L10n 同源解析（CI 模拟器为英文 locale，硬编码中文子串会失效）
+        #expect(risks.contains { $0.message == L10n.f("CPU 分配（%ld 核）超过宿主机总量（%ld 核）", 3, 2) })
+        #expect(risks.contains { $0.message == L10n.t("内存分配超过宿主机总量") })
 
         // 健康场景：无风险
         let healthy = KVMOverview.compute(
