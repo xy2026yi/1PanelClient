@@ -179,13 +179,16 @@ final class SessionAuthClient {
     /// 步骤 3b：接口功能 Disable 时的显式开启（session + CSRF 双提交）。
     /// 接口功能开关即 API 密钥页 Legacy 行的启停（v2.3.2 起 keys/* 体系，2026-10-24
     /// v2.4.1 网页端实捕）：keys/search 取 legacy 行的 revision（乐观锁）→
-    /// keys/status 翻 Enable。keys/* 404 即面板低于 v2.3.2（旧通道 api/update 属
-    /// v2.3.1 及更早、请求体从未实证），明确报版本问题并回落手动粘贴路径
+    /// keys/status 翻 Enable。
+    /// legacy 行缺失（全新面板从未有过任何 key 时不投影该行）= 没有开关可翻，
+    /// **静默返回不视为错误**——创建路径依赖此语义不受阻。
+    /// keys/* 404 即面板低于 v2.3.2（旧通道 api/update 属 v2.3.1 及更早、请求体从未
+    /// 实证），明确报版本问题并回落手动粘贴路径。
     func enableApiInterface() async throws {
         do {
             let items = try await searchApiKeys()
             guard let legacy = items.first(where: { $0.id == "legacy" }) else {
-                throw SessionAuthError.business(200, L10n.t("面板未找到接口密钥配置，请改用手动粘贴"))
+                return
             }
             let _: EmptyResponse = try await post(
                 Path.apiKeysStatus,
@@ -275,8 +278,12 @@ final class SessionAuthClient {
             return value
         }
         if wrapped.isSuccess {
-            // code=200 且 data=null：EmptyResponse 兜底（api/update 等无数据端点）
+            // code=200 且 data=null：EmptyResponse（api/update 等无数据端点）与
+            // EmptyInitializable（列表信封空页，如零密钥面板的 keys/search）兜底
             if T.self == EmptyResponse.self, let empty = EmptyResponse() as? T {
+                return empty
+            }
+            if let empty = (T.self as? EmptyInitializable.Type)?.emptyInstance() as? T {
                 return empty
             }
         }

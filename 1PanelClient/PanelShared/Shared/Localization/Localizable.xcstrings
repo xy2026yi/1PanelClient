@@ -39379,17 +39379,6 @@
         }
       }
     },
-    "面板未找到接口密钥配置，请改用手动粘贴" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "API key configuration not found on the panel. Paste the key manually instead"
-          }
-        }
-      }
-    },
     "面板未设置则留空" : {
       "extractionState" : "manual",
       "localizations" : {

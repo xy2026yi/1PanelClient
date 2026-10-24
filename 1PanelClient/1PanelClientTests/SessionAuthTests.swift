@@ -392,27 +392,23 @@ struct SessionAuthTests {
         try await client.enableApiInterface()
     }
 
-    @Test("enable 流程：legacy 行缺失 → 明确报错不盲发启停")
-    func enableFailsWhenLegacyRowMissing() async throws {
-        let client = SessionAuthClient(
-            baseURL: baseURL,
-            protocolClasses: [BootstrapMockURLProtocol.self]
-        )
-        defer { client.invalidate() }
-        BootstrapMockURLProtocol.setHandler { request in
-            if request.url?.path.hasSuffix("/core/auth/api/keys/search") == true {
-                return (Self.response(request), Self.envelope(#"{"items":[],"total":0}"#))
+    @Test("enable 流程：legacy 行缺失/列表 null → 静默无操作（没有开关可翻，创建不受阻）")
+    func enableNoLegacyRowIsQuietNoop() async throws {
+        for payload in [#"{"items":[],"total":0}"#, "null"] {
+            let client = SessionAuthClient(
+                baseURL: baseURL,
+                protocolClasses: [BootstrapMockURLProtocol.self]
+            )
+            defer { client.invalidate() }
+            BootstrapMockURLProtocol.setHandler { request in
+                if request.url?.path.hasSuffix("/core/auth/api/keys/search") == true {
+                    return (Self.response(request), Self.envelope(payload))
+                }
+                Issue.record("legacy 缺失时不应继续 keys/status")
+                return (Self.response(request), Self.envelope("null"))
             }
-            Issue.record("legacy 缺失时不应继续 keys/status")
-            return (Self.response(request), Self.envelope("null"))
-        }
-        do {
+            // 不抛错即通过（全新面板无 legacy 行属正常形态）
             try await client.enableApiInterface()
-            Issue.record("应抛出业务错误")
-        } catch let error as SessionAuthError {
-            if case .business = error {} else {
-                Issue.record("应映射为 business，实际 \(error)")
-            }
         }
     }
 
