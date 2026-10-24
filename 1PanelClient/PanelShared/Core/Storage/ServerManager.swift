@@ -93,11 +93,17 @@ final class ServerManager: ObservableObject {
 
     private func persistServers() {
         let safe: [[String: String]] = servers.map { s in
-            [
+            var d: [String: String] = [
                 "id": s.id.uuidString,
                 "name": s.name,
                 "baseURL": s.normalizedBaseURL
             ]
+            // 安全入口码跟随服务器持久化（引导流下次免重填）；username 按
+            // 「用完即清、不长期保留」纪律不落盘
+            if let entrance = s.entranceCode, !entrance.isEmpty {
+                d["entranceCode"] = entrance
+            }
+            return d
         }
         storage.set(safe, forKey: serversKey)
 
@@ -143,7 +149,8 @@ final class ServerManager: ObservableObject {
             Logger(subsystem: "com.xy.1PanelClient.debug", category: "keychain")
                 .warning("[KEYCHAIN-DEBUG] id=\(id.uuidString, privacy: .public) status=\(status) keychainLen=\(kcValue?.count ?? -1)")
             #endif
-            return ServerConfig(id: id, name: name, baseURL: baseURL, apiKey: kcValue ?? "")
+            return ServerConfig(id: id, name: name, baseURL: baseURL, apiKey: kcValue ?? "",
+                                entranceCode: d["entranceCode"])
         }
         if let idStr = storage.string(forKey: currentKey), let id = UUID(uuidString: idStr) {
             currentServerID = id
