@@ -139,21 +139,21 @@ final class SessionAuthClient {
     }
 
     /// 创建专用接口密钥（keys/create，v2.3.2+ 唯一的新 key 创建通道——
-    /// v2.3.1 及更早的独立 api/generate 在新面板已不存在）。参数为 app 运行所需
-    /// 最小配置：全 IP 白名单（app 需任意网络可达，用户可在面板收紧）、签名窗口
-    /// 120 分钟（面板默认）、永不过期；明文仅在响应中出现一次，直接交引导流落
-    /// Keychain。创建的是多键体系命名行，用户可在面板独立停用/撤销
-    func createApiKey() async throws -> String {
+    /// v2.3.1 及更早的独立 api/generate 在新面板已不存在）。参数由引导表单提供
+    /// （预填默认值、用户可定制，如反向代理场景的 apiTrustedProxies）；明文仅在
+    /// 响应中出现一次，直接交引导流落 Keychain。创建的是多键体系命名行，用户
+    /// 可在面板独立停用/撤销
+    func createApiKey(params: ApiKeyCreateParams) async throws -> String {
         let resp = try await post(
             Path.apiKeysCreate,
             body: ApiKeyCreateRequest(
-                name: "1PanelClient",
-                description: "",
-                ipWhiteList: "0.0.0.0/0\n::/0",
-                apiTrustedProxies: "",
-                apiKeyValidityTime: 120,
-                expiresAt: nil,
-                allowAppBinding: false,
+                name: params.name,
+                description: params.description,
+                ipWhiteList: params.ipWhiteList,
+                apiTrustedProxies: params.apiTrustedProxies,
+                apiKeyValidityTime: params.apiKeyValidityTime,
+                expiresAt: params.expiresAt,
+                allowAppBinding: params.allowAppBinding,
                 requestID: UUID().uuidString.lowercased()
             ),
             as: ApiKeyCreateResponse.self
@@ -480,6 +480,41 @@ nonisolated struct ApiKeyItem: Decodable, Equatable, Sendable {
     let name: String?
     let status: String?
     let revision: Int?
+}
+
+/// 创建密钥的可定制参数（引导表单预填默认值、用户可改；如反向代理场景的
+/// apiTrustedProxies）。expiresAt 为面板网页端同款 ISO8601 UTC 串，nil=永不过期
+nonisolated struct ApiKeyCreateParams: Equatable, Sendable {
+    var name: String
+    var description: String
+    var ipWhiteList: String
+    var apiTrustedProxies: String
+    var apiKeyValidityTime: Int
+    var expiresAt: String?
+    var allowAppBinding: Bool
+
+    /// 引导流默认值：全 IP 白名单（app 需任意网络可达，可在面板/表单收紧）、
+    /// 签名窗口 120 分钟（面板默认）、永不过期
+    static func bootstrapDefaults() -> Self {
+        ApiKeyCreateParams(
+            name: "1PanelClient",
+            description: "",
+            ipWhiteList: "0.0.0.0/0\n::/0",
+            apiTrustedProxies: "",
+            apiKeyValidityTime: 120,
+            expiresAt: nil,
+            allowAppBinding: false
+        )
+    }
+
+    /// 到期时间 → 网页端同款 ISO8601 UTC（含毫秒，如 "2027-01-22T08:13:25.488Z"）。
+    /// internal 供单测固定向量
+    static func expiresAtString(from date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter.string(from: date)
+    }
 }
 
 /// POST /core/auth/api/keys/status 请求体（启停，抓包三字段实证）

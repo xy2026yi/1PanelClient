@@ -34,7 +34,7 @@ struct ServerBootstrapView: View {
         case resetPassword
         /// 接口功能未开启但密钥材料在：等待确认「将启用面板接口密钥功能」（翻开关复用）
         case confirmEnable
-        /// 需创建专用密钥（行 Revoked / 从未有 key / 行缺失）：等待确认「将创建新的接口密钥」
+        /// 需创建专用密钥（行 Revoked / 从未有 key / 行缺失）：创建参数表单（预填可改）
         case confirmCreate
         /// 已取得密钥（session 即弃）
         case succeeded
@@ -56,11 +56,21 @@ struct ServerBootstrapView: View {
     // 密码过期改密表单（oldPassword 复用上方已输入的「面板密码」）
     @State private var newPassword = ""
     @State private var confirmNewPassword = ""
+    // 创建密钥参数表单（预填 bootstrapDefaults，用户可定制——如反向代理的可信代理）
+    @State private var createName = ""
+    @State private var createDescription = ""
+    @State private var createIPWhiteList = ""
+    @State private var createTrustedProxies = ""
+    @State private var createValidity = 120
+    @State private var createNeverExpires = true
+    @State private var createExpiresAt = Date()
     @State private var showPlainHTTPBootstrapWarning = false
     /// 明文 HTTP 引导确认后本弹窗内不再重复弹
     @State private var bootstrapHTTPAllowed = false
     @State private var showHTTPSBlockAlert = false
     @State private var httpsBlockMessage: String?
+    /// 创建参数汇总的居中确认弹窗（与明文传输警告同款样式）
+    @State private var showCreateConfirm = false
 
     /// 输入地址是否为 http:// 明文
     private var draftIsPlainHTTP: Bool {
@@ -71,11 +81,7 @@ struct ServerBootstrapView: View {
         bootstrapPhase == .working
     }
 
-    private var isConfirmPhase: Bool {
-        bootstrapPhase == .confirmEnable || bootstrapPhase == .confirmCreate
-    }
-
-    /// 引导按钮可用性（账号/密码齐备；验证码/OTP/改密确认显示时要求有效）
+    /// 引导按钮可用性（账号/密码齐备；验证码/OTP/改密/创建表单显示时要求有效）
     private var bootstrapReady: Bool {
         guard !username.trimmingCharacters(in: .whitespaces).isEmpty,
               !password.isEmpty else { return false }
@@ -83,6 +89,9 @@ struct ServerBootstrapView: View {
         if bootstrapPhase == .awaitingMFA { return !otpInput.isEmpty }
         if bootstrapPhase == .resetPassword {
             return !newPassword.isEmpty && newPassword == confirmNewPassword
+        }
+        if bootstrapPhase == .confirmCreate {
+            return !createName.trimmingCharacters(in: .whitespaces).isEmpty && createValidity > 0
         }
         return true
     }
@@ -109,6 +118,9 @@ struct ServerBootstrapView: View {
                     if bootstrapPhase == .resetPassword {
                         OutlinedPasswordField(label: L10n.t("新密码"), text: $newPassword)
                         OutlinedPasswordField(label: L10n.t("确认新密码"), text: $confirmNewPassword)
+                    }
+                    if bootstrapPhase == .confirmCreate {
+                        createFormFields
                     }
 
                     Button {
@@ -144,30 +156,25 @@ struct ServerBootstrapView: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
             }
-            // 面板侧变更的显式确认（方案 §3.4：开启/创建密钥 + 登录日志均属面板侧正常留痕）。
-            // confirmEnable = 翻 legacy 行开关复用现有密钥；confirmCreate = 创建专用命名键
-            .confirmationDialog(
-                bootstrapPhase == .confirmCreate
-                    ? L10n.t("将创建新的接口密钥")
-                    : L10n.t("将启用面板接口密钥功能"),
-                isPresented: .init(
-                    get: { isConfirmPhase },
-                    set: { if !$0 && isConfirmPhase { bootstrapPhase = .idle } }
-                ),
-                titleVisibility: .visible
-            ) {
-                Button(bootstrapPhase == .confirmCreate
-                       ? L10n.t("创建密钥")
-                       : L10n.t("启用并获取密钥")) {
-                    Task { await performConfirmedMutation() }
+            // 面板侧变更确认统一居中弹窗（与明文传输警告同款样式）
+            .alert(L10n.t("将启用面板接口密钥功能"), isPresented: .init(
+                get: { bootstrapPhase == .confirmEnable },
+                set: { if !$0 && bootstrapPhase == .confirmEnable { bootstrapPhase = .idle } }
+            )) {
+                Button(L10n.t("启用并获取密钥")) {
+                    Task { await performEnableMutation() }
                 }
-                Button(L10n.t("取消"), role: .cancel) {
-                    bootstrapPhase = .idle
-                }
+                Button(L10n.t("取消"), role: .cancel) {}
             } message: {
-                Text(bootstrapPhase == .confirmCreate
-                     ? L10n.t("将在面板上创建名为 1PanelClient 的专用接口密钥（允许所有 IP、永不过期；接口未开启时会一并开启）。密钥稍后可在面板网页端停用或撤销。")
-                     : L10n.t("面板尚未开启 API 接口。引导将开启该功能并复用面板现有的接口密钥（面板会留下一条登录记录）。稍后可在面板网页端停用或撤销。"))
+                Text(L10n.t("面板尚未开启 API 接口。引导将开启该功能并复用面板现有的接口密钥（面板会留下一条登录记录）。稍后可在面板网页端停用或撤销。"))
+            }
+            .alert(L10n.t("将创建新的接口密钥"), isPresented: $showCreateConfirm) {
+                Button(L10n.t("创建密钥")) {
+                    Task { await performCreate() }
+                }
+                Button(L10n.t("取消"), role: .cancel) {}
+            } message: {
+                Text(createConfirmMessage)
             }
             // 引导流专用明文警告：账号密码将明文传输，级别高于密钥粘贴的保存警告
             .alert(L10n.t("将以明文传输面板账号密码"), isPresented: $showPlainHTTPBootstrapWarning) {
@@ -197,6 +204,68 @@ struct ServerBootstrapView: View {
     }
 
     // MARK: - 分区子视图
+
+    /// 创建密钥参数表单（预填 bootstrapDefaults，全部可改——反向代理的可信代理、
+    /// 白名单收紧、签名窗口、到期时间）
+    @ViewBuilder private var createFormFields: some View {
+        OutlinedTextField(label: L10n.t("名称"), text: $createName)
+        OutlinedTextField(label: L10n.t("描述"), prompt: L10n.t("可选"), text: $createDescription)
+        OutlinedMultiLineField(label: L10n.t("IP 白名单"), prompt: "0.0.0.0/0",
+                               lines: 3, fixedLines: 3, monospaced: true, text: $createIPWhiteList)
+        Text(L10n.t("允许调用接口的来源网段（CIDR，每行一个）；默认不限制来源。"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.leading, 14)
+        OutlinedMultiLineField(label: L10n.t("API 可信代理"), prompt: L10n.t("直连面板可留空"),
+                               lines: 2, fixedLines: 2, monospaced: true, text: $createTrustedProxies)
+        Text(L10n.t("经反向代理部署面板时填写代理网段（CIDR，每行一个）；直连可留空。"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.leading, 14)
+        OutlinedUnitField(label: L10n.t("请求签名有效窗口"), unit: L10n.t("分钟"),
+                          text: createValidityBinding, range: 1...10080)
+        Toggle(L10n.t("永不过期"), isOn: $createNeverExpires)
+        if !createNeverExpires {
+            DatePicker(L10n.t("密钥到期时间"), selection: $createExpiresAt)
+        }
+    }
+
+    /// OutlinedUnitField 的 String 绑定桥接（Int 模型）
+    private var createValidityBinding: Binding<String> {
+        Binding<String>(
+            get: { String(createValidity) },
+            set: { createValidity = Int($0) ?? createValidity }
+        )
+    }
+
+    /// 表单当前值 → 创建参数（提交与汇总确认共用同一份）
+    private var createParams: ApiKeyCreateParams {
+        ApiKeyCreateParams(
+            name: createName.trimmingCharacters(in: .whitespacesAndNewlines),
+            description: createDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+            ipWhiteList: createIPWhiteList.trimmingCharacters(in: .whitespacesAndNewlines),
+            apiTrustedProxies: createTrustedProxies.trimmingCharacters(in: .whitespacesAndNewlines),
+            apiKeyValidityTime: createValidity,
+            expiresAt: createNeverExpires ? nil : ApiKeyCreateParams.expiresAtString(from: createExpiresAt),
+            allowAppBinding: false
+        )
+    }
+
+    /// 创建确认弹窗的参数汇总（居中 alert 正文）
+    private var createConfirmMessage: String {
+        let params = createParams
+        var lines = [L10n.f("名称：%@", params.name)]
+        lines.append(L10n.f("IP 白名单：%@", params.ipWhiteList.replacingOccurrences(of: "\n", with: ", ")))
+        if !params.apiTrustedProxies.isEmpty {
+            lines.append(L10n.f("API 可信代理：%@", params.apiTrustedProxies.replacingOccurrences(of: "\n", with: ", ")))
+        }
+        lines.append(L10n.f("请求签名有效窗口：%ld 分钟", params.apiKeyValidityTime))
+        lines.append(params.expiresAt == nil
+                     ? L10n.t("有效期：永不过期")
+                     : L10n.f("有效期至：%@", params.expiresAt ?? ""))
+        lines.append(L10n.t("接口未开启时将一并开启；密钥稍后可在面板网页端停用或撤销。"))
+        return lines.joined(separator: "\n")
+    }
 
     /// 验证码行：图片 + 输入框 + 换一张
     private func captchaRow(_ captcha: CaptchaResponse) -> some View {
@@ -237,6 +306,8 @@ struct ServerBootstrapView: View {
             return L10n.t("登录（已填动态口令）")
         case .resetPassword:
             return L10n.t("重置密码并继续")
+        case .confirmCreate:
+            return L10n.t("创建密钥")
         default:
             return L10n.t("登录并获取密钥")
         }
@@ -263,6 +334,11 @@ struct ServerBootstrapView: View {
         }
         if bootstrapPhase == .resetPassword {
             Task { await submitPasswordReset() }
+            return
+        }
+        if bootstrapPhase == .confirmCreate {
+            // 创建参数表单 → 居中汇总确认
+            showCreateConfirm = true
             return
         }
         Task { await runBootstrap() }
@@ -370,36 +446,55 @@ struct ServerBootstrapView: View {
             case .needsEnableConfirm:
                 bootstrapPhase = .confirmEnable
             case .needsCreateConfirm:
-                bootstrapPhase = .confirmCreate
+                enterCreateForm()
             }
         } catch {
             handleBootstrapError(error)
         }
     }
 
-    /// 确认后的面板侧变更：
-    /// - confirmCreate：接口开关确保在位（legacy 行 = 全局开关）→ keys/create 创建
-    ///   专用命名键（Revoked 残留明文不可信/从未有过 key，均不回读 current）
-    /// - confirmEnable：keys/status 翻 legacy 行 Enable → 重取 current 复用现有密钥；
-    ///   key 意外为空时兜底转创建
-    private func performConfirmedMutation() async {
+    /// 进入创建参数表单（预填默认值；再次进入保留上次编辑，便于改参重试）
+    private func enterCreateForm() {
+        if createName.isEmpty {
+            let defaults = ApiKeyCreateParams.bootstrapDefaults()
+            createName = defaults.name
+            createDescription = defaults.description
+            createIPWhiteList = defaults.ipWhiteList
+            createTrustedProxies = defaults.apiTrustedProxies
+            createValidity = defaults.apiKeyValidityTime
+            createNeverExpires = true
+            createExpiresAt = Date().addingTimeInterval(180 * 24 * 3600)
+        }
+        bootstrapMessage = nil
+        bootstrapPhase = .confirmCreate
+    }
+
+    /// 确认后翻接口开关（legacy 行 = 全局开关）→ 复用现有密钥；key 意外为空转创建表单
+    private func performEnableMutation() async {
         guard let client = bootstrapClient else { return }
-        let createOnly = bootstrapPhase == .confirmCreate
         bootstrapPhase = .working
         do {
-            if createOnly {
-                // 开关尽力而为：Revoked 行可能拒绝再 Enable（撤销不可恢复），不阻断创建
-                try? await client.enableApiInterface()
-                finishBootstrap(key: try await client.createApiKey())
-                return
-            }
             try await client.enableApiInterface()
             let refreshed = try await client.currentUser()
             if let key = refreshed.apiKey, !key.isEmpty {
                 finishBootstrap(key: key)
                 return
             }
-            finishBootstrap(key: try await client.createApiKey())
+            enterCreateForm()
+        } catch {
+            handleBootstrapError(error)
+        }
+    }
+
+    /// 创建专用密钥：接口开关尽力而为（Revoked 行可能拒绝再 Enable，不阻断创建）→
+    /// keys/create（表单参数）
+    private func performCreate() async {
+        guard let client = bootstrapClient else { return }
+        bootstrapPhase = .working
+        bootstrapMessage = nil
+        do {
+            try? await client.enableApiInterface()
+            finishBootstrap(key: try await client.createApiKey(params: createParams))
         } catch let error as SessionAuthError {
             // create 的 keys/* 404 = 面板低于 v2.3.2（enable 的 404 已在客户端内映射）
             if case .http(404, _) = error {

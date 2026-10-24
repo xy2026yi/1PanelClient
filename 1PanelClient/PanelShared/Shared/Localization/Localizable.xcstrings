@@ -1061,6 +1061,28 @@
         }
       }
     },
+    "API 可信代理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API Trusted Proxies"
+          }
+        }
+      }
+    },
+    "API 可信代理：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API trusted proxies: %@"
+          }
+        }
+      }
+    },
     "API 类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2219,6 +2241,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IP Allowlist"
+          }
+        }
+      }
+    },
+    "IP 白名单：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP whitelist: %@"
           }
         }
       }
@@ -6859,6 +6892,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allowed Origins"
+          }
+        }
+      }
+    },
+    "允许调用接口的来源网段（CIDR，每行一个）；默认不限制来源。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source networks allowed to call the API (one CIDR per line); empty means unrestricted."
           }
         }
       }
@@ -11670,6 +11714,17 @@
         }
       }
     },
+    "名称：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name: %@"
+          }
+        }
+      }
+    },
     "后台运行" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14673,6 +14728,17 @@
         }
       }
     },
+    "密钥到期时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key Expires At"
+          }
+        }
+      }
+    },
     "密钥同步完成" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15417,17 +15483,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The panel API interface will be enabled"
-          }
-        }
-      }
-    },
-    "将在面板上创建名为 1PanelClient 的专用接口密钥（允许所有 IP、永不过期；接口未开启时会一并开启）。密钥稍后可在面板网页端停用或撤销。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A dedicated API key named 1PanelClient will be created on the panel (all IPs allowed, never expires; the API interface will be enabled too if it is off). You can disable or revoke the key later on the panel's web UI."
           }
         }
       }
@@ -20217,6 +20272,17 @@
         }
       }
     },
+    "接口未开启时将一并开启；密钥稍后可在面板网页端停用或撤销。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The API interface will be enabled too if it is off; you can disable or revoke the key later on the panel's web UI."
+          }
+        }
+      }
+    },
     "接口未返回数据" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24023,6 +24089,28 @@
         }
       }
     },
+    "有效期至：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires at: %@"
+          }
+        }
+      }
+    },
+    "有效期：永不过期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Validity: never expires"
+          }
+        }
+      }
+    },
     "有更新" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26285,6 +26373,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Proportional Set (PSS)"
+          }
+        }
+      }
+    },
+    "永不过期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Never expires"
           }
         }
       }
@@ -28973,6 +29072,17 @@
         }
       }
     },
+    "直连面板可留空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave empty for direct connections"
+          }
+        }
+      }
+    },
     "相关链接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31169,6 +31279,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Terminal Command"
+          }
+        }
+      }
+    },
+    "经反向代理部署面板时填写代理网段（CIDR，每行一个）；直连可留空。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the panel is behind a reverse proxy, fill in the proxy networks (one CIDR per line); leave empty for direct connections."
           }
         }
       }
@@ -35184,6 +35305,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Request Logs"
+          }
+        }
+      }
+    },
+    "请求签名有效窗口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Signature Window"
+          }
+        }
+      }
+    },
+    "请求签名有效窗口：%ld 分钟" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request signature window: %ld minutes"
           }
         }
       }

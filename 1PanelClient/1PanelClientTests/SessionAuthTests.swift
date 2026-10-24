@@ -182,7 +182,7 @@ struct SessionAuthTests {
             current: info("Disable", "xIva"), legacyRow: nil) == .needsEnableConfirm)
     }
 
-    @Test("createApiKey：keys/create 请求体与明文提取（抓包字段对齐）")
+    @Test("createApiKey：keys/create 请求体与明文提取（params 透传，抓包字段对齐）")
     func createApiKeyWire() async throws {
         let client = SessionAuthClient(
             baseURL: baseURL,
@@ -193,16 +193,64 @@ struct SessionAuthTests {
             #expect(request.url?.path.hasSuffix("/core/auth/api/keys/create") == true)
             let body = (try? JSONSerialization.jsonObject(with: Self.requestBody(request) ?? Data())) as? [String: Any]
             #expect(body?["name"] as? String == "1PanelClient")
-            #expect(body?["ipWhiteList"] as? String == "0.0.0.0/0\n::/0")
-            #expect(body?["apiKeyValidityTime"] as? Int == 120)
-            #expect(body?["allowAppBinding"] as? Bool == false)
+            #expect(body?["description"] as? String == "CI 验证")
+            #expect(body?["ipWhiteList"] as? String == "10.0.0.0/8")
+            #expect(body?["apiTrustedProxies"] as? String == "172.18.0.0/24")
+            #expect(body?["apiKeyValidityTime"] as? Int == 60)
             #expect(body?["expiresAt"] == nil, "永不过期：expiresAt 不携带")
+            #expect(body?["allowAppBinding"] as? Bool == false)
             #expect(body?["requestID"] != nil)
             return (Self.response(request), Self.envelope(
                 #"{"item":{"id":"65efa16b","kind":"apiKey","name":"1PanelClient","keyHint":"abcd••••1234","status":"Enable"},"apiKey":"createdPlainKey"}"#))
         }
-        let key = try await client.createApiKey()
+        let key = try await client.createApiKey(params: ApiKeyCreateParams(
+            name: "1PanelClient",
+            description: "CI 验证",
+            ipWhiteList: "10.0.0.0/8",
+            apiTrustedProxies: "172.18.0.0/24",
+            apiKeyValidityTime: 60,
+            expiresAt: nil,
+            allowAppBinding: false
+        ))
         #expect(key == "createdPlainKey")
+    }
+
+    @Test("createApiKey：expiresAt 以网页端同款 ISO8601 UTC（含毫秒）提交")
+    func createApiKeyWithExpiry() async throws {
+        let client = SessionAuthClient(
+            baseURL: baseURL,
+            protocolClasses: [BootstrapMockURLProtocol.self]
+        )
+        defer { client.invalidate() }
+        BootstrapMockURLProtocol.setHandler { request in
+            let body = (try? JSONSerialization.jsonObject(with: Self.requestBody(request) ?? Data())) as? [String: Any]
+            #expect(body?["expiresAt"] as? String == "2027-01-22T08:13:25.488Z")
+            return (Self.response(request), Self.envelope(#"{"apiKey":"withExpiry"}"#))
+        }
+        var components = DateComponents()
+        components.timeZone = TimeZone(identifier: "UTC")
+        components.year = 2027; components.month = 1; components.day = 22
+        components.hour = 8; components.minute = 13; components.second = 25
+        components.nanosecond = 488_000_000
+        let date = Calendar(identifier: .gregorian).date(from: components)!
+        let key = try await client.createApiKey(params: ApiKeyCreateParams(
+            name: "1PanelClient", description: "", ipWhiteList: "0.0.0.0/0\n::/0",
+            apiTrustedProxies: "", apiKeyValidityTime: 120,
+            expiresAt: ApiKeyCreateParams.expiresAtString(from: date),
+            allowAppBinding: false
+        ))
+        #expect(key == "withExpiry")
+    }
+
+    @Test("ApiKeyCreateParams.bootstrapDefaults：app 运行所需最小配置")
+    func createDefaults() {
+        let defaults = ApiKeyCreateParams.bootstrapDefaults()
+        #expect(defaults.name == "1PanelClient")
+        #expect(defaults.ipWhiteList == "0.0.0.0/0\n::/0")
+        #expect(defaults.apiTrustedProxies.isEmpty)
+        #expect(defaults.apiKeyValidityTime == 120)
+        #expect(defaults.expiresAt == nil)
+        #expect(defaults.allowAppBinding == false)
     }
 
     @Test("createApiKey：data 无 apiKey → 友好业务错误")
@@ -216,7 +264,7 @@ struct SessionAuthTests {
             (Self.response(request), Self.envelope(#"{"item":{}}"#))
         }
         do {
-            _ = try await client.createApiKey()
+            _ = try await client.createApiKey(params: .bootstrapDefaults())
             Issue.record("应抛出业务错误")
         } catch let error as SessionAuthError {
             if case .business = error {} else {
