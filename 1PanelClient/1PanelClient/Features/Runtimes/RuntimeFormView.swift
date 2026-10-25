@@ -144,9 +144,13 @@ struct RuntimeFormView: View {
             TaskProgressView(taskID: target.taskID, title: target.title, node: "local") { isDone in
                 if isDone {
                     Task { await listVM.load() }
-                    dismiss()
+                    // 分步收栈（AppStoreTab 同款）：return false 让进度页自行 pop，
+                    // 稍后收创建表单——列表刷新与多层 pop 同帧执行会互相吞掉（完成无反应）
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        dismiss()
+                    }
                 }
-                return true
+                return false
             }
         }
         .alert(L10n.t("提示"), isPresented: $listVM.showAlert) {
@@ -219,7 +223,9 @@ struct RuntimeFormView: View {
                 onPrimary: { Task { await submit() } }
             )
         }
-        .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        // 页切换动画由 onNext/onBack 的 withAnimation 驱动 transition；不挂全 Form 的
+        // 隐式 .animation——Menu（OutlinedPicker）弹层的 position 动画会进同一协调器，
+        // 触发 iOS 26「composite animation already running」警告
         .modifier(WizardDiscardGuard(page: wizardPage, busy: isSubmitting))
     }
 
