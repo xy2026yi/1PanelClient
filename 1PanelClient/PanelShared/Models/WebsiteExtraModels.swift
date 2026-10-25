@@ -237,7 +237,7 @@ nonisolated struct WebsiteLbsItem: Decodable, Identifiable, Hashable {
     let servers: [WebsiteLbsServer]?
     let content: String?
 
-    var id: String { name ?? UUID().uuidString }
+    var id: String { name ?? "" }
 }
 
 /// 负载均衡创建/更新请求（POST /websites/lbs/create | lbs/update）

@@ -307,10 +307,10 @@ struct OverviewTab: View {
             }
             Divider()
             InfoRow(key: L10n.t("主机名"), value: b.hostname ?? "-")
-            InfoRow(key: L10n.t("版本"), value: b.prettyDistro ?? "-")
-            InfoRow(key: L10n.t("内核版本"), value: b.kernelVersion ?? "-")
+            InfoRow(key: L10n.t("版本"), value: b.prettyDistro ?? "-", monospaced: true)
+            InfoRow(key: L10n.t("内核版本"), value: b.kernelVersion ?? "-", monospaced: true)
             InfoRow(key: L10n.t("系统类型"), value: b.kernelArch ?? "-")
-            InfoRow(key: L10n.t("主机地址"), value: b.ipV4Addr ?? "-")
+            InfoRow(key: L10n.t("主机地址"), value: b.ipV4Addr ?? "-", monospaced: true)
             if let currentInfo = vm.currentInfo ?? b.currentInfo {
                 if let startupTime = currentInfo.timeSinceUptime, !startupTime.isEmpty {
                     InfoRow(key: L10n.t("启动时间"), value: startupTime)

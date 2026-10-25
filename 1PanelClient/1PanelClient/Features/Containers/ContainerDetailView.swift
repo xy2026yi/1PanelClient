@@ -67,7 +67,7 @@ struct ContainerDetailView: View {
 
                 Section(L10n.t("基本信息")) {
                     if let img = current.imageName, !img.isEmpty {
-                        InfoRow(L10n.t("镜像"), value: img)
+                        InfoRow(L10n.t("镜像"), value: img, monospaced: true)
                     }
                     if let app = current.appName, !app.isEmpty {
                         NavigationLink {

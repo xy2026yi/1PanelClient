@@ -212,8 +212,6 @@ struct KVMVMListView: View {
                     items: actionItems(machine),
                     onDismiss: { actionVM = nil }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(machine).count))])
-                .presentationDragIndicator(.visible)
             }
             .sheet(item: $healthResult) { result in
                 KVMHealthReportSheet(machine: result.machine, report: result.report)
@@ -486,7 +484,7 @@ struct KVMVMRow: View {
             IconBadge(systemName: "desktopcomputer", color: .blue)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(machine.displayName)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -499,7 +497,7 @@ struct KVMVMRow: View {
                             machine.cpu ?? 0, machine.memory ?? 0, machine.diskSize ?? 0))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if let network = machine.network, !network.isEmpty {
                         Label(network, systemImage: "network")
                     }

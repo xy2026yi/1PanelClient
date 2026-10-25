@@ -151,7 +151,7 @@ struct MonitorStatCard: View {
     var text: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             if count == nil && text == nil {
                 ProgressView()
                     .scaleEffect(0.7)
@@ -1035,7 +1035,7 @@ struct WebsiteMonitorLogsSection: View {
     }
 
     private func logRow(_ item: MonitorLogItem) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(item.ip ?? "-")
                     .font(.callout.bold())
@@ -1121,16 +1121,16 @@ struct WebsiteMonitorLogDetailView: View {
             } else if let d = detail {
                 Form {
                     Section {
-                        InfoRow("IP", value: d.ip ?? "-")
+                        InfoRow("IP", value: d.ip ?? "-", monospaced: true)
                         InfoRow(L10n.t("日期"), value: WAFTime.short(d.localtime) ?? d.localtime ?? "-")
                         InfoRow(L10n.t("响应流量"), value: formatBytes(d.sendBytes))
                         InfoRow(L10n.t("响应时间"), value: d.requestTime.map { "\($0)ms" } ?? "-")
-                        InfoRow(L10n.t("来源"), value: nonEmpty(d.referer))
+                        InfoRow(L10n.t("来源"), value: nonEmpty(d.referer), monospaced: true)
                         InfoRow(L10n.t("请求类型"), value: nonEmpty(d.method))
                         InfoRow(L10n.t("状态码"), value: d.statusCode.map(String.init) ?? "-")
                     }
                     Section {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("User-Agent")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -1139,7 +1139,7 @@ struct WebsiteMonitorLogDetailView: View {
                                 .textSelection(.enabled)
                         }
                         .padding(.vertical, 2)
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("URL")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

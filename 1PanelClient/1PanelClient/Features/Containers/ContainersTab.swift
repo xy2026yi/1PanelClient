@@ -295,7 +295,7 @@ struct ContainerRow: View {
     let container: Container
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             // 名称 + 运行时长
             HStack(spacing: 8) {
                 Text(container.displayName)
@@ -354,7 +354,7 @@ struct PortsInfoRow: View {
     private static let previewLimit = 5
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text(L10n.t("端口映射"))
                     .foregroundStyle(.secondary)

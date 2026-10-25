@@ -211,7 +211,8 @@ struct MonitorSettingsView: View {
     private func cleanMonitor() async {
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.hostsMonitorClean.path, as: EmptyResponse.self)
+                path: APIEndpoint.hostsMonitorClean.path,
+                timeout: 120, as: EmptyResponse.self)
             toastMessage = L10n.t("已清空监控记录")
         } catch {
             guard !APIError.isCancellation(error) else { return }

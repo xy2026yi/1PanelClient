@@ -41712,6 +41712,72 @@
           }
         }
       }
+    },
+    "卸载扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Extension"
+          }
+        }
+      }
+    },
+    "确认卸载扩展「%@」？卸载需重建镜像，期间站点可能短暂不可用。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall extension \"%@\"? Uninstalling rebuilds the image; sites may be briefly unavailable."
+          }
+        }
+      }
+    },
+    "将清理全部未使用镜像，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will prune all unused images. This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "将删除选中的 %ld 个镜像，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the %ld selected image(s)?"
+          }
+        }
+      }
+    },
+    "删除证书颁发机构" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Certificate Authority"
+          }
+        }
+      }
+    },
+    "删除证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Certificate"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

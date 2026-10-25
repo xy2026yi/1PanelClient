@@ -26,9 +26,9 @@ struct WebsiteLbsView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && items.isEmpty {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, items.isEmpty {
                 LoadErrorStateView(message: err) { Task { await load() } }
             } else if items.isEmpty {
                 ContentUnavailableView(
@@ -72,8 +72,6 @@ struct WebsiteLbsView: View {
                 ],
                 onDismiss: { actionLbs = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: Binding(
             get: { editingItem != nil },
@@ -147,7 +145,7 @@ struct WebsiteLbsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ForEach(Array((item.servers ?? []).prefix(3).enumerated()), id: \.offset) { _, s in
                     Text(s.server)
                         .font(.caption.monospaced())

@@ -118,7 +118,7 @@ struct OpenRestyPerformanceView: View {
         Group {
             if isLoading && values.isEmpty {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, values.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -278,7 +278,7 @@ struct OpenRestyOtherView: View {
         Group {
             if isLoading && !loaded {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, !loaded {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -460,7 +460,7 @@ struct OpenRestyModulesView: View {
                                 .font(.body.bold())
                                 .lineLimit(1)
 
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 if module.isDynamic {
                                     StatusBadge(text: L10n.t("动态模块"), color: .indigo)
                                 } else {

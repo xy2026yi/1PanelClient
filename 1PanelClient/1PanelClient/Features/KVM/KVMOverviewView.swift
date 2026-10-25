@@ -90,7 +90,7 @@ struct KVMOverviewView: View {
     }
 
     private func statusChip(icon: String, count: Int, label: String, color: Color) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(color)   // Color.secondary 直接可用（拆掉 AnyShapeStyle 三元，避免旧工具链类型检查超时）
@@ -140,7 +140,7 @@ struct KVMOverviewView: View {
     }
 
     private func resourceRow(title: String, valueText: String, percent: Double?) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title)
                     .font(.callout)
@@ -207,9 +207,11 @@ struct KVMOverviewView: View {
     private var storageSection: some View {
         Section {
             if vm.storages.isEmpty {
-                Text(L10n.t("暂无存储池"))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                ContentUnavailableView(
+                    L10n.t("暂无存储池"),
+                    systemImage: "internaldrive"
+                )
+                .listRowBackground(Color.clear)
             } else {
                 ForEach(vm.storages) { pool in
                     Button {
@@ -229,7 +231,7 @@ struct KVMOverviewView: View {
         HStack(spacing: 12) {
             IconBadge(systemName: "internaldrive", color: .gray)
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(pool.displayName)
                         .font(.body.bold())
                         .lineLimit(1)

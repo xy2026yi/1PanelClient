@@ -418,13 +418,14 @@ struct AppInstallView: View {
                     if isDone {
                         // 通知 AppsTab 延时关闭商店并刷新列表
                         NotificationCenter.default.post(name: .installCompleted, object: nil)
-                        // 分步收栈（同网站/WAF 安装流程）：进度页由 TaskProgressView
-                        // 自行 dismiss，这里稍后收安装表单，AppsTab 最后收商店页——
-                        // 多层 isPresented 目标同帧拆除会触发
-                        // NavigationRequestObserver「每帧多次更新」警告
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                            vm.showInstall = false
-                        }
+                    }
+                    // 完成与「后台运行」都收安装表单：留在表单可再次点安装产生重复任务
+                    // 分步收栈（同网站/WAF 安装流程）：进度页由 TaskProgressView
+                    // 自行 dismiss，这里稍后收安装表单，AppsTab 最后收商店页——
+                    // 多层 isPresented 目标同帧拆除会触发
+                    // NavigationRequestObserver「每帧多次更新」警告
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        vm.showInstall = false
                     }
                     // false：进度页统一由 TaskProgressView 自行 dismiss（含「后台运行」）
                     return false
@@ -444,7 +445,7 @@ struct AppInstallView: View {
             // 步骤指示：标题下方横贯（段线 + 页名居中）
             HStack(spacing: 10) {
                 ForEach(0..<installTotalPages, id: \.self) { i in
-                    VStack(spacing: 5) {
+                    VStack(spacing: 4) {
                         Capsule()
                             .fill(i <= installPage ? Color.accentColor : Color.secondary.opacity(0.25))
                             .frame(height: 4)
@@ -880,7 +881,7 @@ struct AppStoreRow: View {
             )
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(app.name ?? "")
                         .font(.body.bold())
                     if highlightRecommend {
@@ -897,7 +898,7 @@ struct AppStoreRow: View {
                         .lineLimit(2)
                 }
 
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     StatusBadge(text: app.typeDisplayName, color: .blue, backgroundOpacity: 0.1)
 
                     if app.installed == true {
@@ -918,7 +919,7 @@ struct FlowingTags: View {
     let tags: [String]
 
     var body: some View {
-        FlowLayout(spacing: 6) {
+        FlowLayout(spacing: 8) {
             ForEach(tags, id: \.self) { tag in
                 StatusBadge(text: tag, color: .secondary)
             }
@@ -1114,6 +1115,7 @@ final class AppStoreViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.appsSyncRemote.path,
                 body: ReqWithTaskID(taskID: UUID().uuidString),
+                timeout: 120,  // 服务端外网拉远程商店列表，弱网可超默认超时
                 as: EmptyResponse.self
             )
             showToast(L10n.t("远程应用同步已发起"))

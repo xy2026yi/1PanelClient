@@ -67,7 +67,7 @@ nonisolated struct WebsiteRedirect: Decodable, Identifiable, Hashable {
     let content: String?
     let redirectRoot: Bool?
 
-    var id: String { name ?? UUID().uuidString }
+    var id: String { name ?? "" }
     var displayName: String { name ?? L10n.t("(未命名)") }
 
     var typeDisplayName: String {
@@ -120,7 +120,7 @@ nonisolated struct WebsiteAuthItem: Decodable, Identifiable, Hashable {
     let username: String?
     let remark: String?
 
-    var id: String { username ?? UUID().uuidString }
+    var id: String { username ?? "" }
 }
 
 nonisolated struct WebsiteAuthsListRequest: Encodable {

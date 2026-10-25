@@ -65,14 +65,14 @@ struct WebsiteDetailView: View {
                 // 基本信息
                 Section {
                     if let domain = d.primaryDomain, !domain.isEmpty {
-                        InfoRow(L10n.t("主域名"), value: domain)
+                        InfoRow(L10n.t("主域名"), value: domain, monospaced: true)
                     }
                     // 其他域名：详情 domains 数组去掉主域名后的部分，按行展示
                     let otherDomainList = (d.domains ?? [])
                         .compactMap(\.domain)
                         .filter { !$0.isEmpty && $0 != d.primaryDomain }
                     if !otherDomainList.isEmpty {
-                        InfoRow(L10n.t("其他域名"), value: otherDomainList.joined(separator: "\n"))
+                        InfoRow(L10n.t("其他域名"), value: otherDomainList.joined(separator: "\n"), monospaced: true)
                     }
                     InfoRow(L10n.t("类型"), value: Website.typeDisplayName(for: d.type ?? website.type))
                     if let p = d.sitePath, !p.isEmpty {
@@ -116,7 +116,7 @@ struct WebsiteDetailView: View {
                     }
                     .buttonStyle(.plain)
                 }
-            } else if let err = vm.detailErrorMessage {
+            } else if let err = vm.detailErrorMessage, detail == nil {
                 // 详情加载失败：错误态 + 重试（此前失败后仅回落两行基本信息，
                 // 无恢复入口，与全站详情页惯例不符）
                 LoadErrorStateView(message: err) {
@@ -124,7 +124,7 @@ struct WebsiteDetailView: View {
                 }
             } else {
                 Section {
-                    InfoRow(L10n.t("主域名"), value: website.primaryDomain ?? "—")
+                    InfoRow(L10n.t("主域名"), value: website.primaryDomain ?? "—", monospaced: true)
                     InfoRow(L10n.t("类型"), value: website.typeDisplayName)
                 }
             }
@@ -418,6 +418,7 @@ struct WebsiteDeleteConfirmSheet: View {
                 Toggle(L10n.t("删除数据库"), isOn: $deleteDB)
             }
         }
+        .bottomSheetDetents([.medium, .large])
     }
 }
 

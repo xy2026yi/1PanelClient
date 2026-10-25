@@ -20,6 +20,8 @@ struct RuntimePHPExtensionsView: View {
     /// 操作中的扩展名（安装/卸载按钮转圈）
     @State private var busyExtensions: Set<String> = []
     @State private var activeTask: RuntimeTaskTarget?
+    /// 卸载确认目标
+    @State private var uninstallTarget: RuntimePHPSupportExtension?
 
     var body: some View {
         List {
@@ -46,6 +48,19 @@ struct RuntimePHPExtensionsView: View {
                 Task { await load() }
                 return false
             }
+        }
+        .alert(L10n.t("卸载扩展"), isPresented: Binding(
+            get: { uninstallTarget != nil },
+            set: { if !$0 { uninstallTarget = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("卸载"), role: .destructive) {
+                let target = uninstallTarget
+                Task { if let target { await uninstall(target) } }
+            }
+        } message: {
+            Text(L10n.f("确认卸载扩展「%@」？卸载需重建镜像，期间站点可能短暂不可用。",
+                        uninstallTarget?.displayName ?? ""))
         }
     }
 
@@ -113,7 +128,7 @@ struct RuntimePHPExtensionsView: View {
                         ProgressView().scaleEffect(0.8)
                     } else if ext.installed == true {
                         Button(L10n.t("卸载")) {
-                            Task { await uninstall(ext) }
+                            uninstallTarget = ext
                         }
                         .font(.subheadline)
                         .buttonStyle(.bordered)
@@ -156,12 +171,16 @@ struct RuntimePHPExtensionsView: View {
     }
 
     private func uninstall(_ ext: RuntimePHPSupportExtension) async {
+        guard !busyExtensions.contains(ext.displayName) else { return }
         busyExtensions.insert(ext.displayName)
         defer { busyExtensions.remove(ext.displayName) }
         do {
+            // 卸载为同步接口（无 taskID），服务端要重建镜像、数分钟级——
+            // 默认 15s 超时会“假失败”（服务端仍在执行），按面板口径放宽
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.runtimesPhpExtUninstall.path,
                 body: RuntimePHPExtensionUninstallRequest(id: entry.id, name: ext.displayName),
+                timeout: 600,
                 as: EmptyResponse.self
             )
             toast = L10n.f("扩展 %@ 已卸载", ext.displayName)
@@ -256,8 +275,6 @@ struct RuntimePHPTemplatesView: View {
                 ],
                 onDismiss: { actionTpl = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("删除扩展模版"), isPresented: Binding(
             get: { deleteTarget != nil },

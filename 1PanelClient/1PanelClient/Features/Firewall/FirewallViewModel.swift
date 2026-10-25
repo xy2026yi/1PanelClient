@@ -420,6 +420,7 @@ final class FirewallViewModel: ObservableObject {
                     subsystem: subsystem == "system" ? nil : subsystem,
                     backup: backup, provider: provider,
                     withDockerRestart: subsystem == "system" ? false : nil),
+                timeout: 300,  // 遍历重置全部规则，规则量大时可超默认超时
                 as: FirewallRuleResetResponse.self
             )
             if backup, let path = resp.backupPath, !path.isEmpty {

@@ -485,7 +485,7 @@ nonisolated struct AppServiceItem: Decodable, Identifiable, Hashable, Sendable {
     let from: String?
     let status: String?
 
-    var id: String { value ?? label ?? UUID().uuidString }
+    var id: String { value ?? label ?? "" }
 }
 
 // MARK: - 应用商店设置（卸载/升级/安装默认选项）

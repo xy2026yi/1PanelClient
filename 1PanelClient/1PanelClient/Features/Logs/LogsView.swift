@@ -51,7 +51,7 @@ struct LogsView: View {
     }
 
     private func logMenuRow(_ title: String, icon: String, color: Color, subtitle: String) -> some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             IconBadge(systemName: icon, color: color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -121,7 +121,7 @@ struct OperationLogView: View {
     }
 
     private func row(_ item: OperationLogItem) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(item.detailZH ?? item.path ?? "—")
                 .font(.subheadline)
                 .lineLimit(2)
@@ -216,7 +216,7 @@ struct LoginLogView: View {
     }
 
     private func row(_ item: LoginLogItem) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 Text(item.user?.isEmpty == false ? item.user! : L10n.t("未知用户"))
                     .font(.subheadline.bold())
@@ -413,7 +413,7 @@ struct SSHLogView: View {
     }
 
     private func row(_ item: SSHLogItem) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 Text(item.user ?? "—")
                     .font(.subheadline.bold())

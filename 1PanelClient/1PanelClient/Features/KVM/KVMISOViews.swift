@@ -166,7 +166,7 @@ struct KVMISORow: View {
                 Text(iso.displayName)
                     .font(.body.bold())
                     .lineLimit(1)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     StatusBadge(text: KVMISOType.display(iso.type), color: .indigo)
                     if let size = iso.size, size > 0 {
                         let parts = MetricFormat.byteParts(size)
@@ -414,7 +414,7 @@ struct KVMISOFormView: View {
     private var transferSection: some View {
         Section {
             if let uploadProgress {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text(L10n.t("上传中"))
                         Spacer()
@@ -651,7 +651,7 @@ struct KVMISODownloadProgressRow: View {
     var body: some View {
         Group {
             if let item = session.items.first {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text(item.name ?? L10n.t("下载中"))
                             .lineLimit(1)

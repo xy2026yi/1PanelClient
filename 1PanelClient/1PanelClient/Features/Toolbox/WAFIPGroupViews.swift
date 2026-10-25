@@ -114,8 +114,6 @@ struct WAFIPGroupsView: View {
                 ],
                 onDismiss: { actionGroup = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(

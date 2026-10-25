@@ -139,7 +139,8 @@ final class CleanViewModel: ObservableObject {
         defer { isCleaning = false }
         do {
             let _: EmptyResponse = try await client.send(
-                path: APIEndpoint.toolboxClean.path, body: items, as: EmptyResponse.self)
+                path: APIEndpoint.toolboxClean.path, body: items,
+                timeout: 300, as: EmptyResponse.self)
             showToast(L10n.t("清理完成"))
             await load()
         } catch let err as APIError {

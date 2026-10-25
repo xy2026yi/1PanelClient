@@ -355,8 +355,6 @@ struct AIDownloaderView: View {
                 ],
                 onDismiss: { actionLocal = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: Binding(
             get: { deleteLocalItem != nil },
@@ -573,7 +571,7 @@ private struct ModelTaskRow: View {
                 color: task.isActive ? .blue : statusColor == .statusError ? .red : .cyan
             )
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(task.displayName)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -609,7 +607,7 @@ private struct ModelTaskRow: View {
             }
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 6) {
+            VStack(alignment: .trailing, spacing: 8) {
                 if onCancel != nil || onRetry != nil || onRemoveRecord != nil {
                     Menu {
                         if let onCancel {

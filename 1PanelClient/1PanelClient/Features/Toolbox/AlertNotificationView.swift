@@ -191,8 +191,6 @@ struct AlertNotificationView: View {
                 ],
                 onDismiss: { actionRule = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-            .presentationDragIndicator(.visible)
         }
         // 发送方式长按操作弹窗：启停 / 编辑（可编辑类型）/ 删除
         .sheet(isPresented: Binding(
@@ -228,8 +226,6 @@ struct AlertNotificationView: View {
                 items: items,
                 onDismiss: { actionConfig = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: items.count))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showCreateRule) {
             AlertEditView(vm: vm, editing: nil)
@@ -452,7 +448,7 @@ struct AlertRuleRow: View {
                     .font(.body.bold())
                     .lineLimit(1)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     StatusBadge(text: rule.alertType.displayName, color: rule.alertType.color)
                     StatusBadge(
                         text: rule.isEnabled ? L10n.t("启用") : L10n.t("已停用"),
@@ -489,7 +485,7 @@ struct AlertLogRow: View {
                     .font(.subheadline.bold())
                     .lineLimit(1)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     StatusBadge(text: log.alertType.displayName, color: log.alertType.color)
                     if let message = log.message, !message.isEmpty {
                         Text(message)

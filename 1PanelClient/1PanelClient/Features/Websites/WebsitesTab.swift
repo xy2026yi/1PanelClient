@@ -209,8 +209,6 @@ struct WebsitesTab: View {
                 items: websiteActions(w),
                 onDismiss: { actionWebsite = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: websiteActions(w).count))])
-            .presentationDragIndicator(.visible)
         }
         // 长按菜单：单站启停确认
         .alert(

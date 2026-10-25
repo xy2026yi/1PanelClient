@@ -127,8 +127,6 @@ struct DockerGuardEndpointsView: View {
                     items: actionItems(endpoint),
                     onDismiss: { actionEndpoint = nil }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(endpoint).count))])
-                .presentationDragIndicator(.visible)
             }
         }
         .alert(L10n.t("删除防护策略"), isPresented: Binding(
@@ -198,7 +196,7 @@ struct DockerGuardEndpointRow: View {
     private var isConfigured: Bool { endpoint.mode != nil }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 // 已设置/未设置以锁图标区分（行首；无策略不占位）
                 if isConfigured {

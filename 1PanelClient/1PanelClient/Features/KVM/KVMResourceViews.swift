@@ -67,8 +67,6 @@ struct KVMTemplateListView: View {
                 ],
                 onDismiss: { actionTemplate = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-            .presentationDragIndicator(.visible)
         }
         // 删除默认连同磁盘文件（deleteDisk=true，与网页端默认一致）
         .alert(
@@ -102,7 +100,7 @@ struct KVMTemplateListView: View {
                             template.cpu ?? 0, template.memory ?? 0, template.diskSize ?? 0))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if let source = template.sourceVM, !source.isEmpty {
                         Label(source, systemImage: "desktopcomputer")
                     }
@@ -204,8 +202,8 @@ struct KVMNetworkListView: View {
         Section {
             HStack(spacing: 12) {
                 IconBadge(systemName: "network", color: .teal)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
                         Text(network.displayName)
                             .font(.body.bold())
                             .lineLimit(1)
@@ -679,7 +677,7 @@ struct KVMStorageListView: View {
             HStack(spacing: 12) {
                 IconBadge(systemName: "internaldrive", color: .gray)
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Text(pool.displayName)
                             .font(.body.bold())
                             .lineLimit(1)

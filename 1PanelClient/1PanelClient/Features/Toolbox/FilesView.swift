@@ -117,7 +117,7 @@ struct FilesView: View {
         )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 14) {
+                    HStack(spacing: 12) {
                         // 有进行中的远程下载时显示入口（网页端行为：下载中显示按钮）
                         if !activeWgetKeys.isEmpty {
                             Button {
@@ -186,8 +186,6 @@ struct FilesView: View {
                         pendingMenuAction = { Task { await loadDir("/") } }
                     }
                 ], onDismiss: { showActionSheet = false })
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 9))])
-                .presentationDragIndicator(.visible)
             }
             .sheet(item: $actionItem, onDismiss: {
                 // 菜单完全收起后再执行挂起动作，避免与下一级弹窗的呈现竞争
@@ -198,8 +196,6 @@ struct FilesView: View {
                     items: itemActions(item),
                     onDismiss: { actionItem = nil }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: itemActions(item).count))])
-                .presentationDragIndicator(.visible)
             }
             .modifier(FilesTransferModifier(
                 showUploadPicker: $showUploadPicker,

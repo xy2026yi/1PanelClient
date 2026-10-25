@@ -221,8 +221,6 @@ struct FileRecycleBinView: View {
                 ],
                 onDismiss: { actionItem = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("还原"), isPresented: Binding(
             get: { reducingItem != nil },
@@ -425,7 +423,7 @@ private struct RecycleRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: item.isFolder ? "folder.fill" : "doc")
                     .foregroundStyle(item.isFolder ? Color.blue : Color.secondary)
                 Text(item.name ?? "—")

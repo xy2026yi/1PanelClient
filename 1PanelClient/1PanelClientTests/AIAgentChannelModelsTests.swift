@@ -227,18 +227,18 @@ struct AIAgentChannelModelsTests {
         #expect(feishuObj["connectionMode"] == nil)
     }
 
-    @Test("Bot 行身份：空串视为缺失（accountId 优先，其次 name，全空兜底 UUID）")
+    @Test("Bot 行身份：空串视为缺失（accountId 优先，其次 name，全空回落稳定组合串）")
     func botIdentityEmptyStrings() {
         #expect(AIChannelBotIdentity.make("123", nil) == "123")
         #expect(AIChannelBotIdentity.make("", "bot-name") == "bot-name")
-        #expect(AIChannelBotIdentity.make("", "") != "")
-        // 多条空 accountId 的 Bot 不会互相撞身份
+        // 全空回落稳定组合串：同输入同输出（身份不抖动，ForEach 不重建）
+        #expect(AIChannelBotIdentity.make("", "") == "|")
         let a = AIChannelBotIdentity.make("", nil)
         let b = AIChannelBotIdentity.make("", nil)
-        #expect(a != b)
+        #expect(a == b)
         // 条目 id 走同一规则
         let emptyBot = AIChannelTelegramBotItem(accountId: "", name: "")
-        #expect(!emptyBot.id.isEmpty)
+        #expect(emptyBot.id == "|")
     }
 
     @Test("策略取值与抓包一致（pairing / allowlist）")

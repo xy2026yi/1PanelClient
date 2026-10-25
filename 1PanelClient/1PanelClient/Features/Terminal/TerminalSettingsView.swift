@@ -158,7 +158,7 @@ struct DefaultConnConfirmSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         onConfirm(resetConn)
                     }
                 }
@@ -245,8 +245,8 @@ struct TerminalSSHConnEditView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(L10n.t("确认")) {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("保存")) {
                         Task {
                             guard let req = buildRequest() else { return }
                             isSaving = true

@@ -111,8 +111,6 @@ struct AIAgentPluginsView: View {
                 items: pluginMenuItems(plugin),
                 onDismiss: { actionPlugin = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: pluginMenuItems(plugin).count))])
-            .presentationDragIndicator(.visible)
         }
     }
 
@@ -121,10 +119,10 @@ struct AIAgentPluginsView: View {
     @ViewBuilder
     private var installedSection: some View {
         Section {
-            if isLoadingInstalled {
+            if isLoadingInstalled && installed.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = installedError {
+            } else if let err = installedError, installed.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await loadInstalled() }
                 }
@@ -147,7 +145,7 @@ struct AIAgentPluginsView: View {
                             Text(plugin.name ?? plugin.id)
                                 .font(.body.bold())
                                 .lineLimit(1)
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 if let version = plugin.version, !version.isEmpty {
                                     Text("v\(version)")
                                         .font(.caption)

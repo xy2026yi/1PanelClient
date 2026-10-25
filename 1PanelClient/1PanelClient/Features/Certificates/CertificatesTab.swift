@@ -98,8 +98,6 @@ struct CertificatesTab: View {
                     pendingMenuAction = { showUpload = true }
                 },
             ]) { showAddMenu = false }
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showUpload) {
             UploadCertificateView(vm: vm)
@@ -352,7 +350,7 @@ struct CertificateDetailView: View {
         } message: {
             Text(L10n.f("将重新申请证书「%@」，是否继续？", (detail ?? cert).displayName))
         }
-        .alert(L10n.t("删除"), isPresented: $pendingDelete) {
+        .alert(L10n.t("删除证书"), isPresented: $pendingDelete) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("删除"), role: .destructive) {
                 Haptic.warning()
@@ -399,8 +397,8 @@ struct CertificateDetailView: View {
     private var infoSection: some View {
         let d = detail ?? cert
         return Section {
-            InfoRow(L10n.t("主域名"), value: d.primaryDomain ?? "—")
-            InfoRow(L10n.t("其他域名"), value: d.displayDomains)
+            InfoRow(L10n.t("主域名"), value: d.primaryDomain ?? "—", monospaced: true)
+            InfoRow(L10n.t("其他域名"), value: d.displayDomains, monospaced: true)
             InfoRow(L10n.t("证书主体名称(CN)"), value: d.displayType)
             InfoRow(L10n.t("颁发组织"), value: d.displayOrganization)
             InfoRow(L10n.t("申请方式"), value: d.providerDisplay)
@@ -944,6 +942,7 @@ final class CertificatesViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.websitesSSLCreate.path,
                 body: req,
+                timeout: 300,  // ACME 申请服务端同步执行（DNS 验证+签发可达分钟级）
                 as: EmptyResponse.self
             )
             showAlert(message: L10n.t("证书申请已提交"))
@@ -963,6 +962,7 @@ final class CertificatesViewModel: ObservableObject {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.websitesSSLObtain.path,
                 body: WebsiteSSLObtainRequest(id: id),
+                timeout: 300,  // 同步签发，同 SSLCreate
                 as: EmptyResponse.self
             )
             showAlert(message: L10n.t("已重新提交申请"))

@@ -100,8 +100,6 @@ struct QuickCommandsView: View {
                 ],
                 onDismiss: { actionCmd = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .task { await vm.loadAll() }
         .refreshable { await vm.loadAll(force: true) }
@@ -138,7 +136,7 @@ struct QuickCommandRow: View {
             IconBadge(systemName: "terminal.fill", color: .teal)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(command.name ?? "—")
                         .font(.body.bold())
                         .lineLimit(1)

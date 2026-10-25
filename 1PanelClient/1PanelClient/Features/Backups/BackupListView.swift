@@ -537,7 +537,7 @@ private struct BackupRecordCard: View {
             }
 
             // 类型 / 名称 / 详情
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 metaBadge(L10n.t("类型"), value: targetType)
                 metaBadge(L10n.t("名称"), value: targetName)
                 metaBadge(L10n.t("详情"), value: targetDetailName)

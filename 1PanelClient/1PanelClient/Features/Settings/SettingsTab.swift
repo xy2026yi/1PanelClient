@@ -323,7 +323,7 @@ struct AboutSectionView: View {
                     IconBadge(systemName: "info", color: .accentColor,
                               size: 34, cornerRadius: Radius.small, backgroundOpacity: 0.08)
                     VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Text(L10n.t("关于"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.primary)
@@ -545,7 +545,7 @@ private struct AboutDetailContent: View {
     /// 有新版时紧随功能组出现的展示块：日期 + 更新说明 + 前往下载
     private func updateSection(_ info: AppUpdateInfo) -> some View {
         Section {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 if let date = info.publishedDate {
                     Text(L10n.f("发布于 %@", date))
                         .font(.caption)

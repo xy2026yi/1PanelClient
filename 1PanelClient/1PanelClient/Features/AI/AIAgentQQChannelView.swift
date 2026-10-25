@@ -206,8 +206,6 @@ struct AIAgentQQChannelView: View {
                 items: botMenuItems(bot),
                 onDismiss: { actionBot = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: botMenuItems(bot).count))])
-            .presentationDragIndicator(.visible)
         }
     }
 
@@ -218,7 +216,7 @@ struct AIAgentQQChannelView: View {
             ForEach(bots) { bot in
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Text(bot.name ?? bot.accountId ?? "-")
                                 .font(.body.bold())
                                 .foregroundStyle(.primary)
@@ -546,7 +544,7 @@ private struct AIQQBotFormSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确定")) {
+                    Button(L10n.t("保存")) {
                         onConfirm(bot)
                         dismiss()
                     }

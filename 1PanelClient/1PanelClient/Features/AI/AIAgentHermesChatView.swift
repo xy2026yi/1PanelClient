@@ -43,10 +43,10 @@ struct AIAgentHermesChatView: View {
 
     var body: some View {
         List {
-            if isLoading {
+            if isLoading && sessions.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = loadError {
+            } else if let err = loadError, sessions.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -110,8 +110,6 @@ struct AIAgentHermesChatView: View {
                 items: sessionMenuItems(session),
                 onDismiss: { actionSession = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: sessionMenuItems(session).count))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: Binding(
             get: { activeChat != nil },
@@ -147,7 +145,7 @@ struct AIAgentHermesChatView: View {
             Text(session.displayTitle)
                 .font(.body.weight(.medium))
                 .lineLimit(1)
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 if let model = session.model, !model.isEmpty {
                     Text(model)
                         .font(.dataMonospacedCaption)

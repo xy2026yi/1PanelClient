@@ -121,7 +121,7 @@ struct CronjobLogView: View {
                 if vm.isLoadingLog && vm.logLines.isEmpty {
                     LoadingStateView()
                         .padding()
-                } else if let err = vm.logError {
+                } else if let err = vm.logError, vm.logLines.isEmpty {
                     Text(err)
                         .foregroundStyle(.red)
                         .font(.callout)

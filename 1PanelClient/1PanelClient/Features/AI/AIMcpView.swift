@@ -269,8 +269,6 @@ struct AIMcpView: View {
                     showDomain = true
                 },
             ]) { showAddMenu = false }
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .refreshable { await vm.load(name: searchText) }
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load(name: searchText) } }
@@ -336,8 +334,6 @@ struct AIMcpView: View {
                 items: actionItems(s),
                 onDismiss: { actionServer = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(s).count))])
-            .presentationDragIndicator(.visible)
         }
         .onChange(of: searchText) { _, newValue in
             searchTask?.cancel()
@@ -441,13 +437,13 @@ struct McpServerRow: View {
             IconBadge(systemName: "puzzlepiece.fill", color: .orange)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(server.name)
                         .font(.body.bold())
                         .lineLimit(1)
                     StatusBadge(text: server.status ?? "-", color: statusColor)
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(server.type ?? "-")
                     Text("·")
                     Text(server.outputTransport ?? "-")

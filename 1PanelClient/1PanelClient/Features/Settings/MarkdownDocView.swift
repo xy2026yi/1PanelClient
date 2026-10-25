@@ -144,7 +144,7 @@ struct MarkdownDocView: View {
         case .paragraph(let text):
             inlineText(text, font: .subheadline)
         case .bullet(let text):
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("•")
                     .foregroundStyle(.secondary)
                 inlineText(text, font: .subheadline)

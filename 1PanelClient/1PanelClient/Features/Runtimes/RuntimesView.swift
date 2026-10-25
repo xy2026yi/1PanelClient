@@ -113,8 +113,6 @@ struct RuntimesView: View {
                 items: actionItems(entry),
                 onDismiss: { actionTarget = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(entry).count))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(item: $vm.activeTask) { target in
             TaskProgressView(taskID: target.taskID, title: target.title, node: "local") { isDone in

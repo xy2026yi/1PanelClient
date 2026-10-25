@@ -106,7 +106,7 @@ struct TaskCenterView: View {
     }
 
     private func row(_ item: TaskCenterItem) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(item.name ?? "—")
                 .font(.subheadline)
                 .lineLimit(2)

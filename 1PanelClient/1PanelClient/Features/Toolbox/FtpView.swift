@@ -436,8 +436,6 @@ struct FTPView: View {
                 ],
                 onDismiss: { actionAccount = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-            .presentationDragIndicator(.visible)
         }
     }
 
@@ -502,7 +500,7 @@ struct FTPAccountRow: View {
             IconBadge(systemName: "person.fill", color: .teal)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(account.user)
                         .font(.body.bold())
                         .lineLimit(1)

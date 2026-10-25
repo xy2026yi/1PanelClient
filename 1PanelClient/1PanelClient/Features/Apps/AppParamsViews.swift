@@ -410,7 +410,7 @@ struct ComposeEditorView: View {
                 .disabled(vm.upgradingVersionId != nil)
 
                 if vm.upgradingVersionId != nil {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         ProgressView()
                         Text(L10n.t("正在升级…"))
                     }

@@ -349,8 +349,6 @@ struct AIAccountsView: View {
                 ],
                 onDismiss: { actionAccount = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-            .presentationDragIndicator(.visible)
         }
     }
 }
@@ -365,7 +363,7 @@ struct AIAccountRow: View {
             IconBadge(systemName: "key.horizontal.fill", color: .blue)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(account.name)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -375,7 +373,7 @@ struct AIAccountRow: View {
                         StatusBadge(text: L10n.t("未验证"), color: .secondary)
                     }
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(account.providerName ?? account.provider)
                     Text("·")
                     Text(account.apiType ?? "")

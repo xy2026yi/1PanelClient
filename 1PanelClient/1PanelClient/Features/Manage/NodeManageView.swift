@@ -193,7 +193,7 @@ struct NodeManageView: View {
         Button {
             navPath.append(Dest.nodeDetail(card.item.id))
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Text(card.item.displayName)
                         .font(.headline)

@@ -32,10 +32,10 @@ struct ContainerComposesView: View {
 
     var body: some View {
         List {
-            if isLoading {
+            if isLoading && composes.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = loadError {
+            } else if let err = loadError, composes.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -930,10 +930,10 @@ struct ContainerTemplatesView: View {
 
     var body: some View {
         List {
-            if isLoading {
+            if isLoading && templates.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = loadError {
+            } else if let err = loadError, templates.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -1005,8 +1005,6 @@ struct ContainerTemplatesView: View {
                 ],
                 onDismiss: { actionTemplate = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("提示"), isPresented: $showError) {
             Button(L10n.t("好的"), role: .cancel) {}

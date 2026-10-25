@@ -151,8 +151,6 @@ struct WAFCommonRulesView: View {
                 ],
                 onDismiss: { actionItem = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .localToast(message: $successMessage)
         .alert(L10n.t("提示"), isPresented: Binding(
@@ -193,7 +191,7 @@ struct WAFCommonRulesView: View {
 
             let showType = item.type != singleType
             if showType || !(item.description ?? "").isEmpty {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if showType, let typeName = item.typeDisplayName {
                         StatusBadge(text: typeName, color: .secondary)
                     }

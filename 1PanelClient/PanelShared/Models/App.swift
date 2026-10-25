@@ -250,7 +250,7 @@ nonisolated struct InstalledParamField: Decodable, Identifiable, Hashable, Senda
     /// 当前值（可能是 Int 或 String）
     let value: FormFieldValue?
 
-    var id: String { key ?? UUID().uuidString }
+    var id: String { key ?? "" }
 
     /// 显示标签（优先中文）；服务端个别标签过长时按映射精简
     var displayLabel: String {

@@ -131,7 +131,7 @@ struct KVMVMDetailView: View {
             Section {
                 ForEach(Array(disks.enumerated()), id: \.offset) { _, disk in
                     VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Image(systemName: disk.device == "cdrom" ? "opticaldisc" : "internaldrive")
                                 .foregroundStyle(.secondary)
                             Text("\(disk.target ?? "-") · \(disk.bus ?? "-") · \(disk.format ?? "-")")

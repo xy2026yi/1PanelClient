@@ -157,7 +157,7 @@ struct FirewallRestoreBackupView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let err = vm.ruleBackupsError {
+                if let err = vm.ruleBackupsError, files.isEmpty {
                     LoadErrorStateView(message: err) {
                         Task { await vm.loadRuleBackups(subsystem: subsystem) }
                     }
@@ -480,14 +480,14 @@ struct FirewallDockerImportView: View {
                                 // plain 样式命中区只有文字部分，补全行矩形命中
                                 HStack {
                                     VStack(alignment: .leading, spacing: 3) {
-                                        HStack(spacing: 6) {
+                                        HStack(spacing: 8) {
                                             Text("\(policy.hostIP):\(String(policy.hostPort))")
                                                 .font(.dataMonospacedBody.bold())
                                             Text(policy.protocolField.uppercased())
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
-                                        HStack(spacing: 6) {
+                                        HStack(spacing: 8) {
                                             Text(modeLabels[policy.mode] ?? policy.mode)
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
@@ -833,14 +833,14 @@ struct FirewallDockerExportPickerView: View {
                                 // plain 样式命中区只有文字部分，补全行矩形命中
                                 HStack {
                                     VStack(alignment: .leading, spacing: 3) {
-                                        HStack(spacing: 6) {
+                                        HStack(spacing: 8) {
                                             Text("\(policy.hostIP):\(String(policy.hostPort))")
                                                 .font(.dataMonospacedBody.bold())
                                             Text(policy.protocolField.uppercased())
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
-                                        HStack(spacing: 6) {
+                                        HStack(spacing: 8) {
                                             Text(modeLabels[policy.mode] ?? policy.mode)
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)

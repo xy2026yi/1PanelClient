@@ -329,7 +329,7 @@ struct WAFInterceptLogsView: View {
     }
 
     private func logRow(_ item: WAFLogItem) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(item.ip ?? "-")
                     .font(.callout.bold())
@@ -409,14 +409,14 @@ struct WAFInterceptLogDetailView: View {
             } else if let d = detail {
                 Form {
                     Section {
-                        InfoRow(L10n.t("攻击IP"), value: d.ip ?? "-")
+                        InfoRow(L10n.t("攻击IP"), value: d.ip ?? "-", monospaced: true)
                         InfoRow(L10n.t("日期"), value: WAFTime.short(d.localtime) ?? d.localtime ?? "-")
                         InfoRow(L10n.t("操作"), value: actionLabel(d.action))
                         InfoRow(L10n.t("命中规则"), value: nonEmpty(d.execRule))
                     }
 
                     Section {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("HTTP")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -526,7 +526,7 @@ struct WAFBlockRecordsView: View {
     }
 
     private func blockRow(_ item: WAFBlockItem) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(item.ip ?? "-")
                     .font(.callout.bold())

@@ -162,8 +162,6 @@ struct ContainerImageView: View {
                 items: items,
                 onDismiss: { actionImage = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: items.count))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showPull) {
             PullImageView(vm: vm)
@@ -301,7 +299,7 @@ struct ImageRow: View {
                 Text(image.displayName)
                     .font(.subheadline.bold())
                     .lineLimit(1)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(image.sizeDisplay)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -662,6 +660,8 @@ struct ImagePruneSelectView: View {
     @State private var isDeleting = false
     /// 删除任务进度（taskID 非空时 push TaskProgressView）
     @State private var deleteTaskID: String?
+    /// 勾选删除（含 prune「所有」模式）确认
+    @State private var showBatchDeleteConfirm = false
 
     /// 「所有」勾选项的选中标识（勾选后删除走 prune 接口直接清理全部）
     private static let selectAllID = "__all__"
@@ -708,10 +708,10 @@ struct ImagePruneSelectView: View {
             .padding(.vertical, 8)
 
             Group {
-                if isLoading {
+                if isLoading && allImages.isEmpty {
                     LoadingStateView()
                         .frame(maxHeight: .infinity)
-                } else if let err = loadError {
+                } else if let err = loadError, allImages.isEmpty {
                     // 请求失败独立错误态：静默为空会误显「暂无未使用镜像」
                     LoadErrorStateView(message: err) {
                         Task { await loadAll() }
@@ -798,7 +798,7 @@ struct ImagePruneSelectView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    Task { await deleteSelected() }
+                    showBatchDeleteConfirm = true
                 } label: {
                     if isDeleting {
                         ProgressView()
@@ -809,6 +809,19 @@ struct ImagePruneSelectView: View {
                 }
                 .disabled(selectedIDs.isEmpty || isDeleting)
             }
+        }
+        .alert(
+            isSelectAll ? L10n.t("清理镜像") : L10n.t("删除镜像"),
+            isPresented: $showBatchDeleteConfirm
+        ) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("删除"), role: .destructive) {
+                Task { await deleteSelected() }
+            }
+        } message: {
+            Text(isSelectAll
+                 ? L10n.t("将清理全部未使用镜像，该操作无法回滚，是否继续？")
+                 : L10n.f("将删除选中的 %ld 个镜像，是否继续？", selectedIDs.count))
         }
         .task {
             await loadAll()

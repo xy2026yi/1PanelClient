@@ -307,8 +307,10 @@ struct AIDownloaderRepoDetailView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if isLoading {
+                if isLoading && detail == nil {
                     LoadingStateView()
+                } else if let detail {
+                    detailList(detail)
                 } else if let err = errorMessage {
                     ContentUnavailableView {
                         Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
@@ -317,8 +319,6 @@ struct AIDownloaderRepoDetailView: View {
                     } actions: {
                         Button(L10n.t("重试")) { Task { await load() } }
                     }
-                } else if let detail {
-                    detailList(detail)
                 }
             }
             .navigationTitle(repo.name ?? repo.repoID)

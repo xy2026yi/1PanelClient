@@ -269,7 +269,7 @@ struct ServerBootstrapView: View {
 
     /// 验证码行：图片 + 输入框 + 换一张
     private func captchaRow(_ captcha: CaptchaResponse) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             OutlinedTextField(label: L10n.t("图形验证码"),
                               text: $captchaInput, machineValue: true)
                 .textInputAutocapitalization(.never)

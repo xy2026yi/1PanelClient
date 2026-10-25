@@ -146,7 +146,7 @@ struct ManageTab: View {
     @ViewBuilder
     private func manageRow(_ item: ManageItem) -> some View {
         NavigationLink(value: item) {
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 IconBadge(systemName: item.icon, color: item.color)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -293,7 +293,7 @@ struct ManageHubView: View {
             Section {
                 ForEach(items.filter { gate.shows($0, prefsEnabled: prefs.isEnabled($0)) }) { item in
                     NavigationLink(value: item) {
-                        HStack(spacing: 14) {
+                        HStack(spacing: 12) {
                             IconBadge(systemName: item.icon, color: item.color)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.title)

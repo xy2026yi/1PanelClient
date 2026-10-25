@@ -88,7 +88,7 @@ struct TaskProgressView: View {
                                 .id(idx)
                         }
                         if !isDone {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 ProgressView()
                                     .scaleEffect(0.7)
                                 Text(L10n.t("等待中…"))

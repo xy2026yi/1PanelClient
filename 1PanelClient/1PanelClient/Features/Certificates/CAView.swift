@@ -185,7 +185,7 @@ struct CADetailView: View {
         .navigationDestination(isPresented: $showIssue) {
             IssueCertificateView(ca: detail ?? ca, vm: vm)
         }
-        .alert(L10n.t("删除"), isPresented: $pendingDelete) {
+        .alert(L10n.t("删除证书颁发机构"), isPresented: $pendingDelete) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("删除"), role: .destructive) {
                 Haptic.warning()

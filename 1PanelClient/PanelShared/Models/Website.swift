@@ -151,7 +151,7 @@ nonisolated struct Website: Codable, Identifiable, Hashable, Sendable {
         createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
         user = try c.decodeIfPresent(String.self, forKey: .user)
         appType = try c.decodeIfPresent(String.self, forKey: .appType)
-        port = try c.decodeIfPresent(Int.self, forKey: .port)
+        port = c.decodeIntFlexible(forKey: .port)  // doc 中同名 port 多 DTO 为 string，混型容错
         proxy = try c.decodeIfPresent(String.self, forKey: .proxy)
         proxyAddress = try c.decodeIfPresent(String.self, forKey: .proxyAddress)
         ssl = try c.decodeIfPresent(Bool.self, forKey: .ssl)

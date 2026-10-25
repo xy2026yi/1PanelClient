@@ -345,8 +345,6 @@ struct FirewallView: View {
                     items: ruleActionItems,
                     onDismiss: { actionItem = nil }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: ruleActionItems.count))])
-                .presentationDragIndicator(.visible)
             }
             // 规则导出多选（长按菜单「导出规则」进入：仅预选长按的这条）
             .sheet(isPresented: $showExportPicker) {
@@ -386,8 +384,6 @@ struct FirewallView: View {
                     ],
                     onDismiss: { actionForward = nil }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-                .presentationDragIndicator(.visible)
             }
             // 转发导出多选（长按菜单「导出规则」进入）
             .sheet(isPresented: $showForwardExportPicker) {
@@ -413,8 +409,6 @@ struct FirewallView: View {
                     ],
                     onDismiss: { actionOrphan = nil }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-                .presentationDragIndicator(.visible)
             }
             .alert(L10n.t("删除孤立策略"), isPresented: Binding(
                 get: { pendingDeleteOrphan != nil },
@@ -473,8 +467,6 @@ struct FirewallView: View {
                     ],
                     onDismiss: { showInitMenu = false }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-                .presentationDragIndicator(.visible)
             }
             // 初始化并恢复规则：备份选择（rules/backups?subsystem=… → 段对应的
             // 初始化端点携带 backupFile）
@@ -500,8 +492,6 @@ struct FirewallView: View {
                     ],
                     onDismiss: { showResetMenu = false }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-                .presentationDragIndicator(.visible)
             }
             // 备份后重置完成：弹窗提醒服务器保存路径（对齐 Web 端；抓包 2026-10-21）
             .alert(L10n.t("重置完成"), isPresented: Binding(
@@ -584,7 +574,7 @@ struct FirewallView: View {
     /// 解绑态占位：说明绑定入口在上方操作行（隐藏 +、列表与导入）
     private var unboundPlaceholder: some View {
         Section {
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 Image(systemName: "link.badge.plus")
                     .font(.title)
                     .foregroundStyle(.secondary)
@@ -608,7 +598,7 @@ struct FirewallView: View {
     private func uninitializedPlaceholder(message: String, buttonTitle: String,
                                           action: @escaping () -> Void) -> some View {
         Section {
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 Image(systemName: "wand.and.stars")
                     .font(.title)
                     .foregroundStyle(.tint)
@@ -665,7 +655,7 @@ struct FirewallView: View {
                     IconBadge(systemName: "flame.fill",
                               color: (vm.systemStatus?.isActive == true) ? .orange : .gray)
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Text(vm.systemStatus?.backend?.uppercased() ?? "—")
                                 .font(.subheadline.bold())
                             if let v = vm.systemStatus?.version, !v.isEmpty {

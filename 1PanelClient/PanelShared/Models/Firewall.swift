@@ -504,7 +504,7 @@ nonisolated struct FirewallBackendOption: Decodable, Identifiable, Sendable {
     let ipv4: FirewallBackendFamilyStatus?
     let ipv6: FirewallBackendFamilyStatus?
 
-    var id: String { name ?? UUID().uuidString }
+    var id: String { name ?? "" }
 }
 
 nonisolated struct FirewallBackendGroup: Decodable, Sendable {
@@ -708,7 +708,7 @@ nonisolated struct DockerGuardPortGroup: Decodable, Identifiable, Hashable, Send
     let endpoint: DockerGuardEndpoint?
     let endpoints: [DockerGuardEndpoint]?
 
-    var id: String { key ?? endpoint?.id ?? UUID().uuidString }
+    var id: String { key ?? endpoint?.id ?? "" }
 }
 
 nonisolated struct DockerGuardContainer: Decodable, Identifiable, Hashable, Sendable {
@@ -719,7 +719,7 @@ nonisolated struct DockerGuardContainer: Decodable, Identifiable, Hashable, Send
     let endpoints: [DockerGuardEndpoint]?
     let portGroups: [DockerGuardPortGroup]?
 
-    var id: String { key ?? name ?? UUID().uuidString }
+    var id: String { key ?? name ?? "" }
 }
 
 nonisolated struct DockerGuardList: Decodable, Sendable {

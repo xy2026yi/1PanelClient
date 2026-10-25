@@ -141,7 +141,7 @@ struct TerminalScreen: View {
 
     private var quickKeys: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 StatusDot(color: session.isConnected ? .green : (session.isConnecting ? .orange : .red), diameter: 8)
                 ForEach(Array(keyGroups.enumerated()), id: \.offset) { groupIndex, group in
                     if groupIndex > 0 {

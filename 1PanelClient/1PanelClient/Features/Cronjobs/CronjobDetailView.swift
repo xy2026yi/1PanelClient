@@ -63,7 +63,7 @@ struct CronjobDetailView: View {
                 if scriptModeOfJob == "select" {
                     if let path = currentJob.script, !path.isEmpty {
                         Section {
-                            InfoRow(L10n.t("脚本路径"), value: path)
+                            InfoRow(L10n.t("脚本路径"), value: path, monospaced: true)
                         }
                     }
                 } else if let script = currentJob.script, !script.isEmpty {
@@ -130,7 +130,7 @@ struct CronjobDetailView: View {
                 EmptyView()
             case .curl:
                 Section(L10n.t("访问内容")) {
-                    InfoRow(L10n.t("URL 地址"), value: currentJob.url ?? "—")
+                    InfoRow(L10n.t("URL 地址"), value: currentJob.url ?? "—", monospaced: true)
                 }
             case .cutWebsiteLog:
                 // website 存网站 id 串：与备份网站同款解析（id → primaryDomain）

@@ -98,8 +98,6 @@ struct RepoListView: View {
                 ],
                 onDismiss: { actionRepo = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-            .presentationDragIndicator(.visible)
         }
         .alert(
             L10n.t("删除仓库"),
@@ -345,7 +343,7 @@ struct RepoRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if repo.auth == true {
                         StatusBadge(text: L10n.t("已认证"), color: .green)
                     } else {

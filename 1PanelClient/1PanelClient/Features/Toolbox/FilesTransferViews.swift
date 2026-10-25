@@ -141,7 +141,7 @@ struct TransferSheet: View {
                 .font(.panelScaled(44))
                 .foregroundStyle(statusColor)
 
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Text("\(state.kind)\(state.status == .running ? "中" : "")")
                     .font(.headline)
                 Text(state.fileName)
@@ -500,10 +500,10 @@ struct FileFavoriteView: View {
 
     var body: some View {
         List {
-            if isLoading {
+            if isLoading && favorites.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = loadError {
+            } else if let err = loadError, favorites.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -563,8 +563,6 @@ struct FileFavoriteView: View {
                 ],
                 onDismiss: { actionFav = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .task { await load() }
         .refreshable { await load() }

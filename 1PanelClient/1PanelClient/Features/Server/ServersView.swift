@@ -271,6 +271,7 @@ private struct ServerActionsSheet: View {
                 onAction(.restart(target))
             }
         }
+        .bottomSheetDetents([.medium, .large])
     }
 
     private func actionRow(
@@ -325,7 +326,7 @@ private struct ServerRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // 标题行：名称靠左，健康点 + 运行时长 + 当前绿勾 整体靠右贴边
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(server.name)
                     .font(.headline)
                 Spacer(minLength: 8)

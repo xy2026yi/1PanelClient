@@ -40,6 +40,31 @@ struct SSHHostInfo: Decodable, Identifiable, Hashable {
     }
 
     var isKeyAuth: Bool { authMode == "key" }
+
+    enum CodingKeys: String, CodingKey {
+        case id, createdAt, groupID, groupBelong, name, addr, port, user
+        case authMode, password, privateKey, passPhrase, rememberPassword, description
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int.self, forKey: .id)
+        // 可选字段全部容错解码（类型漂移回退 nil，不炸整行），键名与合成解码一致
+        createdAt = (try? c.decodeIfPresent(String.self, forKey: .createdAt)) ?? nil
+        groupID = (try? c.decodeIfPresent(Int.self, forKey: .groupID)) ?? nil
+        groupBelong = (try? c.decodeIfPresent(String.self, forKey: .groupBelong)) ?? nil
+        name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? nil
+        addr = (try? c.decodeIfPresent(String.self, forKey: .addr)) ?? nil
+        // port 历史口径无法溯源（抓包文档已删），数字/字符串混型容错
+        port = c.decodeIntFlexible(forKey: .port)
+        user = (try? c.decodeIfPresent(String.self, forKey: .user)) ?? nil
+        authMode = (try? c.decodeIfPresent(String.self, forKey: .authMode)) ?? nil
+        password = (try? c.decodeIfPresent(String.self, forKey: .password)) ?? nil
+        privateKey = (try? c.decodeIfPresent(String.self, forKey: .privateKey)) ?? nil
+        passPhrase = (try? c.decodeIfPresent(String.self, forKey: .passPhrase)) ?? nil
+        rememberPassword = (try? c.decodeIfPresent(Bool.self, forKey: .rememberPassword)) ?? nil
+        description = (try? c.decodeIfPresent(String.self, forKey: .description)) ?? nil
+    }
 }
 
 // MARK: - 分组

@@ -140,7 +140,7 @@ struct ProcessView: View {
 
     private var statusBar: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 StatusDot(color: connectionColor)
                 Text(connectionText)
                     .font(.caption)
@@ -303,7 +303,7 @@ private struct NetworkRow: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 // 服务端 ProcessConnect.Type 恒为空串（源码未赋值）：空值不渲染徽章
                 if !connection.type.isEmpty {
                     StatusBadge(text: connection.type.uppercased(), color: connection.typeColor)
@@ -362,9 +362,9 @@ private struct ProcessDetailView: View {
     var body: some View {
         List {
             Section(L10n.t("基本信息")) {
-                InfoRow(key: "PID", value: "\(process.pid)")
+                InfoRow(key: "PID", value: "\(process.pid)", monospaced: true)
                 InfoRow(key: L10n.t("名称"), value: pick(detail?.name, process.name))
-                InfoRow(key: L10n.t("父进程 PID"), value: "\(detail?.ppid ?? process.ppid)")
+                InfoRow(key: L10n.t("父进程 PID"), value: "\(detail?.ppid ?? process.ppid)", monospaced: true)
                 InfoRow(key: L10n.t("用户"), value: pick(detail?.username, process.username))
                 InfoRow(key: L10n.t("状态"), value: pick(detail?.status, process.status))
                 if let time = pick(detail?.startTime, process.startTime), !time.isEmpty {

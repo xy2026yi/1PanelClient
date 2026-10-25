@@ -54,10 +54,10 @@ struct AIAgentRolesView: View {
 
     var body: some View {
         List {
-            if isLoading {
+            if isLoading && roles.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = loadError {
+            } else if let err = loadError, roles.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -131,8 +131,6 @@ struct AIAgentRolesView: View {
                 ],
                 onDismiss: { actionBinding = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-            .presentationDragIndicator(.visible)
         }
     }
 

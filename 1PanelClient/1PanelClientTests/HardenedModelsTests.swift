@@ -257,4 +257,34 @@ struct AlertStatusAndPanelSessionTests {
         let data = try JSONEncoder().encode(PanelTerminalSessionCloseRequest(id: "s-1"))
         #expect(String(decoding: data, as: UTF8.self) == #"{"id":"s-1"}"#)
     }
+
+    // MARK: - port 数字/字符串混型容错（decodeIntFlexible）
+
+    @Test("Website.port：字符串/数字两种形态均可解码")
+    func websitePortFlexible() throws {
+        let numeric = try JSONDecoder().decode(Website.self, from: Data(
+            #"{"id": 1, "primaryDomain": "a.com", "port": 9000}"#.utf8))
+        #expect(numeric.port == 9000)
+        let textual = try JSONDecoder().decode(Website.self, from: Data(
+            #"{"id": 2, "primaryDomain": "b.com", "port": "9000"}"#.utf8))
+        #expect(textual.port == 9000)
+        // 缺失 / null / 非数字串回退 nil，不抛错
+        let missing = try JSONDecoder().decode(Website.self, from: Data(
+            #"{"id": 3, "primaryDomain": "c.com"}"#.utf8))
+        #expect(missing.port == nil)
+        let invalid = try JSONDecoder().decode(Website.self, from: Data(
+            #"{"id": 4, "primaryDomain": "d.com", "port": "http"}"#.utf8))
+        #expect(invalid.port == nil)
+    }
+
+    @Test("SSHHostInfo.port：字符串/数字混型 + 其余字段缺失回退")
+    func sshHostPortFlexible() throws {
+        let numeric = try JSONDecoder().decode(SSHHostInfo.self, from: Data(
+            #"{"id": 1, "name": "web", "addr": "10.0.0.1", "port": 22}"#.utf8))
+        #expect(numeric.port == 22)
+        #expect(numeric.endpoint == "10.0.0.1:22")
+        let textual = try JSONDecoder().decode(SSHHostInfo.self, from: Data(
+            #"{"id": 2, "name": "db", "addr": "10.0.0.2", "port": "2222"}"#.utf8))
+        #expect(textual.port == 2222)
+    }
 }
