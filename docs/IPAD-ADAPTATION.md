@@ -1,5 +1,7 @@
 # 1PanelClient iPad 适配分析与实施计划
 
+> **状态（2026-10-25）**：✅ 已完成并持续生效——iPad 适配（compact/regular 双形态：侧栏 / 图标栏 / 底部 Tab、内容限宽、sheet 自适应）早已随 v0.1.11+ 上线，现状见 [README-CN.md](README-CN.md)「交互与体验」。本文保留作当时的分析与决策记录，后续 iPad 相关调整不再更新本文。
+>
 > 版本基线：v0.1.10（2026-08-22）· 依据 `Features/`、`PanelShared/`、`PanelWidgets/` 全量源码扫描
 >
 > 结论先行：**工程层已声明 iPad 支持（可直接安装），但代码层零适配，当前 iPad 上是"拉伸的 iPhone 单列 UI"**。总体改造量中等偏低（详见 §八），推荐"尺寸类双形态导航"路线：compact 维持现状，regular 引入侧栏 + 内容限宽。

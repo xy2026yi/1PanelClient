@@ -262,7 +262,7 @@ nonisolated struct WebsiteLbsDeleteRequest: Encodable {
 }
 
 
-// MARK: - PHP 运行环境切换（依据 doc/references/0919-修正1.md 抓包）
+// MARK: - PHP 运行环境切换（依据 docs/references/website-runtime-db-capture-2026-09.md 抓包）
 
 /// 运行环境列表查询（POST /runtimes/search {page,pageSize,type:"php"}）
 nonisolated struct RuntimeSearchRequest: Encodable {

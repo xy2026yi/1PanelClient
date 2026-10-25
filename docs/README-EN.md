@@ -22,6 +22,7 @@ Built natively with Swift + SwiftUI, it manages your servers remotely via the 1P
 - **Apps** — Installed app management (start/stop, restart, logs, uninstall, parameter rebuild), app store install, upgrades (line-level Compose diff adoption)
 - **AI** — Model accounts & model pool (multi-provider, availability check), agents (message channels, skill market, plugin market, multi-role, chat sessions), MCP Server, Ollama local models, vLLM instances, model downloader (HuggingFace / ModelScope)
 - **Websites** — Create wizard (one-click deploy / reverse proxy / static site), groups & batch ops, OpenResty management & Nginx config editing; details include HTTPS config, logs and full settings (domains, default docs, rate limiting, reverse proxy, load balancing, password access, CORS, real IP, rewrite, hotlink protection, redirects, PHP runtime, linked resources, basic info); website monitoring (QPS / visitor trends / request logs)
+- **Runtimes** — PHP / Node.js / Python / Go runtime management (Websites hub entry): create wizard / edit / start-stop / delete (linked-website check), build logs & container terminal; PHP config editor (php.ini params / disabled functions / upload limits), FPM performance tuning (concurrency presets), FPM status, slow log, php.ini / php-fpm.conf source editing, container config, extensions & extension templates, process supervisor; Node.js module management (install / update / uninstall)
 - **Certificates** — List & details (apply / upload / re-apply / download / delete / application logs), ACME accounts, DNS accounts, self-signed CA (create / issue)
 - **Databases** — MySQL / MariaDB / PostgreSQL / MongoDB / Redis instance management, database & user CRUD, connection info, password/permission changes, status & performance tuning, database terminal
 - **Containers** — Container list / create wizard / edit / upgrade / details / terminal / live monitoring; images (pull / update / tag / prune / registries), compose templates, networks, volumes, Docker daemon config
@@ -37,6 +38,7 @@ Built natively with Swift + SwiftUI, it manages your servers remotely via the 1P
 - Fail2ban (blocklists / config editing), FTP (account management), antivirus (ClamAV rules / reports), process supervisor, disk management (partition / mount), cache cleanup
 
 **Advanced**
+- KVM virtual machine management (1Panel Pro): VM create / power / edit / delete / convert-to-template, VNC console (in-house RFB over WebSocket: Tight / hextile / RAW decoding, touch & hardware-keyboard input), monitoring charts, snapshots, disk resize, ISO images (local upload / remote download), templates, networks (NAT / Bridge / Macvtap) & storage pools, orphaned-data cleanup
 - GPU monitoring, WAF (status / monitoring / blocklists & IP groups / per-site / global config), website monitoring, multi-node management (1Panel Pro; the whole app follows the current node)
 
 **Panel**
@@ -44,7 +46,7 @@ Built natively with Swift + SwiftUI, it manages your servers remotely via the 1P
 
 ### UX
 - Unified list interactions across the app: tap to open, long-press for the action menu (enable/disable, edit, delete, etc.)
-- Outlined-style form component system, instant EN/中文 switching, adaptive iPad layout (sidebar / icon bar / bottom tab)
+- Outlined-style form component system (pattern catalog: [UI组件形态手册.md](UI组件形态手册.md), Chinese), instant EN/中文 switching, adaptive iPad layout (sidebar / icon bar / bottom tab)
 
 ### Settings
 - Multi-server management (credentials stored in Keychain), connection testing, group management

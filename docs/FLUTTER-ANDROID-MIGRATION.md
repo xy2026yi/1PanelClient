@@ -2,6 +2,8 @@
 
 > 基于 v0.1.11（2026-08）源码盘点编写 · 盘点范围：`1PanelClient/`（App / PanelShared / PanelWidgets / Tests）
 >
+> **⚠️ 基线过期（2026-10-25 标注）**：盘点基线已落后多个版本——其后新增 KVM 虚拟机（含自研 VNC/RFB 客户端）、防火墙 v2.4 重构适配、运行环境模块、AI 系列（智能体 / MCP / vLLM / 下载器）、App Intents 等，工作量估算（下述 4–6 个月）已显著偏低，功能清单需按最新 [FEATURES.md](FEATURES.md) 重盘。方法与分层结论仍可参考。
+>
 > 结论先行：**这是一次「按既有设计重写」，不是逐行移植**。Swift 与 Dart 无法共享代码，但本项目的分层（PanelShared 核心层与 UI 解耦、模型层完备、外部依赖极少）对重写非常友好。总体难度 **中高（★★★☆）**，熟练 Flutter 单人预计 **4 ~ 6 个月**，双人 **2.5 ~ 3.5 个月**。
 
 ---
@@ -466,7 +468,7 @@ android/app/src/main/
 - [ ] 版本号策略对齐、发布渠道（GitHub Release + APK）
 - **验收：对外发布 v1.0**
 
-> 每阶段建议在 `doc/` 下追加一份 Flutter 版 FEATURES 勾选清单，用 iOS 版 `FEATURES.md` 做验收基线。
+> 每阶段建议在 `docs/` 下追加一份 Flutter 版 FEATURES 勾选清单，用 iOS 版 `FEATURES.md` 做验收基线。
 
 ---
 

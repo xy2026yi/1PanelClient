@@ -1,7 +1,7 @@
 # UI 设计规范
 
-> 阶段 0 产出，依据 `doc/UI一致化实施计划.md`。后续所有 UI 改动以此为依据；规范本身可通过 PR review 修订，修订后同步更新本文件版本号。
-> 2026-09-16 从 `archive/doc/` 移回 `doc/`（DesignTokens.swift / Haptic.swift 等源码一直引用本路径；archive/ 为 gitignore 的本地资料目录）。
+> 阶段 0 产出，依据 `UI一致化实施计划.md`（本地 archive 存档，未入库）。后续所有 UI 改动以此为依据；规范本身可通过 PR review 修订，修订后同步更新本文件版本号。
+> 2026-09-16 从 `archive/doc/` 移回版本库（现 `docs/`，2026-10 由 `doc/` 更名；archive/ 为 gitignore 的本地资料目录）。
 
 版本：v1.2（2026-10-25）——新增 §八 表单形态与分页条款（指向《UI组件形态手册》）；v1.1（2026-09-16）§一 补删除分层判定细则与批量强度规则；其余与 v1.0 一致。
 
@@ -112,7 +112,7 @@
 
 ## 七、图表
 
-- 统计图表主体已全部使用 Swift Charts（MonitorView / WebsiteMonitorViews / ContainerMonitorView / WAFMonitorViews）；`chartOverlay` 内的手势采样位吸附、数值气泡、自绘时间轴为官方推荐的交互扩展模式与硬需求（系统轴不支持段位居中），**不属于自绘图表，不迁移**。详见 `doc/图表迁移评估.md`。
+- 统计图表主体已全部使用 Swift Charts（MonitorView / WebsiteMonitorViews / ContainerMonitorView / WAFMonitorViews）；`chartOverlay` 内的手势采样位吸附、数值气泡、自绘时间轴为官方推荐的交互扩展模式与硬需求（系统轴不支持段位居中），**不属于自绘图表，不迁移**。详见 `图表迁移评估.md`（本地 archive 存档，未入库）。
 - 新增统计图表一律使用 Swift Charts；Gauge 类控件（RingStatView 进度环、微型指标条）保持 `Circle().trim` / Capsule 自绘。
 
 ## 八、表单形态与分页（v1.2）

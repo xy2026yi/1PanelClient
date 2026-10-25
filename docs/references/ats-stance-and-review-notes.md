@@ -1,7 +1,7 @@
 # ATS 立场与提审备注模板（审计项 E2）
 
 - 日期：2026-09-06
-- 关联：`doc/references/project-audit-report-2026-09.md` §6-E2；`1PanelClient/Info.plist`
+- 关联：`docs/references/project-audit-report-2026-09.md` §6-E2；`1PanelClient/Info.plist`
 - 用途：上架前的纯写作准备。当前分发以侧载为主，本文档在未来提审时直接取用，无需再考古。
 
 ## 一、ATS 立场
