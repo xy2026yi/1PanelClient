@@ -2,24 +2,26 @@
 //  RuntimeDetailView.swift
 //  1PanelClient
 //
-//  运行环境详情：基础信息、启停/编辑/删除、构建日志、容器终端，
-//  及类型专属入口（PHP 配置/扩展/进程守护，Node 模块管理）。
+//  运行环境详情：可折叠状态面板（启停/重启，容器详情同构）、基础信息、
+//  构建日志；⋯ 菜单承载 PHP 配置入口/终端/删除，Node 模块管理。
 //
 
 import SwiftUI
 
 struct RuntimeDetailView: View {
-    /// 列表传入的条目（列表数据刷新时父视图重建本页）
+    /// 进入时的快照；展示时优先用 refreshable 拉取的最新对象
     let entry: RuntimeEntry
     let server: ServerConfig
-    /// 复用列表 VM（删除流程/任务进度/刷新）
+    /// 复用列表 VM（删除流程/任务进度/操作）
     @ObservedObject var listVM: RuntimesViewModel
 
     @Environment(\.dismiss) private var dismiss
+    @State private var current: RuntimeEntry
+    @State private var isStatusExpanded = false
     @State private var showTerminal = false
-    @State private var showStatusDrawer = false
     /// ⋯ 菜单子页路由（PHP 各配置页）
     @State private var menuRoute: RuntimeMenuRoute?
+    @State private var isLoadingDetail = false
 
     private let client: APIClient
 
@@ -28,9 +30,19 @@ struct RuntimeDetailView: View {
         self.server = server
         self.listVM = listVM
         self.client = APIClient.shared(for: server)
+        _current = State(initialValue: entry)
     }
 
-    private var type: RuntimeType? { entry.runtimeType }
+    private var type: RuntimeType? { current.runtimeType }
+
+    private var statusText: String {
+        RuntimeStatusBadge.text(for: current.status)
+    }
+
+    /// 行级操作进行中（启停/重启；含过渡态）
+    private var isOperating: Bool {
+        listVM.operatingIDs.contains(current.id) || current.isTransitional || isLoadingDetail
+    }
 
     var body: some View {
         List {
@@ -40,14 +52,20 @@ struct RuntimeDetailView: View {
             if type == .node { nodeSection }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(entry.displayName)
+        .navigationTitle(current.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await reload() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     if type == .php { phpMenuItems }
+                    Button {
+                        showTerminal = true
+                    } label: {
+                        Label(L10n.t("终端"), systemImage: "terminal")
+                    }
                     Button(role: .destructive) {
-                        Task { await listVM.requestDelete(entry) }
+                        Task { await listVM.requestDelete(current) }
                     } label: {
                         Label(L10n.t("删除"), systemImage: "trash")
                     }
@@ -61,17 +79,15 @@ struct RuntimeDetailView: View {
                 TerminalScreen(
                     server: server,
                     target: .container(
-                        containerID: entry.containerName,
+                        containerID: current.containerName,
                         user: type?.terminalUser ?? "root",
                         command: "/bin/bash",
                         cols: 80, rows: 24
                     ),
-                    title: entry.displayName
+                    title: current.displayName
                 )
             }
         }
-        // 状态抽屉（启停/重启/终端；操作 toast 经列表 VM）
-        .sheet(isPresented: $showStatusDrawer) { statusDrawerSheet }
         .toastOverlay(message: $listVM.toastMessage)
         .navigationDestination(item: $menuRoute) { route in
             route.view.navigationTitle(route.title)
@@ -79,30 +95,20 @@ struct RuntimeDetailView: View {
         .sheet(item: $listVM.deleteTarget) { target in
             detailDeleteSheet(target)
         }
+        .task { await reload() }
     }
 
-    // MARK: - 状态抽屉（状态行点击展开：启停/重启/终端）
+    // MARK: - 可折叠状态面板（容器详情同构）
 
     private var statusSection: some View {
         Section {
-            Button {
-                showStatusDrawer = true
-            } label: {
-                HStack(spacing: 12) {
-                    RuntimeStatusBadge(status: entry.status)
-                    if listVM.operatingIDs.contains(entry.id) || entry.isTransitional {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .contentShape(Rectangle())
+            headerRow
+            if isStatusExpanded {
+                operationsRow
+                    .padding(.top, 4)
+                    .padding(.bottom, 2)
             }
-            .buttonStyle(.plain)
-            if let msg = entry.message, !msg.isEmpty {
+            if let msg = current.message, !msg.isEmpty {
                 Text(msg)
                     .font(.footnote)
                     .foregroundStyle(.red)
@@ -110,66 +116,113 @@ struct RuntimeDetailView: View {
         }
     }
 
-    /// 状态抽屉：状态标题 + 启停/重启/终端（操作反馈经列表 VM toast）
-    private var statusDrawerSheet: some View {
-        ActionBottomSheet(
-            title: L10n.f("状态：%@",
-                          RuntimeStatusBadge.text(for: entry.status)),
-            items: drawerItems,
-            onDismiss: { showStatusDrawer = false }
-        )
-        .presentationDetents([.medium])
+    @ViewBuilder
+    private var headerRow: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(current.displayName)
+                    .font(.body.bold())
+                    .lineLimit(1)
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            HStack(spacing: 4) {
+                StatusDot(color: RuntimeStatusBadge.color(for: current.status))
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                withAnimation(Motion.standard) {
+                    isStatusExpanded.toggle()
+                }
+            } label: {
+                Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .disabled(isOperating)
+        }
+        .padding(.vertical, 2)
     }
 
-    private var drawerItems: [ActionMenuItem] {
-        var items: [ActionMenuItem] = []
-        if entry.isRunning {
-            items.append(ActionMenuItem(title: L10n.t("停止"), icon: "stop") {
-                Task { await listVM.operate(entry, operate: "down") }
-            })
-            items.append(ActionMenuItem(title: L10n.t("重启"),
-                                        icon: "arrow.triangle.2.circlepath") {
-                Task { await listVM.operate(entry, operate: "restart") }
-            })
-        } else {
-            items.append(ActionMenuItem(title: L10n.t("启动"), icon: "play") {
-                Task { await listVM.operate(entry, operate: "up") }
-            })
+    /// 生命周期操作（容器详情同构：CardActionButton 一行；其余操作在 ⋯ 菜单）
+    private var operationsRow: some View {
+        HStack(spacing: 8) {
+            CardActionButton(
+                title: current.isRunning ? L10n.t("停止") : L10n.t("启动"),
+                icon: current.isRunning ? "stop.fill" : "play.fill",
+                color: current.isRunning ? .orange : .green,
+                busy: isOperating
+            ) {
+                Task {
+                    await listVM.operate(current, operate: current.isRunning ? "down" : "up")
+                    await reload()
+                }
+            }
+            CardActionButton(
+                title: L10n.t("重启"),
+                icon: "arrow.triangle.2.circlepath",
+                color: .blue,
+                busy: isOperating
+            ) {
+                Task {
+                    await listVM.operate(current, operate: "restart")
+                    await reload()
+                }
+            }
         }
-        items.append(ActionMenuItem(title: L10n.t("终端"), icon: "terminal") {
-            showTerminal = true
-        })
-        return items
+    }
+
+    /// 下拉/进页刷新单实例（编辑保存、启停后状态随刷新变化）
+    private func reload() async {
+        isLoadingDetail = true
+        defer { isLoadingDetail = false }
+        do {
+            let path = APIEndpoint.runtimesGet.path
+                .replacingOccurrences(of: ":id", with: String(current.id))
+            let resp: RuntimeEntry = try await client.send(
+                path: path, method: APIEndpoint.runtimesGet.method,
+                as: RuntimeEntry.self
+            )
+            current = resp
+        } catch {
+            // 静默失败：保留快照，列表下拉可整体重试
+        }
     }
 
     // MARK: - 基础信息
 
     private var infoSection: some View {
         Section(L10n.t("基础信息")) {
-            LabeledContent(L10n.t("类型"), value: type?.displayName ?? (entry.type ?? "—"))
-            if let version = entry.version, !version.isEmpty {
+            LabeledContent(L10n.t("类型"), value: type?.displayName ?? (current.type ?? "—"))
+            if let version = current.version, !version.isEmpty {
                 LabeledContent(L10n.t("版本"), value: version)
             }
-            if let port = entry.port, !port.isEmpty {
+            if let port = current.port, !port.isEmpty {
                 LabeledContent(L10n.t("端口"), value: port)
             }
-            LabeledContent(L10n.t("容器"), value: entry.containerName)
-            if let image = entry.image, !image.isEmpty {
+            LabeledContent(L10n.t("容器"), value: current.containerName)
+            if let image = current.image, !image.isEmpty {
                 LabeledContent(L10n.t("镜像"), value: image)
             }
-            if let dir = entry.codeDir, !dir.isEmpty {
+            if let dir = current.codeDir, !dir.isEmpty {
                 LabeledContent(L10n.t("运行目录"), value: dir)
             }
-            if let source = entry.source, !source.isEmpty {
+            if let source = current.source, !source.isEmpty {
                 LabeledContent(L10n.t("来源"), value: source)
             }
-            if let path = entry.path, !path.isEmpty {
+            if let path = current.path, !path.isEmpty {
                 LabeledContent(L10n.t("路径"), value: path)
             }
-            if let created = entry.createdAt, !created.isEmpty {
+            if let created = current.createdAt, !created.isEmpty {
                 LabeledContent(L10n.t("创建时间"), value: created.prefix(19).description)
             }
-            if let remark = entry.remark, !remark.isEmpty {
+            if let remark = current.remark, !remark.isEmpty {
                 LabeledContent(L10n.t("备注"), value: remark)
             }
         }
@@ -180,7 +233,7 @@ struct RuntimeDetailView: View {
     private var actionsSection: some View {
         Section(L10n.t("操作")) {
             NavigationLink {
-                RuntimeBuildLogView(entry: entry, client: client)
+                RuntimeBuildLogView(entry: current, client: client)
             } label: {
                 Label(L10n.t("构建日志"), systemImage: "doc.text")
             }
@@ -191,31 +244,31 @@ struct RuntimeDetailView: View {
 
     @ViewBuilder private var phpMenuItems: some View {
         menuLink(L10n.t("配置修改"), "slider.horizontal.3") {
-            RuntimePHPSettingsView(entry: entry, client: client)
+            RuntimePHPSettingsView(entry: current, client: client)
         }
         menuLink(L10n.t("性能调整"), "gauge") {
-            RuntimePHPFpmTuneView(entry: entry, client: client)
+            RuntimePHPFpmTuneView(entry: current, client: client)
         }
         menuLink(L10n.t("负载状态"), "chart.bar") {
-            RuntimeFPMStatusView(entry: entry, client: client)
+            RuntimeFPMStatusView(entry: current, client: client)
         }
         menuLink(L10n.t("慢日志"), "hourglass") {
-            RuntimeSlowLogView(entry: entry, client: client)
+            RuntimeSlowLogView(entry: current, client: client)
         }
         menuLink("php.ini", "doc.plaintext") {
-            RuntimePHPFileView(entry: entry, client: client, fileType: "php")
+            RuntimePHPFileView(entry: current, client: client, fileType: "php")
         }
         menuLink("php-fpm.conf", "doc.plaintext") {
-            RuntimePHPFileView(entry: entry, client: client, fileType: "fpm")
+            RuntimePHPFileView(entry: current, client: client, fileType: "fpm")
         }
         menuLink(L10n.t("容器配置"), "shippingbox") {
-            RuntimePHPContainerView(entry: entry, client: client)
+            RuntimePHPContainerView(entry: current, client: client)
         }
         menuLink(L10n.t("扩展"), "puzzlepiece") {
-            RuntimePHPExtensionsView(entry: entry, client: client)
+            RuntimePHPExtensionsView(entry: current, client: client)
         }
         menuLink(L10n.t("进程守护"), "gearshape.2") {
-            RuntimeSupervisorView(entry: entry, client: client)
+            RuntimeSupervisorView(entry: current, client: client)
         }
     }
 
@@ -234,107 +287,38 @@ struct RuntimeDetailView: View {
     private var nodeSection: some View {
         Section("Node.js") {
             NavigationLink {
-                RuntimeNodeModulesView(entry: entry, client: client)
+                RuntimeNodeModulesView(entry: current, client: client)
             } label: {
                 Label(L10n.t("模块管理"), systemImage: "cube")
             }
-            LabeledContent(L10n.t("包管理器"), value: entry.packageManager)
+            LabeledContent(L10n.t("包管理器"), value: current.packageManager)
         }
     }
 
-
-    // MARK: - 详情页删除（复用列表 VM 流程）
+    // MARK: - 删除（复用列表 VM 流程）
 
     private func detailDeleteSheet(_ target: RuntimeEntry) -> some View {
         TextInputConfirmSheet(
-            title: L10n.f("删除运行环境 %@", target.displayName),
+            title: L10n.t("删除运行环境"),
             message: deleteMessage(target),
-            expectedText: target.displayName,
-            confirmTitle: L10n.t("确认删除")
+            expectedText: target.displayName
         ) {
             await listVM.confirmDelete(target, force: false, deleteImage: false)
             await MainActor.run { if listVM.deleteTarget == nil { dismiss() } }
         }
-        .presentationDetents([.medium])
     }
 
     private func deleteMessage(_ target: RuntimeEntry) -> String {
         if listVM.deleteBlockers.isEmpty {
-            return L10n.t("删除后容器与配置将被移除，该操作无法回滚。输入名称确认删除。")
+            return L10n.f("将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。",
+                          target.displayName)
         }
         let names = listVM.deleteBlockers
             .map { "\($0.type ?? ""): \($0.name ?? "")" }
             .joined(separator: "、")
-        return L10n.f("以下资源仍在使用该运行环境：%@。删除后相关网站将不可用。输入名称确认删除。", names)
+        return L10n.f("以下资源仍在使用该运行环境：%@，删除后相关网站将不可用。请输入名称以确认删除。", names)
     }
 }
-
-// MARK: - 构建日志（/files/read/{type}，末尾追读）
-
-struct RuntimeBuildLogView: View {
-    let entry: RuntimeEntry
-    let client: APIClient
-
-    @State private var lines: [String] = []
-    @State private var logPath = ""
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 4) {
-                if isLoading && lines.isEmpty {
-                    LoadingStateView(compact: true)
-                        .padding(.vertical, 30)
-                } else if let err = errorMessage {
-                    Text(err)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .padding()
-                } else if lines.isEmpty {
-                    Text(L10n.t("暂无日志"))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 30)
-                        .frame(maxWidth: .infinity)
-                }
-                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                    Text(line.isEmpty ? " " : line)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                }
-            }
-            .padding()
-        }
-        .navigationTitle(L10n.t("构建日志"))
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-        .refreshable { await load() }
-    }
-
-    private func load() async {
-        isLoading = lines.isEmpty
-        errorMessage = nil
-        defer { isLoading = false }
-        do {
-            let resp: RuntimeLogReadResponse = try await client.send(
-                path: APIEndpoint.runtimesBuildLog.path
-                    .replacingOccurrences(of: ":type", with: entry.type ?? "php"),
-                body: RuntimeLogReadRequest(id: entry.id, type: entry.type ?? "php"),
-                as: RuntimeLogReadResponse.self
-            )
-            lines = resp.lines ?? []
-            logPath = resp.path ?? ""
-        } catch {
-            if !APIError.isCancellation(error) {
-                errorMessage = error.localizedDescription
-            }
-        }
-    }
-}
-
 
 // MARK: - 菜单子页路由
 
@@ -350,5 +334,71 @@ struct RuntimeMenuRoute: Identifiable, Hashable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(title)
+    }
+}
+
+// MARK: - 构建日志（/files/read/{type}，末尾追读）
+
+struct RuntimeBuildLogView: View {
+    let entry: RuntimeEntry
+    let client: APIClient
+
+    @State private var lines: [String] = []
+    @State private var errorMessage: String?
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 4) {
+                if isLoading && lines.isEmpty {
+                    LoadingStateView(compact: true)
+                        .padding(.vertical, 30)
+                } else if let err = errorMessage {
+                    Text(err)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .padding()
+                } else if lines.isEmpty {
+                    ContentUnavailableView(
+                        L10n.t("暂无日志"),
+                        systemImage: "doc.text",
+                        description: Text(L10n.t("创建或编辑重建后产生构建日志"))
+                    )
+                    .padding(.vertical, 30)
+                }
+                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                    Text(line.isEmpty ? " " : line)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+            }
+            .padding()
+        }
+        .navigationTitle(L10n.t("构建日志"))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    @State private var isLoading = false
+
+    private func load() async {
+        isLoading = lines.isEmpty
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            let resp: RuntimeLogReadResponse = try await client.send(
+                path: APIEndpoint.runtimesBuildLog.path
+                    .replacingOccurrences(of: ":type", with: entry.type ?? "php"),
+                body: RuntimeLogReadRequest(id: entry.id, type: entry.type ?? "php"),
+                as: RuntimeLogReadResponse.self
+            )
+            lines = resp.lines ?? []
+        } catch {
+            if !APIError.isCancellation(error) {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 }

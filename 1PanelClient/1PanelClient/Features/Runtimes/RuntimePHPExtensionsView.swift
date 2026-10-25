@@ -75,7 +75,7 @@ struct RuntimePHPExtensionsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                FlowLayout(spacing: 6) {
+                FlowLayout(spacing: 8) {
                     ForEach(loaded, id: \.self) { name in
                         StatusBadge(text: name, color: .secondary)
                     }
@@ -100,7 +100,7 @@ struct RuntimePHPExtensionsView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ext.displayName)
-                            .font(.body.monospaced())
+                            .font(.system(.body, design: .monospaced))
                         if let desc = ext.description, !desc.isEmpty {
                             Text(desc)
                                 .font(.caption)
@@ -183,6 +183,8 @@ struct RuntimePHPTemplatesView: View {
     @State private var editingTemplate: RuntimePHPTemplate?
     @State private var showCreate = false
     @State private var deleteTarget: RuntimePHPTemplate?
+    /// 模版行长按菜单目标（编辑/删除）
+    @State private var actionTpl: RuntimePHPTemplate?
 
     var body: some View {
         List {
@@ -203,31 +205,18 @@ struct RuntimePHPTemplatesView: View {
             } else {
                 Section {
                     ForEach(templates) { tpl in
-                        Button {
-                            editingTemplate = tpl
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(tpl.displayName)
-                                    .font(.body.bold())
-                                    .foregroundStyle(.primary)
-                                Text(tpl.extensions ?? "")
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
-                            }
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(tpl.displayName)
+                                .font(.body.bold())
+                            Text(tpl.extensions ?? "")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
                         }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                deleteTarget = tpl
-                            } label: {
-                                Label(L10n.t("删除"), systemImage: "trash")
-                            }
-                            Button {
-                                editingTemplate = tpl
-                            } label: {
-                                Label(L10n.t("编辑"), systemImage: "pencil")
-                            }
-                        }
+                        .rowTapAndLongPress(
+                            onTap: { editingTemplate = tpl },
+                            onLongPress: { actionTpl = tpl }
+                        )
                     }
                 }
             }
@@ -251,6 +240,23 @@ struct RuntimePHPTemplatesView: View {
             RuntimeTemplateEditSheet(client: client, template: tpl) {
                 Task { await load() }
             }
+        }
+        .sheet(item: $actionTpl) { tpl in
+            ActionBottomSheet(
+                title: tpl.displayName,
+                items: [
+                    ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
+                        editingTemplate = tpl
+                    },
+                    ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                   color: .red, role: .destructive) {
+                        deleteTarget = tpl
+                    },
+                ],
+                onDismiss: { actionTpl = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
+            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("删除扩展模版"), isPresented: Binding(
             get: { deleteTarget != nil },
@@ -349,6 +355,7 @@ struct RuntimeTemplateEditSheet: View {
             }
             .toastOverlay(message: $toast)
         }
+        .bottomSheetDetents([.medium])
     }
 
     private func save() async {

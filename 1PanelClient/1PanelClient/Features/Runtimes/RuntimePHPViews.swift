@@ -164,7 +164,7 @@ struct RuntimePHPSettingsView: View {
             } else {
                 ForEach(disableFunctions, id: \.self) { fn in
                     HStack {
-                        Text(fn).font(.body.monospaced())
+                        Text(fn).font(.system(.body, design: .monospaced))
                         Spacer()
                         Button {
                             disableFunctions.removeAll { $0 == fn }
@@ -423,7 +423,7 @@ struct RuntimeFPMStatusView: View {
                 ForEach(items) { item in
                     LabeledContent(item.key ?? "—",
                                    value: item.value?.stringValue ?? "—")
-                        .font(.subheadline.monospaced())
+                        .font(.system(.subheadline, design: .monospaced))
                 }
             }
         }
@@ -602,7 +602,7 @@ struct RuntimePHPFileView: View {
         Group {
             if !filePath.isEmpty {
                 Text(filePath)
-                    .font(.caption.monospaced())
+                    .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 4)

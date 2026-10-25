@@ -146,7 +146,7 @@ struct RuntimeFormView: View {
                 if isSubmitting {
                     ProgressView()
                 } else {
-                    Button(L10n.t("确认")) { Task { await submit() } }
+                    Button(isEdit ? L10n.t("保存") : L10n.t("创建")) { Task { await submit() } }
                         .disabled(!canSubmit)
                 }
             }

@@ -14,6 +14,10 @@ struct RuntimesView: View {
     @StateObject private var vm: RuntimesViewModel
     @State private var showCreate = false
     @State private var editTarget: RuntimeEntry?
+    /// 行长按菜单目标（启停/重启/编辑/删除；点击行仍直进详情）
+    @State private var actionTarget: RuntimeEntry?
+    /// 详情路由（rowTapAndLongPress 编程式推入，NavigationLink 会吞长按）
+    @State private var route: RuntimeRoute?
 
     init(server: ServerConfig) {
         self.server = server
@@ -65,6 +69,20 @@ struct RuntimesView: View {
         }
         .navigationDestination(item: $editTarget) { entry in
             RuntimeFormView(mode: .edit(entry), initialType: nil, server: server, listVM: vm)
+        }
+        .navigationDestination(item: $route) { r in
+            if case .detail(let entry) = r {
+                RuntimeDetailView(entry: entry, server: server, listVM: vm)
+            }
+        }
+        .sheet(item: $actionTarget) { entry in
+            ActionBottomSheet(
+                title: entry.displayName,
+                items: actionItems(entry),
+                onDismiss: { actionTarget = nil }
+            )
+            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(entry).count))])
+            .presentationDragIndicator(.visible)
         }
         .navigationDestination(item: $vm.activeTask) { target in
             TaskProgressView(taskID: target.taskID, title: target.title, node: "local") { isDone in
@@ -118,95 +136,55 @@ struct RuntimesView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(vm.runtimes) { entry in
-                    NavigationLink {
-                        RuntimeDetailView(entry: entry, server: server, listVM: vm)
-                    } label: {
-                        RuntimeListRow(entry: entry,
-                                       isOperating: vm.operatingIDs.contains(entry.id))
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        rowActions(entry)
-                    }
-                    .contextMenu {
-                        rowMenuItems(entry)
-                    }
-                    .onAppear {
-                        if entry.id == vm.runtimes.last?.id {
-                            Task { await vm.loadMore() }
+                    RuntimeListRow(entry: entry,
+                                   isOperating: vm.operatingIDs.contains(entry.id))
+                        .rowTapAndLongPress(
+                            onTap: { route = .detail(entry) },
+                            onLongPress: { actionTarget = entry }
+                        )
+                        .onAppear {
+                            if entry.id == vm.runtimes.last?.id {
+                                Task { await vm.loadMore() }
+                            }
                         }
-                    }
                 }
             }
         }
     }
 
-    @ViewBuilder
-    private func rowActions(_ entry: RuntimeEntry) -> some View {
-        Button(role: .destructive) {
-            Task { await vm.requestDelete(entry) }
-        } label: {
-            Label(L10n.t("删除"), systemImage: "trash")
-        }
+    /// 长按菜单项（启停/重启/编辑/删除；与 KVM/数据库行同款）
+    private func actionItems(_ entry: RuntimeEntry) -> [ActionMenuItem] {
+        var items: [ActionMenuItem] = []
         if entry.isRunning {
-            Button {
+            items.append(ActionMenuItem(title: L10n.t("停止"), icon: "stop") {
                 Task { await vm.operate(entry, operate: "down") }
-            } label: {
-                Label(L10n.t("停止"), systemImage: "stop")
-            }
-            Button {
+            })
+            items.append(ActionMenuItem(title: L10n.t("重启"),
+                                        icon: "arrow.triangle.2.circlepath") {
                 Task { await vm.operate(entry, operate: "restart") }
-            } label: {
-                Label(L10n.t("重启"), systemImage: "arrow.triangle.2.circlepath")
-            }
+            })
         } else {
-            Button {
+            items.append(ActionMenuItem(title: L10n.t("启动"), icon: "play") {
                 Task { await vm.operate(entry, operate: "up") }
-            } label: {
-                Label(L10n.t("启动"), systemImage: "play")
-            }
+            })
         }
-    }
-
-    @ViewBuilder
-    private func rowMenuItems(_ entry: RuntimeEntry) -> some View {
-        if entry.isRunning {
-            Button {
-                Task { await vm.operate(entry, operate: "down") }
-            } label: {
-                Label(L10n.t("停止"), systemImage: "stop")
-            }
-            Button {
-                Task { await vm.operate(entry, operate: "restart") }
-            } label: {
-                Label(L10n.t("重启"), systemImage: "arrow.triangle.2.circlepath")
-            }
-        } else {
-            Button {
-                Task { await vm.operate(entry, operate: "up") }
-            } label: {
-                Label(L10n.t("启动"), systemImage: "play")
-            }
-        }
-        Button {
+        items.append(ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
             editTarget = entry
-        } label: {
-            Label(L10n.t("编辑"), systemImage: "pencil")
-        }
-        Button(role: .destructive) {
+        })
+        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                    color: .red, role: .destructive) {
             Task { await vm.requestDelete(entry) }
-        } label: {
-            Label(L10n.t("删除"), systemImage: "trash")
-        }
+        })
+        return items
     }
 
     // MARK: - 删除确认（含关联资源提示）
 
     private func deleteConfirmSheet(_ entry: RuntimeEntry) -> some View {
         TextInputConfirmSheet(
-            title: L10n.f("删除运行环境 %@", entry.displayName),
+            title: L10n.t("删除运行环境"),
             message: deleteConfirmMessage(entry),
-            expectedText: entry.displayName,
-            confirmTitle: L10n.t("确认删除")
+            expectedText: entry.displayName
         ) {
             await vm.confirmDelete(entry, force: false, deleteImage: false)
         } options: {
@@ -219,17 +197,17 @@ struct RuntimesView: View {
                 }
             }
         }
-        .presentationDetents([.medium])
     }
 
     private func deleteConfirmMessage(_ entry: RuntimeEntry) -> String {
         if vm.deleteBlockers.isEmpty {
-            return L10n.t("删除后容器与配置将被移除，该操作无法回滚。输入名称确认删除。")
+            return L10n.f("将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。",
+                          entry.displayName)
         }
         let names = vm.deleteBlockers
             .map { "\($0.type ?? ""): \($0.name ?? "")" }
             .joined(separator: "、")
-        return L10n.f("以下资源仍在使用该运行环境：%@。删除后相关网站将不可用。输入名称确认删除。", names)
+        return L10n.f("以下资源仍在使用该运行环境：%@，删除后相关网站将不可用。请输入名称以确认删除。", names)
     }
 }
 
@@ -244,7 +222,7 @@ struct RuntimeListRow: View {
             IconBadge(systemName: typeIcon, color: typeColor)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(entry.displayName)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -253,7 +231,7 @@ struct RuntimeListRow: View {
                             .scaleEffect(0.7)
                     }
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(entry.runtimeType?.displayName ?? (entry.type ?? "—"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -343,4 +321,12 @@ struct RuntimeStatusBadge: View {
         default: return .blue
         }
     }
+}
+
+
+// MARK: - 详情路由
+
+/// 列表行点击 → 详情（编程式推入，配合 rowTapAndLongPress）
+enum RuntimeRoute: Hashable {
+    case detail(RuntimeEntry)
 }

@@ -107,7 +107,7 @@ struct RuntimeSupervisorView: View {
 
     private func processCard(_ proc: RuntimeSupervisorProcess) -> some View {
         Group {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(proc.displayName)
                         .font(.body.bold())
@@ -117,10 +117,10 @@ struct RuntimeSupervisorView: View {
                     Spacer()
                 }
                 Text(proc.command ?? "—")
-                    .font(.caption.monospaced())
+                    .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     if let user = proc.user, !user.isEmpty {
                         Label(user, systemImage: "person")
                     }
@@ -140,7 +140,7 @@ struct RuntimeSupervisorView: View {
                                 .font(.caption2)
                                 .foregroundStyle(sub.isRunning ? Color.green : Color.secondary)
                             Text(sub.name ?? "—")
-                                .font(.caption.monospaced())
+                                .font(.system(.caption, design: .monospaced))
                             Spacer()
                             if let pid = sub.PID { Text("PID \(pid)").font(.caption2) }
                             if let up = sub.uptime, !up.isEmpty {
@@ -256,6 +256,7 @@ struct RuntimeSupervisorCreateSheet: View {
             .onAppear { prefill() }
             .toastOverlay(message: $toast)
         }
+        .bottomSheetDetents([.medium, .large])
     }
 
     private func prefill() {

@@ -41,9 +41,9 @@ struct RuntimeNodeModulesView: View {
                     ForEach(modules) { mod in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
+                                HStack(spacing: 8) {
                                     Text(mod.displayName)
-                                        .font(.body.monospaced())
+                                        .font(.system(.body, design: .monospaced))
                                     if let v = mod.version, !v.isEmpty {
                                         Text("v\(v)")
                                             .font(.caption)

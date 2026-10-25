@@ -5576,13 +5576,13 @@
         }
       }
     },
-    "以下资源仍在使用该运行环境：%@。删除后相关网站将不可用。输入名称确认删除。" : {
+    "以下资源仍在使用该运行环境：%@，删除后相关网站将不可用。请输入名称以确认删除。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "These resources still depend on this runtime: %@. Related websites will stop working after deletion. Type the name to confirm."
+            "value" : "These resources still depend on this runtime: %@. Related websites will stop working. Type the name to confirm."
           }
         }
       }
@@ -8645,6 +8645,17 @@
         }
       }
     },
+    "创建或编辑重建后产生构建日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build logs appear after creating or rebuilding"
+          }
+        }
+      }
+    },
     "创建数据库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9283,17 +9294,6 @@
         }
       }
     },
-    "删除后容器与配置将被移除，该操作无法回滚。输入名称确认删除。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The container and its configuration will be removed. This cannot be undone. Type the name to confirm."
-          }
-        }
-      }
-    },
     "删除后将从多机管理中移除该节点，此操作不可恢复。请输入节点名称「%@」以确认删除。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9818,6 +9818,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Account"
+          }
+        }
+      }
+    },
+    "删除运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Runtime"
           }
         }
       }
@@ -15769,6 +15780,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes VM \"%@\" and its disk files and cannot be undone. Type the virtual machine name to confirm."
+          }
+        }
+      }
+    },
+    "将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete runtime \"%@\" with its container and configuration. This cannot be undone. Type the name to confirm."
           }
         }
       }
@@ -23627,6 +23649,17 @@
         }
       }
     },
+    "暂无慢请求记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No slow requests recorded"
+          }
+        }
+      }
+    },
     "暂无执行记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28969,17 +29002,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Status Details"
-          }
-        }
-      }
-    },
-    "状态：%@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Status: %@"
           }
         }
       }
@@ -37542,6 +37564,17 @@
         }
       }
     },
+    "运行环境未运行或未开启状态页" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runtime is not running or the status page is disabled"
+          }
+        }
+      }
+    },
     "运行目录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37923,17 +37956,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Process Policy"
-          }
-        }
-      }
-    },
-    "进行中…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In progress…"
           }
         }
       }
