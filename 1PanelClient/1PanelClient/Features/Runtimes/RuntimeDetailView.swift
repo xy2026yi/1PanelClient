@@ -46,6 +46,9 @@ struct RuntimeDetailView: View {
         listVM.operatingIDs.contains(current.id) || current.isTransitional || isLoadingDetail
     }
 
+    /// 未运行（已停止/过渡态）：终端与 PHP 配置入口不可用（面板同口径）
+    private var isStopped: Bool { !current.isRunning }
+
     var body: some View {
         List {
             statusSection
@@ -176,7 +179,8 @@ struct RuntimeDetailView: View {
                 title: L10n.t("终端"),
                 icon: "terminal",
                 color: .accentColor,
-                busy: isOperating
+                busy: isOperating,
+                disabled: isStopped
             ) {
                 showTerminal = true
             }
@@ -267,39 +271,39 @@ struct RuntimeDetailView: View {
         var entries: [EllipsisMenuEntry] = []
         if type == .php {
             entries.append(contentsOf: [
-                .action(title: L10n.t("配置修改"), icon: "slider.horizontal.3") {
+                .action(title: L10n.t("配置修改"), icon: "slider.horizontal.3", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: L10n.t("配置修改"),
                         view: AnyView(RuntimePHPSettingsView(entry: current, client: client)))
                 },
-                .action(title: L10n.t("性能调整"), icon: "gauge") {
+                .action(title: L10n.t("性能调整"), icon: "gauge", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: L10n.t("性能调整"),
                         view: AnyView(RuntimePHPFpmTuneView(entry: current, client: client)))
                 },
-                .action(title: L10n.t("负载状态"), icon: "chart.bar") {
+                .action(title: L10n.t("负载状态"), icon: "chart.bar", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: L10n.t("负载状态"),
                         view: AnyView(RuntimeFPMStatusView(entry: current, client: client)))
                 },
-                .action(title: L10n.t("慢日志"), icon: "hourglass") {
+                .action(title: L10n.t("慢日志"), icon: "hourglass", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: L10n.t("慢日志"),
                         view: AnyView(RuntimeSlowLogView(entry: current, client: client)))
                 },
-                .action(title: "php.ini", icon: "doc.plaintext") {
+                .action(title: "php.ini", icon: "doc.plaintext", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: "php.ini",
                         view: AnyView(RuntimePHPFileView(entry: current, client: client, fileType: "php")))
                 },
-                .action(title: "php-fpm.conf", icon: "doc.plaintext") {
+                .action(title: "php-fpm.conf", icon: "doc.plaintext", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: "php-fpm.conf",
                         view: AnyView(RuntimePHPFileView(entry: current, client: client, fileType: "fpm")))
                 },
-                .action(title: L10n.t("容器配置"), icon: "shippingbox") {
+                .action(title: L10n.t("容器配置"), icon: "shippingbox", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: L10n.t("容器配置"),
                         view: AnyView(RuntimePHPContainerView(entry: current, client: client)))
                 },
-                .action(title: L10n.t("扩展"), icon: "puzzlepiece") {
+                .action(title: L10n.t("扩展"), icon: "puzzlepiece", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: L10n.t("扩展"),
                         view: AnyView(RuntimePHPExtensionsView(entry: current, client: client)))
                 },
-                .action(title: L10n.t("进程守护"), icon: "gearshape.2") {
+                .action(title: L10n.t("进程守护"), icon: "gearshape.2", isDisabled: isStopped) {
                     menuRoute = RuntimeMenuRoute(title: L10n.t("进程守护"),
                         view: AnyView(RuntimeSupervisorView(entry: current, client: client)))
                 },
