@@ -149,7 +149,8 @@ struct WebsitesTab: View {
             CreateWebsiteTypeSheet { type in
                 pendingCreateType = type
             }
-            .bottomSheetDetents([.height(280)])
+            // .large 兜底档：spacing 增大后内容可能超出 280，允许上拉看全
+            .bottomSheetDetents([.height(280), .large])
             .presentationDragIndicator(.visible)
         }
         // sheet 关闭转场后再 push 向导，避免并发动画被丢弃
