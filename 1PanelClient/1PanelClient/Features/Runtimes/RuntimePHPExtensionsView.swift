@@ -233,6 +233,8 @@ struct RuntimePHPTemplatesView: View {
                                 .foregroundStyle(.secondary)
                                 .lineLimit(2)
                         }
+                        // 占满整行：手势区只有内容宽度时长按行尾空白无响应
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .rowTapAndLongPress(
                             onTap: { editingTemplate = tpl },
                             onLongPress: { actionTpl = tpl }

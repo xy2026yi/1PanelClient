@@ -67,6 +67,8 @@ struct RuntimeFormView: View {
     @State private var appDetailID = 0
     @State private var dynFields: [RuntimeDynField] = []
     @State private var fieldValues: [String: String] = [:]
+    // PHP 动态字段 + 扩展源
+    @State private var packageSource = ""
     @State private var extensionSelection: [String] = []
 
     // 扩展模版（PHP）
@@ -346,13 +348,20 @@ struct RuntimeFormView: View {
 
     private var phpSection: some View {
         Section("PHP") {
+            // 扩展源（7 项硬编码，选中同步 params.CONTAINER_PACKAGE_URL 与顶层 source）
+            OutlinedPicker(label: L10n.t("扩展源"),
+                           options: packageSources.map(\.url),
+                           selection: packageSourceBinding,
+                           optionLabels: Dictionary(uniqueKeysWithValues:
+                               packageSources.map { ($0.url, $0.label) }))
             // 扩展模版（可选；带入后仍可增删）
             if !templates.isEmpty {
                 OutlinedPicker(label: L10n.t("扩展模版"),
                                options: [L10n.t("不使用")] + templates.map(\.displayName),
                                selection: templateSelectionBinding)
             }
-            ForEach(dynFields) { field in
+            // CONTAINER_PACKAGE_URL 由上方专属「扩展源」Picker 承担（接口 values 仅默认 1 项）
+            ForEach(dynFields.filter { $0.key != "CONTAINER_PACKAGE_URL" }) { field in
                 if field.multiple {
                     // PHP_EXTENSIONS 多选
                     Button {
@@ -419,6 +428,26 @@ struct RuntimeFormView: View {
 
     private var phpExtensionOptions: [String] {
         (dynFields.first(where: \.multiple)?.options.map(\.value)) ?? []
+    }
+
+    /// PHP 扩展源（形态 3）。面板 Web 前端硬编码 7 项（接口 formFields 的 values 仅下发
+    /// 默认项 1 条）；选中值写入 params.CONTAINER_PACKAGE_URL 并同步顶层 source——
+    /// PHP 创建 source 为空服务端 500（抓包 L88/L354/L363）
+    private let packageSources: [(label: String, url: String)] = [
+        ("清华大学", "https://mirrors.tuna.tsinghua.edu.cn"),
+        ("中科大", "https://mirrors.ustc.edu.cn"),
+        ("网易", "https://mirrors.163.com"),
+        ("阿里云", "https://mirrors.aliyun.com"),
+        ("XTOM 镜像站(香港)", "https://mirrors.xtom.com.hk"),
+        ("XTOM 镜像站(全球)", "https://mirrors.xtom.com"),
+        ("默认", "https://deb.debian.org"),
+    ]
+
+    private var packageSourceBinding: Binding<String> {
+        Binding(
+            get: { packageSource },
+            set: { packageSource = $0 }
+        )
     }
 
     // MARK: - Node / Python / Go 脚本区
@@ -580,6 +609,10 @@ struct RuntimeFormView: View {
                     fieldValues[key] = v.stringValue
                 }
             }
+            // 扩展源：params.CONTAINER_PACKAGE_URL 优先，缺省用清华源
+            packageSource = entry.params?["CONTAINER_PACKAGE_URL"]?.stringValue.isEmpty == false
+                ? entry.params!["CONTAINER_PACKAGE_URL"]!.stringValue
+                : "https://mirrors.tuna.tsinghua.edu.cn"
             // 高级数组回填（编辑态）
             exposedPorts = (entry.exposedPorts ?? []).map {
                 RuntimePortRow(hostPort: String($0.hostPort),
@@ -603,6 +636,7 @@ struct RuntimeFormView: View {
             selectedType = initialType ?? .php
             portText = String(defaultPort)
             if selectedType == .node { source = npmSourceValues[0] }
+            if selectedType == .php { packageSource = "https://mirrors.tuna.tsinghua.edu.cn" }
             await loadAppMeta()
             await loadTemplates()
         }
@@ -769,10 +803,23 @@ struct RuntimeFormView: View {
         switch selectedType {
         case .php:
             for f in dynFields where !f.multiple {
-                params[f.key] = .string(fieldValues[f.key] ?? f.defaultValue ?? "")
+                let v = fieldValues[f.key] ?? f.defaultValue ?? ""
+                // 面板创建体口径：数字字段（PANEL_APP_PORT_HTTP）发数字而非字符串
+                if let n = Int(v), f.key == "PANEL_APP_PORT_HTTP" {
+                    params[f.key] = .int(n)
+                } else {
+                    params[f.key] = .string(v)
+                }
             }
             if let extField = dynFields.first(where: \.multiple) {
                 params[extField.key] = .array(extensionSelection)
+            }
+            // 扩展源：params 与顶层 source 同口径（source 空 → 服务端 500）
+            params["CONTAINER_PACKAGE_URL"] = .string(packageSource)
+            // 面板创建体会带的固定默认（formFields 无此键，服务端有同名默认，补齐对齐）
+            if params["TZ"] == nil { params["TZ"] = .string(TimeZone.current.identifier) }
+            if params["PANEL_WEBSITE_DIR"] == nil {
+                params["PANEL_WEBSITE_DIR"] = .string("/opt/1panel/www")
             }
         case .node:
             params["PACKAGE_MANAGER"] = .string(packageManager)
@@ -788,6 +835,8 @@ struct RuntimeFormView: View {
         let phpImage = isPHP
             ? "1panel-php-fpm:\(fieldValues["PHP_VERSION"] ?? dynFields.first(where: { $0.key == "PHP_VERSION" })?.defaultValue ?? "")"
             : ""
+        // 顶层 source：PHP = 扩展源；Node/Python/Go = 各自镜像源状态
+        let requestSource = isPHP ? packageSource : source
 
         // PHP 无容器高级配置：抓包口径仅携带 environments 空数组，四组数组仅非 PHP
         let exposed: [RuntimeExposedPort]? = isPHP ? nil : activePorts.filter { !$0.isBlank }.map {
@@ -812,7 +861,7 @@ struct RuntimeFormView: View {
                 id: entry.id, name: name, appDetailID: appDetailID,
                 image: phpImage.isEmpty ? (entry.image ?? "") : phpImage,
                 params: params, type: selectedType.searchKey,
-                codeDir: codeDir, port: port, source: source,
+                codeDir: codeDir, port: port, source: requestSource,
                 exposedPorts: exposed, environments: envs, volumes: vols, extraHosts: hosts,
                 remark: remark, appID: appID, version: selectedVersion
             )
@@ -839,7 +888,7 @@ struct RuntimeFormView: View {
                 name: name, appDetailID: appDetailID, image: phpImage, params: params,
                 type: selectedType.searchKey,
                 install: selectedType == .node ? installDeps : nil,
-                codeDir: codeDir, port: port, source: source,
+                codeDir: codeDir, port: port, source: requestSource,
                 exposedPorts: exposed, environments: envs, volumes: vols, extraHosts: hosts,
                 remark: remark, appID: appID, version: selectedVersion,
                 taskID: UUID().uuidString.lowercased()

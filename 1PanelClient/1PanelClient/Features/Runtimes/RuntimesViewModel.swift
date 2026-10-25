@@ -19,16 +19,15 @@ struct RuntimeTaskTarget: Identifiable, Hashable {
 @MainActor
 final class RuntimesViewModel: ObservableObject {
 
-    // MARK: - 分段（全部 + 四类型）
+    // MARK: - 分段（四类型）
 
     enum Segment: String, CaseIterable, Identifiable {
-        case all, php, node, python, go
+        case php, node, python, go
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
-            case .all: return L10n.t("全部")
             case .php: return "PHP"
             case .node: return "Node.js"
             case .python: return "Python"
@@ -36,10 +35,9 @@ final class RuntimesViewModel: ObservableObject {
             }
         }
 
-        /// search 请求的 type 值（全部传空串）
+        /// search 请求的 type 值
         var searchType: String {
             switch self {
-            case .all: return ""
             case .php: return RuntimeType.php.searchKey
             case .node: return RuntimeType.node.searchKey
             case .python: return RuntimeType.python.searchKey
@@ -50,7 +48,7 @@ final class RuntimesViewModel: ObservableObject {
 
     // MARK: - 状态
 
-    @Published var segment: Segment = .all {
+    @Published var segment: Segment = .php {
         didSet { if oldValue != segment { Task { await load() } }
         }
     }
@@ -89,7 +87,9 @@ final class RuntimesViewModel: ObservableObject {
 
     // MARK: - 查询
 
-    func load() async {
+    /// - Parameter animate: 轮询/后台刷新传 false——列表结构 diff 禁用隐式动画，
+    ///   避免 push 转场/工具栏菜单打开期间叠加复合动画（iOS 26 layer decomposition 警告）
+    func load(animate: Bool = true) async {
         loadGeneration += 1
         let gen = loadGeneration
         page = 1
@@ -101,7 +101,13 @@ final class RuntimesViewModel: ObservableObject {
                 path: APIEndpoint.runtimesSearch.path, body: req, as: RuntimeListResponse.self
             )
             guard gen == loadGeneration else { return }
-            runtimes = resp.items ?? []
+            if animate {
+                runtimes = resp.items ?? []
+            } else {
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) { runtimes = resp.items ?? [] }
+            }
             total = resp.total
         } catch {
             guard gen == loadGeneration, !APIError.isCancellation(error) else { return }
