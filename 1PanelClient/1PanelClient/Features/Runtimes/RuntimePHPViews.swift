@@ -257,10 +257,19 @@ struct RuntimePHPSettingsView: View {
                 OutlinedTextField(label: L10n.t("添加函数"), prompt: "exec",
                                   text: $newFunction)
                 Button(L10n.t("添加")) {
-                    let fn = newFunction.trimmingCharacters(in: .whitespaces)
-                    guard !fn.isEmpty, !disableFunctions.contains(fn), !isSavingFunctions else { return }
+                    // 输入可逗号分隔多个（对齐网页端口径）：bash,exec → 两个函数
+                    let parts = newFunction
+                        .split(separator: ",")
+                        .map { $0.trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+                    guard !parts.isEmpty, !isSavingFunctions else { return }
+                    let deduped = parts.filter { !disableFunctions.contains($0) }
+                    guard !deduped.isEmpty else {
+                        newFunction = ""
+                        return
+                    }
                     pendingSave = PendingRestartSave(title: L10n.t("配置修改")) {
-                        disableFunctions.append(fn)
+                        disableFunctions.append(contentsOf: deduped)
                         newFunction = ""
                         Task { await saveDisableFunctions() }
                     }
@@ -485,8 +494,8 @@ struct RuntimePHPFpmTuneView: View {
     }
 
     private func save() {
-        guard let mc = Int(maxChildren), let ss = Int(startServers),
-              let mn = Int(minSpare), let mx = Int(maxSpare) else {
+        guard Int(maxChildren) != nil, Int(startServers) != nil,
+              Int(minSpare) != nil, Int(maxSpare) != nil else {
             toast = L10n.t("进程参数需为数字")
             return
         }

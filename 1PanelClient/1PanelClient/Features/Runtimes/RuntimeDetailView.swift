@@ -22,6 +22,8 @@ struct RuntimeDetailView: View {
     /// ⋯ 菜单子页路由（PHP 各配置页）
     @State private var menuRoute: RuntimeMenuRoute?
     @State private var isLoadingDetail = false
+    /// ⋯ 自绘菜单展开态（替代系统 Menu：弹层动画不进 UIKit 协调器）
+    @State private var showMenu = false
 
     private let client: APIClient
 
@@ -57,16 +59,14 @@ struct RuntimeDetailView: View {
         .refreshable { await reload() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    if type == .php { phpMenuItems }
-                    Button(role: .destructive) {
-                        Task { await listVM.requestDelete(current) }
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
+                EllipsisMenuButton { showMenu = true }
+            }
+        }
+        // 自绘气泡菜单（EllipsisMenu 全站惯例）：系统 Menu 弹出层为 UIKit 承载，
+        // iOS 26 上 position 动画与 SwiftUI 协调器复合触发警告
+        .overlay {
+            if showMenu {
+                EllipsisMenuPopup(entries: menuEntries) { showMenu = false }
             }
         }
         // 终端对齐全站口径用 push（fullScreenCover 无返回按钮；DB/AI/终端模块同款）
@@ -247,46 +247,54 @@ struct RuntimeDetailView: View {
         }
     }
 
-    // MARK: - PHP 专属入口（⋯ 菜单）
+    // MARK: - ⋯ 菜单条目（构建时捕获 current：onDismiss 后回读 @State 会取到 nil）
 
-    @ViewBuilder private var phpMenuItems: some View {
-        menuLink(L10n.t("配置修改"), "slider.horizontal.3") {
-            RuntimePHPSettingsView(entry: current, client: client)
+    private var menuEntries: [EllipsisMenuEntry] {
+        var entries: [EllipsisMenuEntry] = []
+        if type == .php {
+            entries.append(contentsOf: [
+                .action(title: L10n.t("配置修改"), icon: "slider.horizontal.3") {
+                    menuRoute = RuntimeMenuRoute(title: L10n.t("配置修改"),
+                        view: AnyView(RuntimePHPSettingsView(entry: current, client: client)))
+                },
+                .action(title: L10n.t("性能调整"), icon: "gauge") {
+                    menuRoute = RuntimeMenuRoute(title: L10n.t("性能调整"),
+                        view: AnyView(RuntimePHPFpmTuneView(entry: current, client: client)))
+                },
+                .action(title: L10n.t("负载状态"), icon: "chart.bar") {
+                    menuRoute = RuntimeMenuRoute(title: L10n.t("负载状态"),
+                        view: AnyView(RuntimeFPMStatusView(entry: current, client: client)))
+                },
+                .action(title: L10n.t("慢日志"), icon: "hourglass") {
+                    menuRoute = RuntimeMenuRoute(title: L10n.t("慢日志"),
+                        view: AnyView(RuntimeSlowLogView(entry: current, client: client)))
+                },
+                .action(title: "php.ini", icon: "doc.plaintext") {
+                    menuRoute = RuntimeMenuRoute(title: "php.ini",
+                        view: AnyView(RuntimePHPFileView(entry: current, client: client, fileType: "php")))
+                },
+                .action(title: "php-fpm.conf", icon: "doc.plaintext") {
+                    menuRoute = RuntimeMenuRoute(title: "php-fpm.conf",
+                        view: AnyView(RuntimePHPFileView(entry: current, client: client, fileType: "fpm")))
+                },
+                .action(title: L10n.t("容器配置"), icon: "shippingbox") {
+                    menuRoute = RuntimeMenuRoute(title: L10n.t("容器配置"),
+                        view: AnyView(RuntimePHPContainerView(entry: current, client: client)))
+                },
+                .action(title: L10n.t("扩展"), icon: "puzzlepiece") {
+                    menuRoute = RuntimeMenuRoute(title: L10n.t("扩展"),
+                        view: AnyView(RuntimePHPExtensionsView(entry: current, client: client)))
+                },
+                .action(title: L10n.t("进程守护"), icon: "gearshape.2") {
+                    menuRoute = RuntimeMenuRoute(title: L10n.t("进程守护"),
+                        view: AnyView(RuntimeSupervisorView(entry: current, client: client)))
+                },
+            ])
         }
-        menuLink(L10n.t("性能调整"), "gauge") {
-            RuntimePHPFpmTuneView(entry: current, client: client)
-        }
-        menuLink(L10n.t("负载状态"), "chart.bar") {
-            RuntimeFPMStatusView(entry: current, client: client)
-        }
-        menuLink(L10n.t("慢日志"), "hourglass") {
-            RuntimeSlowLogView(entry: current, client: client)
-        }
-        menuLink("php.ini", "doc.plaintext") {
-            RuntimePHPFileView(entry: current, client: client, fileType: "php")
-        }
-        menuLink("php-fpm.conf", "doc.plaintext") {
-            RuntimePHPFileView(entry: current, client: client, fileType: "fpm")
-        }
-        menuLink(L10n.t("容器配置"), "shippingbox") {
-            RuntimePHPContainerView(entry: current, client: client)
-        }
-        menuLink(L10n.t("扩展"), "puzzlepiece") {
-            RuntimePHPExtensionsView(entry: current, client: client)
-        }
-        menuLink(L10n.t("进程守护"), "gearshape.2") {
-            RuntimeSupervisorView(entry: current, client: client)
-        }
-    }
-
-    /// 菜单项 → 点按经菜单路由状态推入子页
-    private func menuLink<Destination: View>(_ title: String, _ icon: String,
-                                             @ViewBuilder destination: @escaping () -> Destination) -> some View {
-        Button {
-            menuRoute = RuntimeMenuRoute(title: title, view: AnyView(destination()))
-        } label: {
-            Label(title, systemImage: icon)
-        }
+        entries.append(.action(title: L10n.t("删除"), icon: "trash", role: .destructive) {
+            Task { await listVM.requestDelete(current) }
+        })
+        return entries
     }
 
     // MARK: - Node 专属入口

@@ -20,6 +20,8 @@ struct RuntimesView: View {
     @State private var route: RuntimeRoute?
     /// 清理构建缓存确认（PHP 分段 ⋯ 菜单）
     @State private var showCleanCacheConfirm = false
+    /// PHP 分段自绘菜单展开态（EllipsisMenu 替代系统 Menu，避免 UIKit 弹层动画警告）
+    @State private var showPHPMenu = false
 
     init(server: ServerConfig) {
         self.server = server
@@ -46,20 +48,7 @@ struct RuntimesView: View {
             // PHP 分段专属：扩展模版 / 清理构建缓存（PHP 级功能，不属单个运行环境）
             if vm.segment == .php {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            route = .templates
-                        } label: {
-                            Label(L10n.t("扩展模版"), systemImage: "doc.badge.plus")
-                        }
-                        Button(role: .destructive) {
-                            showCleanCacheConfirm = true
-                        } label: {
-                            Label(L10n.t("清理构建缓存"), systemImage: "trash.slash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
+                    EllipsisMenuButton { showPHPMenu = true }
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -69,6 +58,21 @@ struct RuntimesView: View {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel(L10n.t("创建运行环境"))
+            }
+        }
+        .overlay {
+            if showPHPMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("扩展模版"), icon: "doc.badge.plus") {
+                        route = .templates
+                    },
+                    .action(title: L10n.t("清理构建缓存"), icon: "trash.slash",
+                            role: .destructive) {
+                        showCleanCacheConfirm = true
+                    },
+                ]) {
+                    showPHPMenu = false
+                }
             }
         }
         .task {
