@@ -80,6 +80,8 @@ struct RuntimeFormView: View {
     @State private var execScript = ""
     @State private var customScript = false
     @State private var nodeScripts: [RuntimeNodeScript] = []
+    /// 所选目录无 package.json（服务端 500 "package.json 文件不存在"）→ 卡下一步/创建
+    @State private var nodePackageMissing = false
     @State private var packageManager = "npm"
     @State private var installDeps = true
     @State private var source = ""
@@ -206,9 +208,9 @@ struct RuntimeFormView: View {
                         advancedSection
                     }
                 }
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)))
+                // 纯 opacity 转场：move 会驱动 Form 内 UIKit 单元格 position 动画
+                // （iOS 26 composite 警告来源）
+                .transition(.opacity)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -238,6 +240,7 @@ struct RuntimeFormView: View {
             // PHP 两页制：配置页即末页，按完整提交校验
             if isPHP { return !canSubmit }
             return codeDir.isEmpty || execScript.isEmpty
+                || (selectedType == .node && nodePackageMissing)
         default:
             return !canSubmit
         }
@@ -285,7 +288,12 @@ struct RuntimeFormView: View {
                            optionLabels: Dictionary(uniqueKeysWithValues:
                                RuntimeType.allCases.map { ($0.rawValue, $0.displayName) }))
             // 类型切换重拉应用元数据（版本与表单定义）
-                .onChange(of: selectedType) { _, _ in
+                .onChange(of: selectedType) { _, new in
+                    // Node 镜像源缺省回填默认（切类型进入时 source 尚为空）
+                    if new == .node, source.isEmpty, !isEdit {
+                        source = npmSourceValues[0]
+                    }
+                    if new == .node { nodePackageMissing = false }
                     Task { await loadAppMeta() }
                 }
         }
@@ -475,6 +483,11 @@ struct RuntimeFormView: View {
                                       text: $execScript,
                                       hint: L10n.t("填目录后自动解析 package.json"))
                 }
+                if nodePackageMissing {
+                    Text(L10n.t("所选目录未找到 package.json，无法解析运行脚本"))
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
                 OutlinedPicker(label: L10n.t("包管理器"),
                                options: packageManagerOptions,
                                selection: $packageManager)
@@ -485,13 +498,17 @@ struct RuntimeFormView: View {
                 OutlinedTextField(label: L10n.t("运行脚本"),
                                   prompt: selectedType == .python ? "python server.py" : "./main",
                                   text: $execScript)
-                if selectedType == .python {
+                if selectedType == .python, isEdit {
+                    // Web 端创建页无依赖源输入（抓包 L1599 无 source 键），仅编辑可改
                     OutlinedTextField(label: L10n.t("依赖源"), prompt: L10n.t("可选，如镜像站地址"),
                                       text: $source)
                 }
             }
-            OutlinedTextField(label: L10n.t("外部端口"), prompt: defaultPort.description,
-                              text: $portText, keyboardType: .numberPad)
+            // Web 端创建页无外部端口输入（node/python/go 走默认 4004/8080），仅编辑可改
+            if isEdit {
+                OutlinedTextField(label: L10n.t("外部端口"), prompt: defaultPort.description,
+                                  text: $portText, keyboardType: .numberPad)
+            }
         }
     }
 
@@ -585,7 +602,16 @@ struct RuntimeFormView: View {
     // MARK: - 初始加载
 
     private func initialLoad() async {
-        if let entry = editingEntry {
+        if var entry = editingEntry {
+            // 编辑回填用详情：列表快照可能缺 port/exposedPorts（Web 编辑页端口值来自详情）
+            if let fresh: RuntimeEntry = try? await client.send(
+                path: APIEndpoint.runtimesGet.path
+                    .replacingOccurrences(of: ":id", with: String(entry.id)),
+                method: APIEndpoint.runtimesGet.method,
+                as: RuntimeEntry.self
+            ) {
+                entry = fresh
+            }
             selectedType = entry.runtimeType ?? .php
             name = entry.displayName
             containerName = entry.containerName
@@ -596,9 +622,12 @@ struct RuntimeFormView: View {
             if let pm = entry.params?["PACKAGE_MANAGER"]?.stringValue { packageManager = pm }
             installDeps = entry.installDependencies
             source = entry.source ?? ""
+            // 端口回填链：php.ini 参数 → 暴露端口首条 → 顶层 port → 类型默认
             if let p = entry.params?["PANEL_APP_PORT_HTTP"], let v = p.intValue ?? Int(p.stringValue) {
                 portText = String(v)
-            } else if let port = entry.port, let v = Int(port) {
+            } else if let hp = entry.exposedPorts?.first?.hostPort, hp > 0 {
+                portText = String(hp)
+            } else if let port = entry.port, let v = Int(port), v > 0 {
                 portText = String(v)
             } else {
                 portText = String(defaultPort)
@@ -771,7 +800,18 @@ struct RuntimeFormView: View {
             )
             if let gen, gen != nodeScriptsGeneration { return }
             nodeScripts = scripts
+            nodePackageMissing = false
+            // 自动带入首个运行命令（目录解析成功即回填，对齐 Web 端）
+            if !customScript, execScript.isEmpty, let first = scripts.first?.script, !first.isEmpty {
+                execScript = first
+            }
+        } catch APIError.businessError(_, let message) where message.contains("package.json") {
+            // 目录下无 package.json：标记缺失卡下一步（服务端创建同样会拒绝）
+            if let gen, gen != nodeScriptsGeneration { return }
+            nodeScripts = []
+            nodePackageMissing = true
         } catch {
+            if let gen, gen != nodeScriptsGeneration { return }
             nodeScripts = []
         }
     }
@@ -784,6 +824,7 @@ struct RuntimeFormView: View {
         if selectedType != .php {
             guard !codeDir.isEmpty, !execScript.isEmpty else { return false }
         }
+        if selectedType == .node, nodePackageMissing { return false }
         if let port = Int(portText), port < 1 || port > 65535 { return false }
         return true
     }

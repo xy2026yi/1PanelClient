@@ -41811,6 +41811,39 @@
           }
         }
       }
+    },
+    "所选目录未找到 package.json，无法解析运行脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "package.json not found in the selected directory; cannot parse run scripts"
+          }
+        }
+      }
+    },
+    "输入模块名后点右上角安装；操作同步执行，大模块安装可能耗时较长" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a module name and tap Install (top right); operations run synchronously and large modules may take a while"
+          }
+        }
+      }
+    },
+    "是否安装 %@ 模块？操作可能导致运行环境异常，请确认后操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install module %@? This may disrupt the runtime. Confirm to proceed."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

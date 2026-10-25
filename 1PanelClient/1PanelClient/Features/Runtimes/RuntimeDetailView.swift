@@ -239,10 +239,13 @@ struct RuntimeDetailView: View {
             } label: {
                 Label(L10n.t("运行日志"), systemImage: "doc.text.magnifyingglass")
             }
-            NavigationLink {
-                RuntimeBuildLogView(entry: current, client: client)
-            } label: {
-                Label(L10n.t("构建日志"), systemImage: "doc.text")
+            // 构建日志仅 PHP：服务端对 node/python/go 返回"不支持当前类型"
+            if type == .php {
+                NavigationLink {
+                    RuntimeBuildLogView(entry: current, client: client)
+                } label: {
+                    Label(L10n.t("构建日志"), systemImage: "doc.text")
+                }
             }
         }
     }

@@ -27,6 +27,8 @@ struct RuntimeNodeModulesView: View {
         var id: String { op + ":" + name }
     }
     @State private var pendingOp: PendingOp?
+    /// 待确认的安装模块名（右上角安装入口）
+    @State private var pendingInstall: String?
 
     /// 任一操作进行中：锁定其余操作（同一容器内并发跑 npm 会锁冲突）
     private var isOperating: Bool { busyName != nil }
@@ -99,9 +101,34 @@ struct RuntimeNodeModulesView: View {
         }
         .navigationTitle(L10n.t("模块管理"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if busyName == "" {
+                    ProgressView()
+                } else {
+                    Button(L10n.t("安装")) {
+                        pendingInstall = newModule.trimmingCharacters(in: .whitespaces)
+                    }
+                    .disabled(newModule.trimmingCharacters(in: .whitespaces).isEmpty || isOperating)
+                }
+            }
+        }
         .task { await load() }
         .refreshable { await load() }
         .toastOverlay(message: $toast)
+        .alert(L10n.t("安装"), isPresented: Binding(
+            get: { pendingInstall != nil },
+            set: { if !$0 { pendingInstall = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("安装")) {
+                let name = pendingInstall
+                Task { if let name { await operate("install", name) } }
+            }
+        } message: {
+            Text(L10n.f("是否安装 %@ 模块？操作可能导致运行环境异常，请确认后操作",
+                        pendingInstall ?? ""))
+        }
         .alert(pendingOp.map { alertTitle($0) } ?? "", isPresented: Binding(
             get: { pendingOp != nil },
             set: { if !$0 { pendingOp = nil } }
@@ -139,25 +166,12 @@ struct RuntimeNodeModulesView: View {
 
     private var installSection: some View {
         Section {
-            HStack {
-                OutlinedTextField(label: L10n.t("模块名"), prompt: "express",
-                                  text: $newModule)
-                if busyName == "" {
-                    ProgressView().scaleEffect(0.9)
-                } else {
-                    Button(L10n.t("安装")) {
-                        let name = newModule.trimmingCharacters(in: .whitespaces)
-                        guard !name.isEmpty else { return }
-                        pendingOp = PendingOp(op: "install", name: name)
-                    }
-                    .disabled(newModule.trimmingCharacters(in: .whitespaces).isEmpty
-                              || isOperating)
-                }
-            }
+            OutlinedTextField(label: L10n.t("模块名"), prompt: "express",
+                              text: $newModule)
         } header: {
             Text("\(entry.packageManager) install")
         } footer: {
-            Text(L10n.t("操作同步执行，大模块安装可能耗时较长"))
+            Text(L10n.t("输入模块名后点右上角安装；操作同步执行，大模块安装可能耗时较长"))
         }
     }
 
