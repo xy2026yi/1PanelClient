@@ -254,8 +254,9 @@ struct RuntimeDetailView: View {
             } label: {
                 Label(L10n.t("运行日志"), systemImage: "doc.text.magnifyingglass")
             }
-            // 构建日志仅 PHP：服务端对 node/python/go 返回"不支持当前类型"
-            if type == .php {
+            // 构建日志：php/java/dotnet 支持（/files/read/{type}，抓包 L282）；
+            // node/python/go 服务端返回"不支持当前类型"
+            if type == .php || type == .java || type == .dotnet {
                 NavigationLink {
                     RuntimeBuildLogView(entry: current, client: client)
                 } label: {

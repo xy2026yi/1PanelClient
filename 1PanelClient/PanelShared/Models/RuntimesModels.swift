@@ -18,6 +18,8 @@ nonisolated enum RuntimeType: String, CaseIterable, Identifiable, Hashable, Send
     case node
     case python
     case go
+    case java
+    case dotnet
 
     var id: String { rawValue }
 
@@ -27,6 +29,8 @@ nonisolated enum RuntimeType: String, CaseIterable, Identifiable, Hashable, Send
         case .node: return "Node.js"
         case .python: return "Python"
         case .go: return "Go"
+        case .java: return "Java"
+        case .dotnet: return ".NET"
         }
     }
 
@@ -37,6 +41,8 @@ nonisolated enum RuntimeType: String, CaseIterable, Identifiable, Hashable, Send
         case .node: return "node"
         case .python: return "python"
         case .go: return "go"
+        case .java: return "java"
+        case .dotnet: return "dotnet"
         }
     }
 

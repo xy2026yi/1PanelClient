@@ -496,11 +496,27 @@ struct RuntimeFormView: View {
                                selection: $source, optionLabels: npmSourceLabels)
             } else {
                 OutlinedTextField(label: L10n.t("运行脚本"),
-                                  prompt: selectedType == .python ? "python server.py" : "./main",
+                                  prompt: scriptPrompt,
                                   text: $execScript)
+                // Java/.NET 创建页有「端口」输入（抓包 port:8080；node/python/go Web 端无此字段）
+                if selectedType == .java || selectedType == .dotnet {
+                    OutlinedTextField(label: L10n.t("端口"), prompt: defaultPort.description,
+                                      text: $portText, keyboardType: .numberPad)
+                }
             }
-            // 外部端口/依赖源不在表单（Web 端创建/编辑均无此二项，经网页核对）：
+            // 外部端口/依赖源不在表单（node/python/go Web 端创建/编辑均无，经网页核对）：
             // 端口由容器配置的端口映射管理，请求端口走类型默认/详情回填（内部提交）
+        }
+    }
+
+    /// 启动命令占位（按类型，对齐 Web 端默认 EXEC_SCRIPT）
+    private var scriptPrompt: String {
+        switch selectedType {
+        case .python: return "python server.py"
+        case .go: return "./main"
+        case .java: return "jwebserver"
+        case .dotnet: return "dotnet run"
+        default: return ""
         }
     }
 
@@ -865,7 +881,7 @@ struct RuntimeFormView: View {
             params["HOST_IP"] = .string("0.0.0.0")
             params["CUSTOM_SCRIPT"] = .string(customScript ? "1" : "0")
             params["EXEC_SCRIPT"] = .string(execScript)
-        case .python, .go:
+        case .python, .go, .java, .dotnet:
             params["HOST_IP"] = .string("0.0.0.0")
             params["EXEC_SCRIPT"] = .string(execScript)
         }

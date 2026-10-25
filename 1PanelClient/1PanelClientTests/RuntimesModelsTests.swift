@@ -423,6 +423,46 @@ struct RuntimesModelsTests {
         #expect(uploadSave["uploadMaxSize"] as? String == "3M")
     }
 
+    @Test("Java/.NET：类型解析与创建请求编码（抓包 2026-10-25 java/dotnet）")
+    func javaDotnetCreate() throws {
+        #expect(RuntimeType.parse("java") == .java)
+        #expect(RuntimeType.parse("dotnet") == .dotnet)
+        #expect(RuntimeType.java.searchKey == "java")
+        #expect(RuntimeType.dotnet.searchKey == "dotnet")
+        #expect(RuntimeType.java.displayName == "Java")
+        #expect(RuntimeType.dotnet.displayName == ".NET")
+
+        // Java 创建体：params 三键 + 顶层 port:8080 + 四数组空数组（无 source/install）
+        let java = try encode(RuntimeCreateRequest(
+            name: "1234", appDetailID: 773, image: "",
+            params: ["HOST_IP": .string("0.0.0.0"),
+                     "CONTAINER_NAME": .string("1234"),
+                     "EXEC_SCRIPT": .string("jwebserver")],
+            type: "java", codeDir: "/1G/java", port: 8080,
+            environments: [], remark: "", appID: 146, version: "25",
+            taskID: "28eec830-9c87-4b92-8829-880895b8694e"
+        ))
+        #expect(java["type"] as? String == "java")
+        #expect(java["port"] as? Int == 8080)
+        #expect(java["codeDir"] as? String == "/1G/java")
+        #expect(java["source"] as? String == "")
+        #expect((java["params"] as? [String: Any])?["EXEC_SCRIPT"] as? String == "jwebserver")
+        #expect(java["install"] == nil)
+
+        // dotnet 创建体同构（EXEC_SCRIPT = dotnet run）
+        let dotnet = try encode(RuntimeCreateRequest(
+            name: "net1511", appDetailID: 1144, image: "",
+            params: ["HOST_IP": .string("0.0.0.0"),
+                     "CONTAINER_NAME": .string("net1511"),
+                     "EXEC_SCRIPT": .string("dotnet run")],
+            type: "dotnet", codeDir: "/1G/test_net/MyMinimalApi", port: 8080,
+            environments: [], remark: "", appID: 206, version: "10.0",
+            taskID: "c8a426aa-0472-45cf-96ab-167b31215da2"
+        ))
+        #expect(dotnet["type"] as? String == "dotnet")
+        #expect(dotnet["appDetailID"] as? Int == 1144)
+    }
+
     @Test("禁用函数：整串逗号形态拆分为可单独删除的条目（回归：bash,exec 曾显示为一整条）")
     func disableFunctionListSplit() throws {
         // 服务端可整串返回（文档 L1032：允许添加多个用,分割；保存按数组提交）
@@ -590,11 +630,13 @@ struct RuntimesModelsTests {
     func runtimeTypeParse() {
         #expect(RuntimeType.parse("php") == .php)
         #expect(RuntimeType.parse("Node") == .node)
-        #expect(RuntimeType.parse("java") == nil)
+        #expect(RuntimeType.parse("Java") == .java)
+        #expect(RuntimeType.parse("dotnet") == .dotnet)
         #expect(RuntimeType.parse(nil) == nil)
         #expect(RuntimeType.php.terminalUser == "www-data")
         #expect(RuntimeType.node.terminalUser == "root")
-        #expect(RuntimeType.allCases.count == 4)
+        #expect(RuntimeType.java.terminalUser == "root")
+        #expect(RuntimeType.allCases.count == 6)
     }
 
     // MARK: - 日志读取

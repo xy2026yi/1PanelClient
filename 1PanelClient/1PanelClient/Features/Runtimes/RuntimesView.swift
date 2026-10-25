@@ -292,6 +292,8 @@ struct RuntimeListRow: View {
         case .node: return "triangle"
         case .python: return "chevron.left.forwardslash.chevron.right"
         case .go: return "goforward"
+        case .java: return "cup.and.saucer"
+        case .dotnet: return "circle.grid.cross"
         case nil: return "shippingbox"
         }
     }
@@ -302,6 +304,8 @@ struct RuntimeListRow: View {
         case .node: return .green
         case .python: return .blue
         case .go: return .cyan
+        case .java: return .orange
+        case .dotnet: return .purple
         case nil: return .gray
         }
     }

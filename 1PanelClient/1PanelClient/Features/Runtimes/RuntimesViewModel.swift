@@ -22,7 +22,7 @@ final class RuntimesViewModel: ObservableObject {
     // MARK: - 分段（四类型）
 
     enum Segment: String, CaseIterable, Identifiable {
-        case php, node, python, go
+        case php, node, python, go, java, dotnet
 
         var id: String { rawValue }
 
@@ -32,6 +32,8 @@ final class RuntimesViewModel: ObservableObject {
             case .node: return "Node.js"
             case .python: return "Python"
             case .go: return "Go"
+            case .java: return "Java"
+            case .dotnet: return ".NET"
             }
         }
 
@@ -42,6 +44,8 @@ final class RuntimesViewModel: ObservableObject {
             case .node: return RuntimeType.node.searchKey
             case .python: return RuntimeType.python.searchKey
             case .go: return RuntimeType.go.searchKey
+            case .java: return RuntimeType.java.searchKey
+            case .dotnet: return RuntimeType.dotnet.searchKey
             }
         }
     }
