@@ -189,22 +189,22 @@ struct RuntimesView: View {
         }
     }
 
-    /// 长按菜单项（启停/重启/编辑/删除；与 KVM/数据库行同款）
+    /// 长按菜单项（启停/重启/编辑/删除；停止态也可重启）
     private func actionItems(_ entry: RuntimeEntry) -> [ActionMenuItem] {
         var items: [ActionMenuItem] = []
         if entry.isRunning {
             items.append(ActionMenuItem(title: L10n.t("停止"), icon: "stop") {
                 Task { await vm.operate(entry, operate: "down") }
             })
-            items.append(ActionMenuItem(title: L10n.t("重启"),
-                                        icon: "arrow.triangle.2.circlepath") {
-                Task { await vm.operate(entry, operate: "restart") }
-            })
         } else {
             items.append(ActionMenuItem(title: L10n.t("启动"), icon: "play") {
                 Task { await vm.operate(entry, operate: "up") }
             })
         }
+        items.append(ActionMenuItem(title: L10n.t("重启"),
+                                    icon: "arrow.triangle.2.circlepath") {
+            Task { await vm.operate(entry, operate: "restart") }
+        })
         items.append(ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
             editTarget = entry
         })

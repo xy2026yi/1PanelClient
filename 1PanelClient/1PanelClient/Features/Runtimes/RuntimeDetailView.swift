@@ -58,8 +58,11 @@ struct RuntimeDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await reload() }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                EllipsisMenuButton { showMenu = true }
+            // ⋯ 菜单仅 PHP 需要（九项配置入口）；删除已移入状态面板操作行
+            if type == .php {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EllipsisMenuButton { showMenu = true }
+                }
             }
         }
         // 自绘气泡菜单（EllipsisMenu 全站惯例）：系统 Menu 弹出层为 UIKit 承载，
@@ -176,6 +179,14 @@ struct RuntimeDetailView: View {
                 busy: isOperating
             ) {
                 showTerminal = true
+            }
+            CardActionButton(
+                title: L10n.t("删除"),
+                icon: "trash",
+                color: .red,
+                busy: isOperating
+            ) {
+                Task { await listVM.requestDelete(current) }
             }
         }
     }
@@ -294,9 +305,7 @@ struct RuntimeDetailView: View {
                 },
             ])
         }
-        entries.append(.action(title: L10n.t("删除"), icon: "trash", role: .destructive) {
-            Task { await listVM.requestDelete(current) }
-        })
+        // 删除已移入状态面板操作行（⋯ 菜单仅承载 PHP 配置入口）
         return entries
     }
 
