@@ -40,6 +40,19 @@ struct CreateWebsiteView: View {
     @State private var proxyProtocol = "http://"
     @State private var proxyAddress = ""
 
+    // 运行环境网站专用
+    @State private var runtimeType = "php"
+    @State private var selectedRuntimeID: Int? = nil
+    // 创建数据库（运行环境网站；抓包 2026-10-25：dbHost 取所选服务 value）
+    @State private var createDB = false
+    @State private var dbType = "mysql"
+    @State private var selectedDBService: String? = nil
+    @State private var dbName = ""
+    @State private var dbFormat = "utf8mb4"
+    @State private var dbUser = ""
+    @State private var dbPassword = ""
+    @State private var lastAutoDBUser = ""
+
     // SSL
     @State private var enableSSL = false
     // FTP（静态网站；创建后随站点开通 FTP 访问）
@@ -81,12 +94,19 @@ struct CreateWebsiteView: View {
                             deploymentSection
                         case .proxy:
                             proxySection
+                        case .runtime:
+                            runtimeSection
                         case .staticSite:
                             EmptyView()
                         }
 
-                        // FTP（仅静态网站）
-                        if selectedType == .staticSite {
+                        // 创建数据库（仅运行环境网站）
+                        if selectedType == .runtime {
+                            dbSection
+                        }
+
+                        // FTP（静态网站 / 运行环境网站，网页端两类均有）
+                        if selectedType == .staticSite || selectedType == .runtime {
                             Section {
                                 Toggle(L10n.t("创建 FTP"), isOn: $enableFtp)
                                 if enableFtp {
@@ -96,7 +116,7 @@ struct CreateWebsiteView: View {
                                                   hasValue: !ftpPassword.isEmpty,
                                                   trailing: {
                                         Button {
-                                            ftpPassword = Self.randomFTPPassword()
+                                            ftpPassword = Self.randomPassword()
                                         } label: {
                                             Image(systemName: "dice")
                                                 .font(.caption)
@@ -110,7 +130,9 @@ struct CreateWebsiteView: View {
                                     }
                                 }
                             } footer: {
-                                Text(L10n.t("创建站点时同步开通 FTP，用于上传静态资源"))
+                                Text(selectedType == .staticSite
+                                     ? L10n.t("创建站点时同步开通 FTP，用于上传静态资源")
+                                     : L10n.t("创建站点时同步开通 FTP"))
                             }
                         }
 
@@ -156,6 +178,9 @@ struct CreateWebsiteView: View {
         .task {
             await vm.loadCreateData(type: selectedType)
             if selectedGroupID == 0 { selectedGroupID = vm.defaultGroupID }
+            if selectedType == .runtime {
+                await vm.loadRuntimeOptions(typeKey: runtimeType)
+            }
         }
         .onChange(of: primaryDomain) { _, newDomain in
             // 主域名填入后自动带入代号（去端口/路径）；用户手动改过则不再跟随
@@ -167,6 +192,35 @@ struct CreateWebsiteView: View {
         }
         .onChange(of: selectedType) { _, newType in
             Task { await vm.loadCreateData(type: newType) }
+        }
+        .onChange(of: runtimeType) { _, newKey in
+            // 切类型重查运行环境，已选失效
+            selectedRuntimeID = nil
+            Task { await vm.loadRuntimeOptions(typeKey: newKey) }
+        }
+        .onChange(of: createDB) { _, on in
+            guard on else { return }
+            if dbPassword.isEmpty { dbPassword = Self.randomPassword() }
+            if dbName.isEmpty {
+                // 名称缺省由代号带入（php.test.com → php-test），用户名跟随名称
+                dbName = alias.replacingOccurrences(of: ".", with: "-")
+            }
+            if vm.availableDBServices.isEmpty {
+                Task { await vm.loadDBServices(dbType: dbType) }
+            }
+        }
+        .onChange(of: dbType) { _, newDBType in
+            selectedDBService = nil
+            if createDB {
+                Task { await vm.loadDBServices(dbType: newDBType) }
+            }
+        }
+        .onChange(of: dbName) { _, newName in
+            // 用户名跟随名称（手动改过则不再跟随）
+            if dbUser.isEmpty || dbUser == lastAutoDBUser {
+                dbUser = newName
+            }
+            lastAutoDBUser = newName
         }
         .onChange(of: vm.groups) { _, _ in
             // 分组数据晚于表单出现时回落默认分组（重命名默认组后 tag 找回）
@@ -247,6 +301,164 @@ struct CreateWebsiteView: View {
         }
     }
 
+    // MARK: - 运行环境网站（类型 + 运行环境 + 创建数据库）
+
+    /// 运行环境类型（顺序对齐网页端：PHP、Node.js、Java、Go、Python、.NET；key 为 searchKey）
+    private let runtimeTypeOptions: [(key: String, label: String)] = [
+        ("php", "PHP"), ("node", "Node.js"), ("java", "Java"),
+        ("go", "Go"), ("python", "Python"), ("dotnet", ".NET"),
+    ]
+
+    /// 数据库类型（key 为服务查询与 dbType 请求值）
+    private let dbTypeOptions: [(key: String, label: String)] = [
+        ("mysql", "MySQL"), ("mariadb", "MariaDB"), ("postgresql", "PostgreSQL"),
+    ]
+
+    /// 字符集（value 为 dbFormat 请求值；utf8 显示为 utf-8）
+    private let dbFormatOptions: [(key: String, label: String)] = [
+        ("utf8mb4", "utf8mb4"), ("utf8", "utf-8"), ("gbk", "gbk"), ("big5", "big5"),
+    ]
+
+    @ViewBuilder
+    private var runtimeSection: some View {
+        Section {
+            OutlinedPicker(label: L10n.t("类型"),
+                           options: runtimeTypeOptions.map(\.key),
+                           selection: $runtimeType,
+                           optionLabels: Dictionary(uniqueKeysWithValues:
+                               runtimeTypeOptions.map { ($0.key, $0.label) }))
+            if vm.isLoadingRuntimeOptions {
+                HStack { ProgressView(); Text(L10n.t("加载运行环境…")) }
+            } else if vm.availableRuntimes.isEmpty {
+                Text(L10n.t("暂无运行中的运行环境，请先创建并启动"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                OutlinedPicker(label: L10n.t("运行环境"),
+                               options: runtimeOptionKeys,
+                               selection: runtimeText,
+                               optionLabels: runtimeOptionLabels)
+            }
+        } header: {
+            Text(L10n.t("运行环境"))
+        } footer: {
+            Text(L10n.t("仅显示运行中的运行环境，网站代理端口取其 HTTP 端口"))
+        }
+    }
+
+    // 运行环境选项（OutlinedPicker 用 String 键；0=请选择）
+
+    private var runtimeOptionKeys: [String] {
+        ["0"] + vm.availableRuntimes.map { String($0.id) }
+    }
+
+    private var runtimeOptionLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for entry in vm.availableRuntimes {
+            labels[String(entry.id)] = entry.displayName
+        }
+        return labels
+    }
+
+    private var runtimeText: Binding<String> {
+        Binding<String>(
+            get: { selectedRuntimeID.map(String.init) ?? "0" },
+            set: { selectedRuntimeID = $0 == "0" ? nil : Int($0) }
+        )
+    }
+
+    /// 代理端口：所选运行环境的 HTTP 端口（抓包口径：PANEL_APP_PORT_HTTP → port → 80）
+    private var runtimePort: Int {
+        guard let entry = vm.availableRuntimes.first(where: { $0.id == selectedRuntimeID }) else {
+            return 80
+        }
+        if let p = entry.params?["PANEL_APP_PORT_HTTP"],
+           let v = p.intValue ?? Int(p.stringValue), v > 0 {
+            return v
+        }
+        if let port = entry.port, let v = Int(port), v > 0 { return v }
+        return 80
+    }
+
+    /// 创建数据库段（开启后展开类型/已安装库/名称/字符集/用户名/密码）
+    @ViewBuilder
+    private var dbSection: some View {
+        Section {
+            Toggle(L10n.t("创建数据库"), isOn: $createDB)
+            if createDB {
+                OutlinedPicker(label: L10n.t("数据库"),
+                               options: dbTypeOptions.map(\.key),
+                               selection: $dbType,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   dbTypeOptions.map { ($0.key, $0.label) }))
+                if vm.isLoadingDBServices {
+                    HStack { ProgressView(); Text(L10n.t("加载数据库服务…")) }
+                } else if vm.availableDBServices.isEmpty {
+                    Text(L10n.t("暂无已安装的该类型数据库，请先安装对应数据库应用"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    OutlinedPicker(label: L10n.t("选择已安装数据库"),
+                                   options: dbServiceKeys,
+                                   selection: dbServiceText,
+                                   optionLabels: dbServiceLabels)
+                }
+                OutlinedTextField(label: L10n.t("名称"), text: $dbName)
+                OutlinedPicker(label: L10n.t("字符集"),
+                               options: dbFormatOptions.map(\.key),
+                               selection: $dbFormat,
+                               optionLabels: Dictionary(uniqueKeysWithValues:
+                                   dbFormatOptions.map { ($0.key, $0.label) }))
+                OutlinedTextField(label: L10n.t("用户名"), text: $dbUser)
+                // 随机按钮内嵌描边框右侧（与 FTP 密码一致）
+                OutlinedShape(label: L10n.t("密码"), isFocused: false,
+                              hasValue: !dbPassword.isEmpty,
+                              trailing: {
+                    Button {
+                        dbPassword = Self.randomPassword()
+                    } label: {
+                        Image(systemName: "dice")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                }) {
+                    SecureField("", text: $dbPassword)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+            }
+        } header: {
+            Text(L10n.t("数据库"))
+        } footer: {
+            Text(L10n.t("创建站点时同步创建数据库，用户名缺省跟随名称"))
+        }
+    }
+
+    // 已安装数据库服务选项（OutlinedPicker 用 String 键；0=请选择）
+
+    private var dbServiceKeys: [String] {
+        ["0"] + vm.availableDBServices.map { $0.value ?? $0.label ?? "" }.filter { !$0.isEmpty }
+    }
+
+    private var dbServiceLabels: [String: String] {
+        var labels = ["0": L10n.t("请选择")]
+        for svc in vm.availableDBServices {
+            let value = svc.value ?? svc.label ?? ""
+            guard !value.isEmpty else { continue }
+            // 服务 value 理论唯一，uniquing 兜底防重复键崩溃
+            labels[value] = svc.label ?? value
+        }
+        return labels
+    }
+
+    private var dbServiceText: Binding<String> {
+        Binding<String>(
+            get: { selectedDBService ?? "0" },
+            set: { selectedDBService = $0 == "0" ? nil : $0 }
+        )
+    }
+
     // MARK: - 域名区（向导第 1 页）
 
     private var domainSection: some View {
@@ -311,6 +523,16 @@ struct CreateWebsiteView: View {
             return selectedAppInstallId != nil
         case .proxy:
             return !proxyAddress.isEmpty
+        case .runtime:
+            guard selectedRuntimeID != nil else { return false }
+            if createDB {
+                guard !dbName.isEmpty && !dbUser.isEmpty && !dbPassword.isEmpty
+                        && selectedDBService != nil else { return false }
+            }
+            if enableFtp {
+                return !ftpUser.isEmpty && !ftpPassword.isEmpty
+            }
+            return true
         case .staticSite:
             if enableFtp {
                 return !ftpUser.isEmpty && !ftpPassword.isEmpty
@@ -319,8 +541,8 @@ struct CreateWebsiteView: View {
         }
     }
 
-    /// 16 位随机字母数字 FTP 密码
-    private static func randomFTPPassword() -> String {
+    /// 16 位随机字母数字密码（FTP / 创建数据库共用）
+    private static func randomPassword() -> String {
         let chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         return String((0..<16).map { _ in chars.randomElement() ?? "x" })
     }
@@ -338,9 +560,14 @@ struct CreateWebsiteView: View {
         // 分组（0 = 未选中，回落默认分组）
         req.webSiteGroupId = selectedGroupID != 0 ? selectedGroupID : vm.defaultGroupID
         req.enableSSL = enableSSL
-        req.enableFtp = enableFtp && selectedType == .staticSite
-        req.ftpUser = enableFtp ? ftpUser : ""
-        req.ftpPassword = enableFtp ? ftpPassword : ""
+        // FTP：静态网站/运行环境网站均有（网页端同口径）
+        let ftpEnabled = enableFtp && (selectedType == .staticSite || selectedType == .runtime)
+        req.enableFtp = ftpEnabled
+        req.ftpUser = ftpEnabled ? ftpUser : ""
+        // FTP 密码按网页端口径 base64 编码后提交（抓包 eGg1NndYV1d0d2Y1UEdKYw== ← 16 位随机串）
+        req.ftpPassword = ftpEnabled
+            ? Data(ftpPassword.utf8).base64EncodedString()
+            : ""
         req.websiteSSLID = selectedSSLId ?? 0
         req.taskID = UUID().uuidString
         // 端口：HTTPS 启用时端口字段常被设为 443/自定义；未启用时默认 80
@@ -375,6 +602,20 @@ struct CreateWebsiteView: View {
             req.proxy = "\(proxyProtocol)\(proxyAddress)"
             req.proxyProtocol = proxyProtocol
             req.proxyAddress = proxyAddress
+        case .runtime:
+            // 运行环境网站：port 取所选环境的 HTTP 端口（与域名端口无关，抓包 9000 vs 443）
+            req.runtimeID = selectedRuntimeID ?? 0
+            req.runtimeType = runtimeType
+            req.port = runtimePort
+            req.createDb = createDB
+            if createDB {
+                req.dbName = dbName
+                req.dbUser = dbUser
+                req.dbPassword = dbPassword
+                req.dbFormat = dbFormat
+                req.dbType = dbType
+                req.dbHost = selectedDBService ?? ""
+            }
         case .staticSite:
             break
         }

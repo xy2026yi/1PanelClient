@@ -5314,6 +5314,17 @@
         }
       }
     },
+    "仅显示运行中的运行环境，网站代理端口取其 HTTP 端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only running runtimes are listed; the site proxy port uses the runtime's HTTP port"
+          }
+        }
+      }
+    },
     "仅重置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8867,6 +8878,28 @@
         }
       }
     },
+    "创建站点时同步创建数据库，用户名缺省跟随名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The database is created along with the site; the username defaults to the database name"
+          }
+        }
+      }
+    },
+    "创建站点时同步开通 FTP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FTP is provisioned together with the site"
+          }
+        }
+      }
+    },
     "创建站点时同步开通 FTP，用于上传静态资源" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10363,6 +10396,17 @@
         }
       }
     },
+    "加载数据库服务…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading database services…"
+          }
+        }
+      }
+    },
     "加载新版本配置失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10425,6 +10469,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load details: %@"
+          }
+        }
+      }
+    },
+    "加载运行环境…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading runtimes…"
           }
         }
       }
@@ -23728,6 +23783,17 @@
         }
       }
     },
+    "暂无已安装的该类型数据库，请先安装对应数据库应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No installed database of this type. Install the corresponding database app first"
+          }
+        }
+      }
+    },
     "暂无已用 IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24263,6 +24329,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No forwarding rules"
+          }
+        }
+      }
+    },
+    "暂无运行中的运行环境，请先创建并启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No running runtimes. Create and start one first"
           }
         }
       }
@@ -32429,6 +32506,17 @@
         }
       }
     },
+    "绑定运行中的运行环境（PHP/Node/Java/Go/Python/.NET）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bind a running runtime as the site backend (PHP/Node/Java/Go/Python/.NET)"
+          }
+        }
+      }
+    },
     "结束" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38629,6 +38717,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose an exported 1panel-cronjob-*.json file, then select tasks to import"
+          }
+        }
+      }
+    },
+    "选择已安装数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Installed Database"
           }
         }
       }

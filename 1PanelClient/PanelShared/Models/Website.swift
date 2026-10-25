@@ -236,6 +236,7 @@ nonisolated struct WebsiteSSL: Decodable, Identifiable, Hashable, Sendable {
 enum WebsiteType: String, CaseIterable, Identifiable {
     case deployment = "deployment"
     case proxy = "proxy"
+    case runtime = "runtime"
     case staticSite = "static"
 
     var id: String { rawValue }
@@ -244,6 +245,7 @@ enum WebsiteType: String, CaseIterable, Identifiable {
         switch self {
         case .deployment: return L10n.t("一键部署")
         case .proxy:      return L10n.t("反向代理")
+        case .runtime:    return L10n.t("运行环境")
         case .staticSite: return L10n.t("静态网站")
         }
     }
@@ -252,6 +254,7 @@ enum WebsiteType: String, CaseIterable, Identifiable {
         switch self {
         case .deployment: return "square.and.arrow.down"
         case .proxy:      return "arrow.left.arrow.right"
+        case .runtime:    return "wrench.and.screwdriver"
         case .staticSite: return "folder"
         }
     }
@@ -260,6 +263,7 @@ enum WebsiteType: String, CaseIterable, Identifiable {
         switch self {
         case .deployment: return L10n.t("部署已安装的网站类应用（WordPress 等）")
         case .proxy:      return L10n.t("将域名反向代理到指定地址")
+        case .runtime:    return L10n.t("绑定运行中的运行环境（PHP/Node/Java/Go/Python/.NET）")
         case .staticSite: return L10n.t("提供静态文件托管（HTML/CSS/JS）")
         }
     }
@@ -288,6 +292,8 @@ nonisolated struct WebsiteCreateRequest: Encodable {
     var proxy: String = ""
     var appinstall: WebsiteAppInstallBody = WebsiteAppInstallBody()
     var IPV6: Bool = false
+    /// 运行环境网站：所选运行环境 ID（type=runtime 时必带）
+    var runtimeID: Int = 0
     var enableFtp: Bool = false
     var ftpUser: String = ""
     var ftpPassword: String = ""

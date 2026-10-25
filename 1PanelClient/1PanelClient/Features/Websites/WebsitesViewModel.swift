@@ -41,6 +41,15 @@ final class WebsitesViewModel: ObservableObject {
     @Published var isLoadingCreateData = false
     @Published var availableApps: [AppInstall] = []
     @Published var availableSSLs: [WebsiteSSL] = []
+    /// 运行环境网站：Running 状态的可用运行环境（按类型查询）
+    @Published var availableRuntimes: [RuntimeEntry] = []
+    @Published var isLoadingRuntimeOptions = false
+    /// 创建数据库：已安装数据库服务（按 db 类型查询）
+    @Published var availableDBServices: [AppServiceItem] = []
+    @Published var isLoadingDBServices = false
+    /// 两类选项加载的代号守卫（连续切类型时晚到的旧响应不覆盖新数据）
+    private var runtimeOptionsGeneration = 0
+    private var dbServicesGeneration = 0
 
     // 提示
     @Published var showAlert = false
@@ -198,17 +207,32 @@ final class WebsitesViewModel: ObservableObject {
         isLoadingCreateData = true
         defer { isLoadingCreateData = false }
 
+        let sslReq = WebsiteSSLSearchRequest(acmeAccountID: "0")
+
+        // 运行环境网站不用筛应用（应用列表仅一键部署需要）
+        guard type != .runtime else {
+            do {
+                availableSSLs = try await client.send(
+                    path: APIEndpoint.websitesSSLSearch.path,
+                    body: sslReq,
+                    as: [WebsiteSSL].self
+                )
+            } catch {
+                availableSSLs = []
+            }
+            return
+        }
+
         let appType: String
         switch type {
         case .deployment: appType = "website"
         case .proxy:      appType = "proxy"
-        case .staticSite: appType = "static"
+        case .runtime, .staticSite: appType = "static"
         }
 
         let appReq = WebsiteAppSearchRequest(
             type: appType, unused: true, all: true, page: 1, pageSize: 100
         )
-        let sslReq = WebsiteSSLSearchRequest(acmeAccountID: "0")
 
         do {
             async let appsResp: AppInstalledListResponse = client.send(
@@ -228,6 +252,46 @@ final class WebsitesViewModel: ObservableObject {
             // 静默失败，让用户至少能填表
             self.availableApps = []
             self.availableSSLs = []
+        }
+    }
+
+    /// 运行环境网站：按类型查询 Running 状态的可用运行环境（抓包 2026-10-25）
+    func loadRuntimeOptions(typeKey: String) async {
+        // 代号守卫：连续切类型时晚到的旧响应不覆盖新数据
+        runtimeOptionsGeneration += 1
+        let gen = runtimeOptionsGeneration
+        isLoadingRuntimeOptions = true
+        defer { isLoadingRuntimeOptions = false }
+        let req = RuntimeListSearchRequest(page: 1, pageSize: 100, type: typeKey, status: "Running")
+        do {
+            let resp: RuntimeListResponse = try await client.send(
+                path: APIEndpoint.runtimesSearch.path, body: req, as: RuntimeListResponse.self
+            )
+            guard gen == runtimeOptionsGeneration else { return }
+            availableRuntimes = resp.items ?? []
+        } catch {
+            guard gen == runtimeOptionsGeneration, !APIError.isCancellation(error) else { return }
+            availableRuntimes = []
+        }
+    }
+
+    /// 创建数据库：查询已安装数据库服务（GET /apps/services/:type）
+    func loadDBServices(dbType: String) async {
+        guard !dbType.isEmpty else { return }
+        dbServicesGeneration += 1
+        let gen = dbServicesGeneration
+        isLoadingDBServices = true
+        defer { isLoadingDBServices = false }
+        let path = APIEndpoint.appsServices.path.replacingOccurrences(of: ":type", with: dbType)
+        do {
+            let services: [AppServiceItem] = try await client.send(
+                path: path, method: "GET", as: [AppServiceItem].self
+            )
+            guard gen == dbServicesGeneration else { return }
+            availableDBServices = services
+        } catch {
+            guard gen == dbServicesGeneration, !APIError.isCancellation(error) else { return }
+            availableDBServices = []
         }
     }
 
