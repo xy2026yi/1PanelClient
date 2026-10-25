@@ -41789,6 +41789,28 @@
           }
         }
       }
+    },
+    "继续" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
+    "修改配置需要重启运行环境，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving restarts the runtime. Continue?"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

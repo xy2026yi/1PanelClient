@@ -8,6 +8,35 @@
 
 import SwiftUI
 
+// MARK: - 配置保存统一确认（保存会触发运行环境重启/重载）
+
+/// 配置类页面的待确认保存动作（alert 关闭置 nil，action 须在构建时捕获目标）
+struct PendingRestartSave: Identifiable {
+    /// 弹窗标题（页面短词：配置修改 / 性能调整 / php.ini / 容器配置…）
+    let title: String
+    let action: () -> Void
+    var id: String { title }
+}
+
+extension View {
+    /// 配置类页面保存统一确认：pending 非 nil 时弹 alert（标题 = 页面短词），
+    /// 「继续」执行 action。校验应在设置 pending 之前完成，不合法不弹窗。
+    func runtimeRestartConfirm(_ pending: Binding<PendingRestartSave?>) -> some View {
+        alert(pending.wrappedValue?.title ?? "", isPresented: Binding(
+            get: { pending.wrappedValue != nil },
+            set: { if !$0 { pending.wrappedValue = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("继续")) {
+                pending.wrappedValue?.action()
+                pending.wrappedValue = nil
+            }
+        } message: {
+            Text(L10n.t("修改配置需要重启运行环境，是否继续？"))
+        }
+    }
+}
+
 // MARK: - 配置修改（11 项 + 禁用函数 + 上传限制 + 超时时间）
 
 struct RuntimePHPSettingsView: View {
@@ -30,6 +59,8 @@ struct RuntimePHPSettingsView: View {
     // 上传限制 / 超时
     @State private var uploadMaxSize = ""
     @State private var maxExecutionTime = ""
+    /// 待确认的保存动作（保存触发运行环境重启）
+    @State private var pendingSave: PendingRestartSave?
 
     var body: some View {
         Form {
@@ -50,6 +81,7 @@ struct RuntimePHPSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .toastOverlay(message: $toast)
+        .runtimeRestartConfirm($pendingSave)
     }
 
     private func load() async {
@@ -162,9 +194,15 @@ struct RuntimePHPSettingsView: View {
                 }
             }
         }
+        // 校验通过后进入重启确认，确认后才提交
+        pendingSave = PendingRestartSave(title: L10n.t("配置修改")) {
+            Task { await submitParams() }
+        }
+    }
+
+    private func submitParams() async {
         isSaving = true
         defer { isSaving = false }
-        // 只提交 11 项固定键（服务端按 params 整组覆盖）
         let params = Dictionary(uniqueKeysWithValues:
             RuntimePHPParamKey.allCases.map { ($0.rawValue, paramEdits[$0.rawValue] ?? "") })
         let ok = await save(
@@ -188,22 +226,32 @@ struct RuntimePHPSettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(disableFunctions, id: \.self) { fn in
-                    HStack {
-                        Text(fn).font(.system(.body, design: .monospaced))
-                        Spacer()
+                // 流式徽章：函数多时不再一行一条撑长页面，点徽章删除
+                FlowLayout(spacing: 8) {
+                    ForEach(disableFunctions, id: \.self) { fn in
                         Button {
                             guard !isSavingFunctions else { return }
-                            disableFunctions.removeAll { $0 == fn }
-                            Task { await saveDisableFunctions() }
+                            pendingSave = PendingRestartSave(title: L10n.t("配置修改")) {
+                                disableFunctions.removeAll { $0 == fn }
+                                Task { await saveDisableFunctions() }
+                            }
                         } label: {
-                            Image(systemName: "minus.circle")
-                                .foregroundStyle(.red)
+                            HStack(spacing: 4) {
+                                Text(fn)
+                                    .font(.system(.footnote, design: .monospaced))
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(Color(.tertiarySystemFill)))
                         }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.plain)
                         .disabled(isSavingFunctions)
                     }
                 }
+                .padding(.vertical, 4)
             }
             HStack {
                 OutlinedTextField(label: L10n.t("添加函数"), prompt: "exec",
@@ -211,9 +259,11 @@ struct RuntimePHPSettingsView: View {
                 Button(L10n.t("添加")) {
                     let fn = newFunction.trimmingCharacters(in: .whitespaces)
                     guard !fn.isEmpty, !disableFunctions.contains(fn), !isSavingFunctions else { return }
-                    disableFunctions.append(fn)
-                    newFunction = ""
-                    Task { await saveDisableFunctions() }
+                    pendingSave = PendingRestartSave(title: L10n.t("配置修改")) {
+                        disableFunctions.append(fn)
+                        newFunction = ""
+                        Task { await saveDisableFunctions() }
+                    }
                 }
                 .disabled(newFunction.trimmingCharacters(in: .whitespaces).isEmpty
                           || isSavingFunctions)
@@ -221,7 +271,7 @@ struct RuntimePHPSettingsView: View {
         } header: {
             Text(L10n.t("禁用函数"))
         } footer: {
-            Text(L10n.t("多个函数以数组提交，删除即从列表移除后保存"))
+            Text(L10n.t("点函数名删除；多个函数以数组提交，删除即从列表移除后保存"))
         }
     }
 
@@ -249,38 +299,46 @@ struct RuntimePHPSettingsView: View {
                               prompt: "2",
                               text: uploadSizeValueBinding)
             Button(L10n.t("保存")) {
-                Task {
-                    let raw = uploadMaxSize.trimmingCharacters(in: .whitespaces)
-                    guard raw.range(of: #"^\d+([KMG])?$"#, options: .regularExpression) != nil else {
-                        toast = L10n.t("上传限制需为数字，可带 K/M/G 单位")
-                        return
-                    }
-                    let ok = await save(RuntimePHPConfigUpdateRequest(
-                        id: entry.id, scope: "upload_max_filesize", uploadMaxSize: uploadMaxSize
-                    ), successMessage: L10n.t("上传限制已保存"))
-                    if ok {
-                        // 回写 php.ini 组内同键，防止后续整组保存用旧值覆盖
-                        paramEdits[RuntimePHPParamKey.uploadMaxFilesize.rawValue] = uploadMaxSize
-                    }
+                let raw = uploadMaxSize.trimmingCharacters(in: .whitespaces)
+                guard raw.range(of: #"^\d+([KMG])?$"#, options: .regularExpression) != nil else {
+                    toast = L10n.t("上传限制需为数字，可带 K/M/G 单位")
+                    return
+                }
+                pendingSave = PendingRestartSave(title: L10n.t("配置修改")) {
+                    Task { await submitUploadLimit() }
                 }
             }
             OutlinedUnitField(label: L10n.t("超时时间"), unit: L10n.t("秒"),
                               prompt: "30", text: $maxExecutionTime)
             Button(L10n.t("保存")) {
-                Task {
-                    let raw = maxExecutionTime.trimmingCharacters(in: .whitespaces)
-                    guard raw.range(of: #"^\d+$"#, options: .regularExpression) != nil else {
-                        toast = L10n.t("超时时间需为非负整数")
-                        return
-                    }
-                    let ok = await save(RuntimePHPConfigUpdateRequest(
-                        id: entry.id, scope: "max_execution_time", maxExecutionTime: maxExecutionTime
-                    ), successMessage: L10n.t("超时时间已保存"))
-                    if ok {
-                        paramEdits[RuntimePHPParamKey.maxExecutionTime.rawValue] = maxExecutionTime
-                    }
+                let raw = maxExecutionTime.trimmingCharacters(in: .whitespaces)
+                guard raw.range(of: #"^\d+$"#, options: .regularExpression) != nil else {
+                    toast = L10n.t("超时时间需为非负整数")
+                    return
+                }
+                pendingSave = PendingRestartSave(title: L10n.t("配置修改")) {
+                    Task { await submitExecutionTime() }
                 }
             }
+        }
+    }
+
+    private func submitUploadLimit() async {
+        let ok = await save(RuntimePHPConfigUpdateRequest(
+            id: entry.id, scope: "upload_max_filesize", uploadMaxSize: uploadMaxSize
+        ), successMessage: L10n.t("上传限制已保存"))
+        if ok {
+            // 回写 php.ini 组内同键，防止后续整组保存用旧值覆盖
+            paramEdits[RuntimePHPParamKey.uploadMaxFilesize.rawValue] = uploadMaxSize
+        }
+    }
+
+    private func submitExecutionTime() async {
+        let ok = await save(RuntimePHPConfigUpdateRequest(
+            id: entry.id, scope: "max_execution_time", maxExecutionTime: maxExecutionTime
+        ), successMessage: L10n.t("超时时间已保存"))
+        if ok {
+            paramEdits[RuntimePHPParamKey.maxExecutionTime.rawValue] = maxExecutionTime
         }
     }
 
@@ -323,6 +381,7 @@ struct RuntimePHPFpmTuneView: View {
     @State private var errorMessage: String?
     @State private var toast: String?
     @State private var isSaving = false
+    @State private var pendingSave: PendingRestartSave?
 
     private let pmModes = ["dynamic", "static", "ondemand"]
     /// 运行模式值/显示分离（形态 3）
@@ -377,7 +436,7 @@ struct RuntimePHPFpmTuneView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button {
-                    Task { await save() }
+                    save()
                 } label: {
                     if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                 }
@@ -386,6 +445,7 @@ struct RuntimePHPFpmTuneView: View {
         }
         .task { await load() }
         .toastOverlay(message: $toast)
+        .runtimeRestartConfirm($pendingSave)
     }
 
     /// 选预设 → 回填四个参数后回到「选择预设」占位
@@ -424,12 +484,20 @@ struct RuntimePHPFpmTuneView: View {
         }
     }
 
-    private func save() async {
+    private func save() {
         guard let mc = Int(maxChildren), let ss = Int(startServers),
               let mn = Int(minSpare), let mx = Int(maxSpare) else {
             toast = L10n.t("进程参数需为数字")
             return
         }
+        pendingSave = PendingRestartSave(title: L10n.t("性能调整")) {
+            Task { await submitFpm() }
+        }
+    }
+
+    private func submitFpm() async {
+        guard let mc = Int(maxChildren), let ss = Int(startServers),
+              let mn = Int(minSpare), let mx = Int(maxSpare) else { return }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -590,6 +658,7 @@ struct RuntimePHPFileView: View {
     @State private var errorMessage: String?
     @State private var toast: String?
     @State private var isSaving = false
+    @State private var pendingSave: PendingRestartSave?
 
     private var title: String { fileType == "fpm" ? "php-fpm.conf" : "php.ini" }
 
@@ -638,7 +707,9 @@ struct RuntimePHPFileView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 if isEditing {
                     Button {
-                        Task { await save() }
+                        pendingSave = PendingRestartSave(title: title) {
+                            Task { await save() }
+                        }
                     } label: {
                         if isSaving { ProgressView() } else { Text(L10n.t("保存")).bold() }
                     }
@@ -650,6 +721,7 @@ struct RuntimePHPFileView: View {
         }
         .task { await load() }
         .toastOverlay(message: $toast)
+        .runtimeRestartConfirm($pendingSave)
         .onDisappear {
             if isEditing { content = original; isEditing = false }
         }
@@ -726,6 +798,7 @@ struct RuntimePHPContainerView: View {
     @State private var errorMessage: String?
     @State private var toast: String?
     @State private var isSaving = false
+    @State private var pendingSave: PendingRestartSave?
     /// 已加载标记：从四数组子编辑页返回时 .task 会重跑（导航父页 disappear/appear），
     /// 守卫防止服务端数据覆盖编辑中的未保存修改；下拉刷新显式清标记重载
     @State private var hasLoaded = false
@@ -785,6 +858,7 @@ struct RuntimePHPContainerView: View {
             await load()
         }
         .toastOverlay(message: $toast)
+        .runtimeRestartConfirm($pendingSave)
     }
 
     private func entryLinkLabel(_ title: String, count: Int) -> some View {
@@ -834,13 +908,19 @@ struct RuntimePHPContainerView: View {
     }
 
     private func save() async {
-        // 行级校验（含行号提示）；全空行静默丢弃。保存即重建生效，不能带进垃圾配置
+        // 行级校验（含行号提示）；全空行静默丢弃。校验通过后进重启确认
         if let err = RuntimeAdvancedArrays.validationError(
             ports: ports, envs: envs, volumes: volumes, hosts: hosts
         ) {
             toast = err
             return
         }
+        pendingSave = PendingRestartSave(title: L10n.t("容器配置")) {
+            Task { await submitContainer() }
+        }
+    }
+
+    private func submitContainer() async {
         isSaving = true
         defer { isSaving = false }
         do {
