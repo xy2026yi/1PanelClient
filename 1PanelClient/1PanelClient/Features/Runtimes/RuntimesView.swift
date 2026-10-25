@@ -150,7 +150,7 @@ struct RuntimesView: View {
                 LoadingStateView(compact: true)
                     .padding(.vertical, 30)
                     .listRowBackground(Color.clear)
-            } else if let err = vm.errorMessage {
+            } else if let err = vm.errorMessage, vm.runtimes.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {
@@ -210,36 +210,17 @@ struct RuntimesView: View {
         return items
     }
 
-    // MARK: - 删除确认（含关联资源提示）
+    // MARK: - 删除确认（关联资源非空时 requestDelete 直接提示解绑，不进此表）
 
     private func deleteConfirmSheet(_ entry: RuntimeEntry) -> some View {
         TextInputConfirmSheet(
             title: L10n.t("删除运行环境"),
-            message: deleteConfirmMessage(entry),
+            message: L10n.f("将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。",
+                            entry.displayName),
             expectedText: entry.displayName
         ) {
             await vm.confirmDelete(entry, force: false, deleteImage: false)
-        } options: {
-            if vm.isCheckingDelete {
-                HStack(spacing: 8) {
-                    ProgressView().scaleEffect(0.8)
-                    Text(L10n.t("正在检查关联资源…"))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
         }
-    }
-
-    private func deleteConfirmMessage(_ entry: RuntimeEntry) -> String {
-        if vm.deleteBlockers.isEmpty {
-            return L10n.f("将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。",
-                          entry.displayName)
-        }
-        let names = vm.deleteBlockers
-            .map { "\($0.type ?? ""): \($0.name ?? "")" }
-            .joined(separator: "、")
-        return L10n.f("以下资源仍在使用该运行环境：%@，删除后相关网站将不可用。请输入名称以确认删除。", names)
     }
 }
 

@@ -17,15 +17,26 @@ struct RuntimeNodeModulesView: View {
     @State private var errorMessage: String?
     @State private var toast: String?
     @State private var newModule = ""
-    @State private var busyNames: Set<String> = []
-    @State private var isInstalling = false
+    /// 操作中的模块名（该行/安装位转圈；install 用空串占位）
+    @State private var busyName: String?
+
+    /// 待确认操作（面板对安装/更新/卸载均二次确认）
+    private struct PendingOp: Identifiable {
+        let op: String        // install / update / uninstall
+        let name: String
+        var id: String { op + ":" + name }
+    }
+    @State private var pendingOp: PendingOp?
+
+    /// 任一操作进行中：锁定其余操作（同一容器内并发跑 npm 会锁冲突）
+    private var isOperating: Bool { busyName != nil }
 
     var body: some View {
         List {
             installSection
             if isLoading && modules.isEmpty {
                 Section { LoadingStateView(compact: true).padding(.vertical, 20) }
-            } else if let err = errorMessage {
+            } else if let err = errorMessage, modules.isEmpty {
                 Section {
                     Text(err).font(.footnote).foregroundStyle(.red)
                     Button(L10n.t("重试")) { Task { await load() } }
@@ -63,20 +74,22 @@ struct RuntimeNodeModulesView: View {
                                 }
                             }
                             Spacer()
-                            if busyNames.contains(mod.displayName) {
+                            if busyName == mod.displayName {
                                 ProgressView().scaleEffect(0.8)
                             } else {
                                 Button(L10n.t("更新")) {
-                                    Task { await operate("update", mod.displayName) }
+                                    pendingOp = PendingOp(op: "update", name: mod.displayName)
                                 }
                                 .font(.subheadline)
                                 .buttonStyle(.bordered)
+                                .disabled(isOperating)
                                 Button(L10n.t("卸载"), role: .destructive) {
-                                    Task { await operate("uninstall", mod.displayName) }
+                                    pendingOp = PendingOp(op: "uninstall", name: mod.displayName)
                                 }
                                 .font(.subheadline)
                                 .buttonStyle(.bordered)
                                 .tint(.red)
+                                .disabled(isOperating)
                             }
                         }
                         .padding(.vertical, 2)
@@ -89,6 +102,39 @@ struct RuntimeNodeModulesView: View {
         .task { await load() }
         .refreshable { await load() }
         .toastOverlay(message: $toast)
+        .alert(pendingOp.map { alertTitle($0) } ?? "", isPresented: Binding(
+            get: { pendingOp != nil },
+            set: { if !$0 { pendingOp = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            // alert 关闭会把 pendingOp 置 nil，异步闭包必须先捕获目标
+            Button(pendingOp.map { confirmTitle($0) } ?? "", role: .destructive) {
+                let op = pendingOp
+                Task { if let op { await operate(op.op, op.name) } }
+            }
+        } message: {
+            Text(pendingOp.map { alertMessage($0) } ?? "")
+        }
+    }
+
+    private func alertTitle(_ op: PendingOp) -> String {
+        switch op.op {
+        case "install": return L10n.t("安装模块")
+        case "update": return L10n.t("更新模块")
+        default: return L10n.t("卸载模块")
+        }
+    }
+
+    private func confirmTitle(_ op: PendingOp) -> String {
+        op.op == "uninstall" ? L10n.t("卸载") : L10n.t("确认")
+    }
+
+    private func alertMessage(_ op: PendingOp) -> String {
+        switch op.op {
+        case "install": return L10n.f("确认安装模块「%@」？", op.name)
+        case "update": return L10n.f("确认更新模块「%@」？", op.name)
+        default: return L10n.f("确认卸载模块「%@」？卸载后不可恢复。", op.name)
+        }
     }
 
     private var installSection: some View {
@@ -96,13 +142,16 @@ struct RuntimeNodeModulesView: View {
             HStack {
                 OutlinedTextField(label: L10n.t("模块名"), prompt: "express",
                                   text: $newModule)
-                if isInstalling {
+                if busyName == "" {
                     ProgressView().scaleEffect(0.9)
                 } else {
                     Button(L10n.t("安装")) {
-                        Task { await operate("install", newModule.trimmingCharacters(in: .whitespaces)) }
+                        let name = newModule.trimmingCharacters(in: .whitespaces)
+                        guard !name.isEmpty else { return }
+                        pendingOp = PendingOp(op: "install", name: name)
                     }
-                    .disabled(newModule.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(newModule.trimmingCharacters(in: .whitespaces).isEmpty
+                              || isOperating)
                 }
             }
         } header: {
@@ -130,20 +179,19 @@ struct RuntimeNodeModulesView: View {
     }
 
     private func operate(_ op: String, _ moduleName: String) async {
-        guard !moduleName.isEmpty else { return }
-        let busyKey = op == "install" ? "" : moduleName
-        if op == "install" { isInstalling = true } else { busyNames.insert(busyKey) }
-        defer {
-            isInstalling = false
-            if !busyKey.isEmpty { busyNames.remove(busyKey) }
-        }
+        guard !moduleName.isEmpty, busyName == nil else { return }
+        busyName = op == "install" ? "" : moduleName
+        defer { busyName = nil }
         do {
+            // 同步阻塞接口：默认 15s 超时会在真实安装耗时下“假失败”（服务端仍在执行），
+            // 按面板前端口径放宽到 10 分钟
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.runtimesNodeModulesOperate.path,
                 body: RuntimeNodeModuleOperateRequest(
                     ID: entry.id, Operate: op, Module: moduleName,
                     PkgManager: entry.packageManager
                 ),
+                timeout: 600,
                 as: EmptyResponse.self
             )
             toast = L10n.f("%@ 完成", op == "install" ? L10n.t("安装") : (op == "update" ? L10n.t("更新") : L10n.t("卸载")))

@@ -5710,17 +5710,6 @@
         }
       }
     },
-    "以下资源仍在使用该运行环境：%@，删除后相关网站将不可用。请输入名称以确认删除。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "These resources still depend on this runtime: %@. Related websites will stop working. Type the name to confirm."
-          }
-        }
-      }
-    },
     "以下选项将作为 升级 / 卸载 / 安装 应用时的默认勾选项，可在操作时手动修改。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23794,17 +23783,6 @@
         }
       }
     },
-    "暂无慢请求记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No slow requests recorded"
-          }
-        }
-      }
-    },
     "暂无执行记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26947,17 +26925,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Updating…"
-          }
-        }
-      }
-    },
-    "正在检查关联资源…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking linked resources…"
           }
         }
       }
@@ -33166,17 +33133,6 @@
         }
       }
     },
-    "网站 / 证书" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Websites / Certificates"
-          }
-        }
-      }
-    },
     "网站「 %@ 」到期告警" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37720,17 +37676,6 @@
         }
       }
     },
-    "运行环境未运行或未开启状态页" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runtime is not running or the status page is disabled"
-          }
-        }
-      }
-    },
     "运行目录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -41544,6 +41489,226 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ": %@"
+          }
+        }
+      }
+    },
+    "重启进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Process"
+          }
+        }
+      }
+    },
+    "确认重启进程「%@」？重启会中断正在执行的进程。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart process \"%@\"? Restarting will interrupt running processes."
+          }
+        }
+      }
+    },
+    "安装模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Module"
+          }
+        }
+      }
+    },
+    "更新模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Module"
+          }
+        }
+      }
+    },
+    "卸载模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Module"
+          }
+        }
+      }
+    },
+    "确认安装模块「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install module \"%@\"?"
+          }
+        }
+      }
+    },
+    "确认更新模块「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update module \"%@\"?"
+          }
+        }
+      }
+    },
+    "确认卸载模块「%@」？卸载后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall module \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
+    "该运行环境被以下网站使用：%@。请先在「网站」中解绑或删除对应网站，再删除运行环境。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This runtime is used by the following websites: %@. Unbind or delete them in Websites first, then delete the runtime."
+          }
+        }
+      }
+    },
+    "端口映射第 %ld 行：主机端口与容器端口需为 1-65535 的整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port mapping row %ld: host and container ports must be integers from 1 to 65535"
+          }
+        }
+      }
+    },
+    "环境变量第 %ld 行：变量名不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment variable row %ld: name is required"
+          }
+        }
+      }
+    },
+    "挂载第 %ld 行：主机目录与容器目录不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume row %ld: host and container paths are required"
+          }
+        }
+      }
+    },
+    "主机映射第 %ld 行：主机名与 IP 不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host mapping row %ld: hostname and IP are required"
+          }
+        }
+      }
+    },
+    "「%@」需为数字，可带 K/M/G 单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" must be a number, optionally with a K/M/G unit"
+          }
+        }
+      }
+    },
+    "「%@」需为非负整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" must be a non-negative integer"
+          }
+        }
+      }
+    },
+    "上传限制需为数字，可带 K/M/G 单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload limit must be a number, optionally with a K/M/G unit"
+          }
+        }
+      }
+    },
+    "超时时间需为非负整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout must be a non-negative integer"
+          }
+        }
+      }
+    },
+    "网站 / 证书 / 运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Websites / Certificates / Runtimes"
+          }
+        }
+      }
+    },
+    "更新于 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated %@"
+          }
+        }
+      }
+    },
+    "服务器状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server Status"
           }
         }
       }

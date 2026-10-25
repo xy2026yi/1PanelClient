@@ -71,10 +71,9 @@ final class RuntimesViewModel: ObservableObject {
     /// 行级操作中（启停/重启转圈）
     @Published private(set) var operatingIDs: Set<Int> = []
 
-    // 删除流程：先查关联，再弹输入名称确认
+    // 删除流程：先查关联（有关联直接提示解绑），无关联再弹输入名称确认
     @Published var deleteTarget: RuntimeEntry?
     @Published private(set) var deleteBlockers: [AppDeleteCheckItem] = []
-    @Published private(set) var isCheckingDelete = false
 
     let client: APIClient
 
@@ -106,7 +105,12 @@ final class RuntimesViewModel: ObservableObject {
             total = resp.total
         } catch {
             guard gen == loadGeneration, !APIError.isCancellation(error) else { return }
-            errorMessage = error.localizedDescription
+            // 已有数据时降级为 toast（轮询期间网络抖动不打断列表展示）
+            if runtimes.isEmpty {
+                errorMessage = error.localizedDescription
+            } else {
+                toastMessage = error.localizedDescription
+            }
         }
         isLoading = false
     }
@@ -181,10 +185,8 @@ final class RuntimesViewModel: ObservableObject {
     // MARK: - 删除（先查关联 → 输入名称确认 → 任务式）
 
     func requestDelete(_ entry: RuntimeEntry) async {
-        deleteTarget = entry
+        deleteTarget = nil
         deleteBlockers = []
-        isCheckingDelete = true
-        defer { isCheckingDelete = false }
         do {
             let path = APIEndpoint.runtimesDeleteCheck.path
                 .replacingOccurrences(of: ":id", with: String(entry.id))
@@ -197,6 +199,20 @@ final class RuntimesViewModel: ObservableObject {
             // 检查失败不阻断删除，按无关联继续（服务端仍会校验）
             deleteBlockers = []
         }
+        guard deleteBlockers.isEmpty else {
+            // 有关联网站时服务端无条件拒绝（forceDelete 也不放行），
+            // 不进名称确认，提示先解绑（面板同口径）
+            let names = deleteBlockers
+                .map { $0.name ?? $0.type ?? "" }
+                .filter { !$0.isEmpty }
+                .joined(separator: "、")
+            alertMessage = L10n.f(
+                "该运行环境被以下网站使用：%@。请先在「网站」中解绑或删除对应网站，再删除运行环境。",
+                names
+            )
+            return
+        }
+        deleteTarget = entry
     }
 
     func confirmDelete(_ entry: RuntimeEntry, force: Bool, deleteImage: Bool) async {
@@ -242,10 +258,11 @@ final class RuntimesViewModel: ObservableObject {
 
     func submitCreate(_ request: RuntimeCreateRequest) async -> String? {
         do {
-            let resp: RuntimeEntry = try await client.send(
-                path: APIEndpoint.runtimesCreate.path, body: request, as: RuntimeEntry.self
+            // 创建响应是详情条目的另一形态（params 为空串、无 appID/appParams），
+            // 不能按 RuntimeEntry 解码——只关心提交成功，进度经 request.taskID 推进
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.runtimesCreate.path, body: request, as: EmptyResponse.self
             )
-            _ = resp
             return request.taskID
         } catch {
             alertMessage = L10n.f("创建失败：%@", error.localizedDescription)

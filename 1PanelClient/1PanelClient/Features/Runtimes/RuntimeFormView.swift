@@ -95,6 +95,10 @@ struct RuntimeFormView: View {
     @State private var showDirPicker = false
     @State private var showExtensionPicker = false
     @State private var activeTask: RuntimeTaskTarget?
+    /// 提交前校验错误（高级数组行级）
+    @State private var validationToast: String?
+    /// codeDir 防抖代号（连续输入只解析最后一次）
+    @State private var nodeScriptsGeneration = 0
 
     private var isEdit: Bool {
         if case .edit = mode { return true }
@@ -140,6 +144,7 @@ struct RuntimeFormView: View {
         } message: {
             Text(listVM.alertMessage)
         }
+        .toastOverlay(message: $validationToast)
     }
 
     // MARK: - 编辑（单页表单 + 右上角保存，KVM 表单同款）
@@ -318,7 +323,7 @@ struct RuntimeFormView: View {
                                   browseAction: { showDirPicker = true })
                     .disabled(isEdit)
                     .onChange(of: codeDir) { _, _ in
-                        Task { await loadNodeScripts() }
+                        scheduleLoadNodeScripts()
                     }
             }
 
@@ -696,8 +701,19 @@ struct RuntimeFormView: View {
         }
     }
 
-    /// 填目录后解析 package.json scripts（仅 Node 创建态）
-    private func loadNodeScripts() async {
+    /// 填目录后解析 package.json scripts（仅 Node 创建态）。
+    /// 防抖 + 代号：连续键入只发最后一次请求，晚到的旧响应不覆盖新结果
+    private func scheduleLoadNodeScripts() {
+        nodeScriptsGeneration += 1
+        let gen = nodeScriptsGeneration
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            guard gen == nodeScriptsGeneration else { return }
+            await loadNodeScripts(gen: gen)
+        }
+    }
+
+    private func loadNodeScripts(gen: Int? = nil) async {
         guard selectedType == .node, !isEdit, !codeDir.isEmpty else { return }
         do {
             let scripts: [RuntimeNodeScript] = try await client.send(
@@ -705,6 +721,7 @@ struct RuntimeFormView: View {
                 body: RuntimeNodePackageRequest(codeDir: codeDir),
                 as: [RuntimeNodeScript].self
             )
+            if let gen, gen != nodeScriptsGeneration { return }
             nodeScripts = scripts
         } catch {
             nodeScripts = []
@@ -724,6 +741,18 @@ struct RuntimeFormView: View {
     }
 
     private func submit() async {
+        // 高级行校验（PHP 无容器高级配置；校验含行号提示，全空行静默丢弃）
+        let activePorts = isPHP ? [] : exposedPorts
+        let activeEnvRows = isPHP ? [] : envRows
+        let activeVolRows = isPHP ? [] : volumeRows
+        let activeHostRows = isPHP ? [] : hostRows
+        if let err = RuntimeAdvancedArrays.validationError(
+            ports: activePorts, envs: activeEnvRows, volumes: activeVolRows, hosts: activeHostRows
+        ) {
+            validationToast = err
+            return
+        }
+
         isSubmitting = true
         defer { isSubmitting = false }
 
@@ -753,20 +782,20 @@ struct RuntimeFormView: View {
             : ""
 
         // PHP 无容器高级配置：抓包口径仅携带 environments 空数组，四组数组仅非 PHP
-        let exposed: [RuntimeExposedPort]? = isPHP ? nil : exposedPorts.map {
+        let exposed: [RuntimeExposedPort]? = isPHP ? nil : activePorts.filter { !$0.isBlank }.map {
             RuntimeExposedPort(hostPort: Int($0.hostPort) ?? 0,
                                containerPort: Int($0.containerPort) ?? 0,
                                hostIP: $0.hostIP,
                                protocol: $0.`protocol`)
         }
-        let envs: [RuntimeEnvironment] = isPHP ? [] : envRows.map {
+        let envs: [RuntimeEnvironment] = isPHP ? [] : activeEnvRows.filter { !$0.isBlank }.map {
             RuntimeEnvironment(key: $0.key, value: $0.value)
         }
-        let vols: [RuntimeVolume]? = isPHP ? nil : volumeRows.map {
+        let vols: [RuntimeVolume]? = isPHP ? nil : activeVolRows.filter { !$0.isBlank }.map {
             RuntimeVolume(source: $0.source, target: $0.target,
                           mode: $0.mode.isEmpty ? "rw" : $0.mode)
         }
-        let hosts: [RuntimeExtraHost]? = isPHP ? nil : hostRows.map {
+        let hosts: [RuntimeExtraHost]? = isPHP ? nil : activeHostRows.filter { !$0.isBlank }.map {
             RuntimeExtraHost(hostname: $0.hostname, ip: $0.ip)
         }
 
@@ -780,6 +809,8 @@ struct RuntimeFormView: View {
                 remark: remark, appID: appID, version: selectedVersion
             )
             request.install = selectedType == .node ? installDeps : nil
+            // 面板原始请求同时携带 versionn（与 version 同值）
+            request.versionn = selectedVersion
             // 编辑保留 PHP-FPM 端口等原有参数（服务端按 params 整组覆盖，回填原值）
             if isPHP, let old = entry.params {
                 for (k, v) in old where params[k] == nil && !v.isNull {
@@ -885,6 +916,52 @@ struct RuntimePortRow: Identifiable, Hashable {
     var containerPort = ""
     var hostIP = ""
     var `protocol` = "tcp"
+
+    /// 未填任何内容的「添加」行（提交时静默丢弃）
+    var isBlank: Bool {
+        hostPort.trimmingCharacters(in: .whitespaces).isEmpty
+            && containerPort.trimmingCharacters(in: .whitespaces).isEmpty
+            && hostIP.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+}
+
+// MARK: - 高级数组行校验（创建向导与 PHP 容器配置共用）
+
+enum RuntimeAdvancedArrays {
+
+    /// 非空行逐行校验；返回首条错误（带用户可见的行号），全部合法返回 nil
+    static func validationError(ports: [RuntimePortRow], envs: [RuntimeEnvRow],
+                                volumes: [RuntimeVolumeRow],
+                                hosts: [RuntimeHostRow]) -> String? {
+        for (idx, row) in ports.enumerated() {
+            guard !row.isBlank else { continue }
+            guard let hp = Int(row.hostPort), (1...65535).contains(hp),
+                  let cp = Int(row.containerPort), (1...65535).contains(cp) else {
+                return L10n.f("端口映射第 %ld 行：主机端口与容器端口需为 1-65535 的整数", idx + 1)
+            }
+        }
+        for (idx, row) in envs.enumerated() {
+            guard !row.isBlank else { continue }
+            if row.key.trimmingCharacters(in: .whitespaces).isEmpty {
+                return L10n.f("环境变量第 %ld 行：变量名不能为空", idx + 1)
+            }
+        }
+        for (idx, row) in volumes.enumerated() {
+            guard !row.isBlank else { continue }
+            if row.source.trimmingCharacters(in: .whitespaces).isEmpty
+                || row.target.trimmingCharacters(in: .whitespaces).isEmpty {
+                return L10n.f("挂载第 %ld 行：主机目录与容器目录不能为空", idx + 1)
+            }
+        }
+        for (idx, row) in hosts.enumerated() {
+            guard !row.isBlank else { continue }
+            if row.hostname.trimmingCharacters(in: .whitespaces).isEmpty
+                || row.ip.trimmingCharacters(in: .whitespaces).isEmpty {
+                return L10n.f("主机映射第 %ld 行：主机名与 IP 不能为空", idx + 1)
+            }
+        }
+        return nil
+    }
 }
 
 struct RuntimePortsEditView: View {
@@ -939,6 +1016,11 @@ struct RuntimeEnvRow: Identifiable, Hashable {
     var id = UUID()
     var key = ""
     var value = ""
+
+    var isBlank: Bool {
+        key.trimmingCharacters(in: .whitespaces).isEmpty
+            && value.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 }
 
 struct RuntimeEnvsEditView: View {
@@ -988,6 +1070,11 @@ struct RuntimeVolumeRow: Identifiable, Hashable {
     var source = ""
     var target = ""
     var mode = "rw"
+
+    var isBlank: Bool {
+        source.trimmingCharacters(in: .whitespaces).isEmpty
+            && target.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 }
 
 struct RuntimeVolumesEditView: View {
@@ -1059,6 +1146,11 @@ struct RuntimeHostRow: Identifiable, Hashable {
     var id = UUID()
     var hostname = ""
     var ip = ""
+
+    var isBlank: Bool {
+        hostname.trimmingCharacters(in: .whitespaces).isEmpty
+            && ip.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 }
 
 struct RuntimeHostsEditView: View {

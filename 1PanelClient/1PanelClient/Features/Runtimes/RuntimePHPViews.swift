@@ -23,6 +23,9 @@ struct RuntimePHPSettingsView: View {
 
     // 禁用函数
     @State private var disableFunctions: [String] = []
+    /// 服务端已保存的禁用函数（乐观更新失败时回滚）
+    @State private var savedDisableFunctions: [String] = []
+    @State private var isSavingFunctions = false
     @State private var newFunction = ""
     // 上传限制 / 超时
     @State private var uploadMaxSize = ""
@@ -37,8 +40,8 @@ struct RuntimePHPSettingsView: View {
                     Text(err).font(.footnote).foregroundStyle(.red)
                     Button(L10n.t("重试")) { Task { await load() } }
                 }
-            } else if let cfg = config {
-                paramsSection(cfg)
+            } else if config != nil {
+                paramsSection
                 disableFunctionsSection
                 limitsSection
             }
@@ -63,6 +66,7 @@ struct RuntimePHPSettingsView: View {
             config = cfg
             paramEdits = cfg.params ?? [:]
             disableFunctions = cfg.disableFunctions ?? []
+            savedDisableFunctions = disableFunctions
             uploadMaxSize = cfg.uploadMaxSize ?? ""
             maxExecutionTime = cfg.maxExecutionTime ?? ""
         } catch {
@@ -72,7 +76,7 @@ struct RuntimePHPSettingsView: View {
 
     // MARK: 11 项 php.ini 参数（整组保存）
 
-    private func paramsSection(_ cfg: RuntimePHPConfig) -> some View {
+    private var paramsSection: some View {
         Section {
             ForEach(RuntimePHPParamKey.allCases) { key in
                 if key.isToggle {
@@ -143,13 +147,35 @@ struct RuntimePHPSettingsView: View {
     }
 
     private func saveParams() async {
+        // 逐键校验：尺寸 = 数字 + 可选 K/M/G；数字键 = 纯数字（0 合法，如超时 0 = 不限）
+        for key in RuntimePHPParamKey.allCases {
+            let raw = (paramEdits[key.rawValue] ?? "").trimmingCharacters(in: .whitespaces)
+            if key.isSize {
+                guard raw.range(of: #"^\d+([KMG])?$"#, options: .regularExpression) != nil else {
+                    toast = L10n.f("「%@」需为数字，可带 K/M/G 单位", key.title)
+                    return
+                }
+            } else if key.isNumeric {
+                guard raw.range(of: #"^\d+$"#, options: .regularExpression) != nil else {
+                    toast = L10n.f("「%@」需为非负整数", key.title)
+                    return
+                }
+            }
+        }
         isSaving = true
         defer { isSaving = false }
         // 只提交 11 项固定键（服务端按 params 整组覆盖）
         let params = Dictionary(uniqueKeysWithValues:
             RuntimePHPParamKey.allCases.map { ($0.rawValue, paramEdits[$0.rawValue] ?? "") })
-        await save(RuntimePHPConfigUpdateRequest(id: entry.id, params: params, scope: "params")) {
-            toast = L10n.t("配置已保存")
+        let ok = await save(
+            RuntimePHPConfigUpdateRequest(id: entry.id, params: params, scope: "params"),
+            successMessage: L10n.t("配置已保存")
+        )
+        if ok {
+            // 双状态互回写：php.ini 组保存后同步「上传与超时」区，
+            // 防止另一侧残留旧值在后续整组保存时静默回滚
+            uploadMaxSize = paramEdits[RuntimePHPParamKey.uploadMaxFilesize.rawValue] ?? ""
+            maxExecutionTime = paramEdits[RuntimePHPParamKey.maxExecutionTime.rawValue] ?? ""
         }
     }
 
@@ -167,6 +193,7 @@ struct RuntimePHPSettingsView: View {
                         Text(fn).font(.system(.body, design: .monospaced))
                         Spacer()
                         Button {
+                            guard !isSavingFunctions else { return }
                             disableFunctions.removeAll { $0 == fn }
                             Task { await saveDisableFunctions() }
                         } label: {
@@ -174,6 +201,7 @@ struct RuntimePHPSettingsView: View {
                                 .foregroundStyle(.red)
                         }
                         .buttonStyle(.borderless)
+                        .disabled(isSavingFunctions)
                     }
                 }
             }
@@ -182,12 +210,13 @@ struct RuntimePHPSettingsView: View {
                                   text: $newFunction)
                 Button(L10n.t("添加")) {
                     let fn = newFunction.trimmingCharacters(in: .whitespaces)
-                    guard !fn.isEmpty, !disableFunctions.contains(fn) else { return }
+                    guard !fn.isEmpty, !disableFunctions.contains(fn), !isSavingFunctions else { return }
                     disableFunctions.append(fn)
                     newFunction = ""
                     Task { await saveDisableFunctions() }
                 }
-                .disabled(newFunction.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(newFunction.trimmingCharacters(in: .whitespaces).isEmpty
+                          || isSavingFunctions)
             }
         } header: {
             Text(L10n.t("禁用函数"))
@@ -197,10 +226,16 @@ struct RuntimePHPSettingsView: View {
     }
 
     private func saveDisableFunctions() async {
-        await save(RuntimePHPConfigUpdateRequest(
+        isSavingFunctions = true
+        defer { isSavingFunctions = false }
+        let ok = await save(RuntimePHPConfigUpdateRequest(
             id: entry.id, scope: "disable_functions", disableFunctions: disableFunctions
-        )) {
-            toast = L10n.t("禁用函数已保存")
+        ), successMessage: L10n.t("禁用函数已保存"))
+        // 乐观更新失败回滚到服务端已保存的数组，避免页面停留期间显示与实际不一致
+        if ok {
+            savedDisableFunctions = disableFunctions
+        } else {
+            disableFunctions = savedDisableFunctions
         }
     }
 
@@ -215,18 +250,35 @@ struct RuntimePHPSettingsView: View {
                               text: uploadSizeValueBinding)
             Button(L10n.t("保存")) {
                 Task {
-                    await save(RuntimePHPConfigUpdateRequest(
+                    let raw = uploadMaxSize.trimmingCharacters(in: .whitespaces)
+                    guard raw.range(of: #"^\d+([KMG])?$"#, options: .regularExpression) != nil else {
+                        toast = L10n.t("上传限制需为数字，可带 K/M/G 单位")
+                        return
+                    }
+                    let ok = await save(RuntimePHPConfigUpdateRequest(
                         id: entry.id, scope: "upload_max_filesize", uploadMaxSize: uploadMaxSize
-                    )) { toast = L10n.t("上传限制已保存") }
+                    ), successMessage: L10n.t("上传限制已保存"))
+                    if ok {
+                        // 回写 php.ini 组内同键，防止后续整组保存用旧值覆盖
+                        paramEdits[RuntimePHPParamKey.uploadMaxFilesize.rawValue] = uploadMaxSize
+                    }
                 }
             }
             OutlinedUnitField(label: L10n.t("超时时间"), unit: L10n.t("秒"),
                               prompt: "30", text: $maxExecutionTime)
             Button(L10n.t("保存")) {
                 Task {
-                    await save(RuntimePHPConfigUpdateRequest(
+                    let raw = maxExecutionTime.trimmingCharacters(in: .whitespaces)
+                    guard raw.range(of: #"^\d+$"#, options: .regularExpression) != nil else {
+                        toast = L10n.t("超时时间需为非负整数")
+                        return
+                    }
+                    let ok = await save(RuntimePHPConfigUpdateRequest(
                         id: entry.id, scope: "max_execution_time", maxExecutionTime: maxExecutionTime
-                    )) { toast = L10n.t("超时时间已保存") }
+                    ), successMessage: L10n.t("超时时间已保存"))
+                    if ok {
+                        paramEdits[RuntimePHPParamKey.maxExecutionTime.rawValue] = maxExecutionTime
+                    }
                 }
             }
         }
@@ -239,16 +291,19 @@ struct RuntimePHPSettingsView: View {
         )
     }
 
+    @discardableResult
     private func save(_ request: RuntimePHPConfigUpdateRequest,
-                      onSuccess: @escaping () -> Void) async {
+                      successMessage: String) async -> Bool {
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.runtimesPhpConfigUpdate.path,
                 body: request, as: EmptyResponse.self
             )
-            onSuccess()
+            toast = successMessage
+            return true
         } catch {
             toast = L10n.f("保存失败：%@", error.localizedDescription)
+            return false
         }
     }
 }
@@ -413,7 +468,7 @@ struct RuntimeFPMStatusView: View {
         List {
             if isLoading && items.isEmpty {
                 LoadingStateView(compact: true).padding(.vertical, 20)
-            } else if let err = errorMessage {
+            } else if let err = errorMessage, items.isEmpty {
                 Text(err).font(.footnote).foregroundStyle(.red)
             } else if items.isEmpty {
                 Text(L10n.t("暂无数据"))
@@ -467,6 +522,13 @@ struct RuntimeSlowLogView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 4) {
+                if !logPath.isEmpty {
+                    Text(logPath)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.bottom, 4)
+                }
                 if isLoading && lines.isEmpty {
                     LoadingStateView(compact: true).padding(.vertical, 30)
                 } else if let err = errorMessage {
@@ -763,6 +825,13 @@ struct RuntimePHPContainerView: View {
     }
 
     private func save() async {
+        // 行级校验（含行号提示）；全空行静默丢弃。保存即重建生效，不能带进垃圾配置
+        if let err = RuntimeAdvancedArrays.validationError(
+            ports: ports, envs: envs, volumes: volumes, hosts: hosts
+        ) {
+            toast = err
+            return
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -771,20 +840,20 @@ struct RuntimePHPContainerView: View {
                 body: RuntimePHPContainerUpdateRequest(
                     id: entry.id,
                     containerName: containerName,
-                    exposedPorts: ports.map {
+                    exposedPorts: ports.filter { !$0.isBlank }.map {
                         RuntimeExposedPort(hostPort: Int($0.hostPort) ?? 0,
                                            containerPort: Int($0.containerPort) ?? 0,
                                            hostIP: $0.hostIP,
                                            protocol: $0.protocol)
                     },
-                    environments: envs.map {
+                    environments: envs.filter { !$0.isBlank }.map {
                         RuntimeEnvironment(key: $0.key, value: $0.value)
                     },
-                    volumes: volumes.map {
+                    volumes: volumes.filter { !$0.isBlank }.map {
                         RuntimeVolume(source: $0.source, target: $0.target,
                                       mode: $0.mode.isEmpty ? "rw" : $0.mode)
                     },
-                    extraHosts: hosts.map {
+                    extraHosts: hosts.filter { !$0.isBlank }.map {
                         RuntimeExtraHost(hostname: $0.hostname, ip: $0.ip)
                     }
                 ),

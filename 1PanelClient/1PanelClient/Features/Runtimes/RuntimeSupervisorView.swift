@@ -22,12 +22,13 @@ struct RuntimeSupervisorView: View {
     @State private var editTarget: RuntimeSupervisorProcess?
     @State private var fileTarget: RuntimeSupervisorProcess?
     @State private var deleteTarget: RuntimeSupervisorProcess?
+    @State private var restartTarget: RuntimeSupervisorProcess?
 
     var body: some View {
         List {
             if isLoading && processes.isEmpty {
                 Section { LoadingStateView(compact: true).padding(.vertical, 20) }
-            } else if let err = errorMessage {
+            } else if let err = errorMessage, processes.isEmpty {
                 Section {
                     Text(err).font(.footnote).foregroundStyle(.red)
                     Button(L10n.t("重试")) { Task { await load() } }
@@ -84,6 +85,18 @@ struct RuntimeSupervisorView: View {
         } message: {
             Text(L10n.f("确认删除进程「%@」？", deleteTarget?.displayName ?? ""))
         }
+        .alert(L10n.t("重启进程"), isPresented: Binding(
+            get: { restartTarget != nil },
+            set: { if !$0 { restartTarget = nil } }
+        )) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("重启"), role: .destructive) {
+                let target = restartTarget
+                Task { await operate("restart", target) }
+            }
+        } message: {
+            Text(L10n.f("确认重启进程「%@」？重启会中断正在执行的进程。", restartTarget?.displayName ?? ""))
+        }
     }
 
     private func load() async {
@@ -105,7 +118,39 @@ struct RuntimeSupervisorView: View {
 
     // MARK: 进程卡片
 
+    @ViewBuilder
     private func processCard(_ proc: RuntimeSupervisorProcess) -> some View {
+        if proc.isBuiltinPHPFPM {
+            // 内置 php-fpm：只读展示（删除会破坏 PHP 运行环境，面板对该行隐藏全部操作）
+            cardBody(proc)
+        } else {
+            cardBody(proc)
+                .contextMenu {
+                    Button {
+                        editTarget = proc
+                    } label: {
+                        Label(L10n.t("编辑"), systemImage: "pencil")
+                    }
+                    Button {
+                        restartTarget = proc
+                    } label: {
+                        Label(L10n.t("重启"), systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    Button {
+                        fileTarget = proc
+                    } label: {
+                        Label(L10n.t("源文"), systemImage: "doc.plaintext")
+                    }
+                    Button(role: .destructive) {
+                        deleteTarget = proc
+                    } label: {
+                        Label(L10n.t("删除"), systemImage: "trash")
+                    }
+                }
+        }
+    }
+
+    private func cardBody(_ proc: RuntimeSupervisorProcess) -> some View {
         Group {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -153,28 +198,6 @@ struct RuntimeSupervisorView: View {
             }
             .padding(.vertical, 4)
         }
-        .contextMenu {
-            Button {
-                editTarget = proc
-            } label: {
-                Label(L10n.t("编辑"), systemImage: "pencil")
-            }
-            Button {
-                Task { await operate("restart", proc) }
-            } label: {
-                Label(L10n.t("重启"), systemImage: "arrow.triangle.2.circlepath")
-            }
-            Button {
-                fileTarget = proc
-            } label: {
-                Label(L10n.t("源文"), systemImage: "doc.plaintext")
-            }
-            Button(role: .destructive) {
-                deleteTarget = proc
-            } label: {
-                Label(L10n.t("删除"), systemImage: "trash")
-            }
-        }
     }
 
     private func operate(_ op: String, _ proc: RuntimeSupervisorProcess?) async {
@@ -215,6 +238,7 @@ struct RuntimeSupervisorCreateSheet: View {
     @State private var numprocs = "1"
     @State private var autoStart = true
     @State private var autoRestart = true
+    @State private var environment = ""
     @State private var isSaving = false
     @State private var toast: String?
 
@@ -232,6 +256,8 @@ struct RuntimeSupervisorCreateSheet: View {
                     OutlinedTextField(label: L10n.t("运行目录"), text: $dir)
                     OutlinedTextField(label: L10n.t("进程数"), text: $numprocs,
                                       keyboardType: .numberPad)
+                    OutlinedMultiLineField(label: L10n.t("环境变量"), prompt: "KEY=VALUE",
+                                           lines: 2, monospaced: true, text: $environment)
                 }
                 Section {
                     Toggle(L10n.t("随容器启动"), isOn: $autoStart)
@@ -268,6 +294,7 @@ struct RuntimeSupervisorCreateSheet: View {
         numprocs = proc.numprocs ?? "1"
         autoRestart = proc.autoRestartOn
         autoStart = proc.autoStartOn
+        environment = proc.environment ?? ""
     }
 
     private func save() async {
@@ -286,14 +313,14 @@ struct RuntimeSupervisorCreateSheet: View {
                     numprocsNum: n, numprocs: String(n), id: runtimeID,
                     autoRestart: autoRestart ? "true" : "false",
                     autoStart: autoStart ? "true" : "false",
-                    environment: ""
+                    environment: environment
                 ),
                 as: EmptyResponse.self
             )
             onCreated()
             dismiss()
         } catch {
-            toast = L10n.f("创建失败：%@", error.localizedDescription)
+            toast = L10n.f(isEdit ? "保存失败：%@" : "创建失败：%@", error.localizedDescription)
         }
     }
 }

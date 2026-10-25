@@ -569,7 +569,7 @@ enum ManageItem: String, Identifiable {
     var subtitle: String {
         switch self {
         case .apps:        return L10n.t("已安装应用 / 应用商店")
-        case .websites:    return L10n.t("网站 / 证书")
+        case .websites:    return L10n.t("网站 / 证书 / 运行环境")
         case .websiteList: return L10n.t("网站列表与创建")
         case .certificates: return L10n.t("SSL 证书 / Acme / DNS")
         case .runtimes: return L10n.t("PHP / Node.js / Python / Go")

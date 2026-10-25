@@ -25,7 +25,7 @@ struct RuntimePHPExtensionsView: View {
         List {
             if isLoading && support.isEmpty {
                 Section { LoadingStateView(compact: true).padding(.vertical, 20) }
-            } else if let err = errorMessage {
+            } else if let err = errorMessage, support.isEmpty {
                 Section {
                     Text(err).font(.footnote).foregroundStyle(.red)
                     Button(L10n.t("重试")) { Task { await load() } }
@@ -41,8 +41,9 @@ struct RuntimePHPExtensionsView: View {
         .refreshable { await load() }
         .toastOverlay(message: $toast)
         .navigationDestination(item: $activeTask) { target in
-            TaskProgressView(taskID: target.taskID, title: target.title, node: "local") { isDone in
-                if isDone { Task { await load() } }
+            TaskProgressView(taskID: target.taskID, title: target.title, node: "local") { _ in
+                // 完成与「后台运行」返回都刷新：任务已提交，不能对同一扩展重复发起安装
+                Task { await load() }
                 return false
             }
         }

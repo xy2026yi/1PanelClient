@@ -104,6 +104,7 @@ final class APIClient {
         method: String = "POST",
         body: (any Encodable)? = nil,
         queryItems: [URLQueryItem]? = nil,
+        timeout: TimeInterval? = nil,
         as type: T.Type
     ) async throws -> T {
         try SecurityGate.check(server)
@@ -118,6 +119,10 @@ final class APIClient {
         }
 
         var request = URLRequest(url: url)
+        // 个别同步阻塞接口（如 Node 模块安装，面板设 10 分钟）需覆盖默认 15s 超时
+        if let timeout {
+            request.timeoutInterval = timeout
+        }
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.httpMethod = method
         for (k, v) in generateHeaders() {

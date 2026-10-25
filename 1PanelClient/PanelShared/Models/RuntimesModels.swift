@@ -235,7 +235,7 @@ nonisolated struct RuntimeAppParam: Decodable, Identifiable, Hashable, Sendable 
     let required: Bool?
     let multiple: Bool?
 
-    var id: String { key ?? UUID().uuidString }
+    var id: String { key ?? "" }
     var displayLabel: String { labelZh ?? labelEn ?? key ?? "" }
 }
 
@@ -287,6 +287,8 @@ nonisolated struct RuntimeUpdateRequest: Encodable {
     var remark: String = ""
     var appID: Int
     var version: String
+    /// 面板原始请求同时携带 versionn（与 version 同值），照传对齐
+    var versionn: String? = nil
 }
 
 // MARK: - 通用操作
@@ -377,7 +379,7 @@ nonisolated struct RuntimePHPSupportExtension: Decodable, Identifiable, Hashable
     let versions: [String]?
     let file: String?
 
-    var id: String { name ?? UUID().uuidString }
+    var id: String { name ?? "" }
     var displayName: String { name ?? "—" }
 }
 
@@ -533,7 +535,7 @@ nonisolated struct RuntimeFPMStatusItem: Decodable, Identifiable, Hashable, Send
     let key: String?
     let value: RuntimeParamValue?
 
-    var id: String { key ?? UUID().uuidString }
+    var id: String { key ?? "" }
 }
 
 /// 并发方案预设（性能调整页一键回填；logs/runtimes.md 抓包固定口径）
@@ -622,10 +624,12 @@ nonisolated struct RuntimeSupervisorProcess: Decodable, Identifiable, Hashable, 
     let autoStart: String?
     let environment: String?
 
-    var id: String { name ?? UUID().uuidString }
+    var id: String { name ?? "" }
     var displayName: String { name ?? "—" }
     var autoRestartOn: Bool { autoRestart == "true" }
     var autoStartOn: Bool { autoStart == "true" }
+    /// 内置 php-fpm 进程：面板对其隐藏全部操作（编辑/重启/源文/删除）
+    var isBuiltinPHPFPM: Bool { name == "php-fpm" }
 }
 
 /// 子进程运行状态（展开行）
@@ -689,7 +693,7 @@ nonisolated struct RuntimeNodeScript: Decodable, Identifiable, Hashable, Sendabl
     let name: String?
     let script: String?
 
-    var id: String { name ?? UUID().uuidString }
+    var id: String { name ?? "" }
     var displayName: String { name ?? "—" }
 }
 
@@ -704,7 +708,7 @@ nonisolated struct RuntimeNodeModule: Decodable, Identifiable, Hashable, Sendabl
     let license: String?
     let description: String?
 
-    var id: String { name ?? UUID().uuidString }
+    var id: String { name ?? "" }
     var displayName: String { name ?? "—" }
 }
 

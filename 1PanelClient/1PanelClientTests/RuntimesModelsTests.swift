@@ -33,7 +33,6 @@ struct RuntimesModelsTests {
             "id": 3, "name": "123", "resource": "appstore", "appDetailID": 1206, "appID": 223,
             "source": "", "status": "Running", "type": "php", "image": "1panel-php-fpm:8.5.12",
             "params": {
-                "CONTAINER_NAME": "123",
                 "CONTAINER_PACKAGE_URL": "https://mirrors.ustc.edu.cn",
                 "IMAGE_NAME": "1panel-php-fpm:8.5.12",
                 "PANEL_APP_PORT_HTTP": "9000",
@@ -55,11 +54,31 @@ struct RuntimesModelsTests {
         #expect(entry.runtimeType == .php)
         #expect(entry.isRunning)
         #expect(!entry.isTransitional)
+        // 容器名兜底：夹具 params 已去除 CONTAINER_NAME，此处真正走到 container 字段兜底
         #expect(entry.containerName == "123")
         #expect(entry.params?["PHP_EXTENSIONS"]?.stringValue == "")
         #expect(entry.appParams == nil)
-        // 容器名兜底：params 缺 CONTAINER_NAME 时取 container 字段
-        #expect(entry.containerName == "123")
+    }
+
+    @Test("创建响应：params 为空串形态（抓包 L99-123），按 EmptyResponse 解码（回归：此前误按 RuntimeEntry 解恒败）")
+    func createResponseShape() throws {
+        let dataJSON = """
+        { "id": 2, "name": "123", "appDetailID": 1206,
+          "image": "1panel-php-fpm:8.5.12", "workDir": "", "dockerCompose": "",
+          "env": "", "params": "", "version": "8", "type": "php",
+          "status": "Building", "resource": "appstore", "port": "9000",
+          "message": "", "codeDir": "", "containerName": "123", "remark": "" }
+        """
+        // 提交路径（submitCreate）只关心成功与否：信封按 EmptyResponse 解码，
+        // data 为任意对象均可成功
+        let resp = try decode(APIResponse<EmptyResponse>.self,
+                              #"{"code":200,"message":"","data":\#(dataJSON)}"#)
+        #expect(resp.isSuccess)
+        // 回归锚点：RuntimeEntry 解不了该形态（params 是空串而非字典）——
+        // 若有人把提交路径改回按 RuntimeEntry 解码，先在此红
+        var entryError: Error?
+        do { _ = try decode(RuntimeEntry.self, dataJSON) } catch { entryError = error }
+        #expect(entryError != nil)
     }
 
     @Test("列表项：端口字段为数字时的容错（PANEL_APP_PORT_HTTP 回填为 9000 数字）")
@@ -324,9 +343,9 @@ struct RuntimesModelsTests {
         #expect(obj["taskID"] as? String == "be9a8dfd-9f3b-433a-98c6-ba7666310edb")
     }
 
-    @Test("删除前检查：null 与非空两种返回")
+    @Test("删除前检查：null 与非空两种返回（按调用路径的真实类型 [AppDeleteCheckItem]）")
     func deleteCheckResponses() throws {
-        let empty = try decode(APIResponse<EmptyResponse>.self,
+        let empty = try decode(APIResponse<[AppDeleteCheckItem]>.self,
                                #"{"code":200,"message":"","data":null}"#)
         #expect(empty.data == nil)
         let linked = try decode([AppDeleteCheckItem].self,

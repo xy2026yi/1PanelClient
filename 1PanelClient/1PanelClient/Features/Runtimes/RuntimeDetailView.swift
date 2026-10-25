@@ -298,28 +298,18 @@ struct RuntimeDetailView: View {
         }
     }
 
-    // MARK: - 删除（复用列表 VM 流程）
+    // MARK: - 删除（复用列表 VM 流程；关联资源非空时 requestDelete 直接提示解绑）
 
     private func detailDeleteSheet(_ target: RuntimeEntry) -> some View {
         TextInputConfirmSheet(
             title: L10n.t("删除运行环境"),
-            message: deleteMessage(target),
+            message: L10n.f("将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。",
+                            target.displayName),
             expectedText: target.displayName
         ) {
             await listVM.confirmDelete(target, force: false, deleteImage: false)
             await MainActor.run { if listVM.deleteTarget == nil { dismiss() } }
         }
-    }
-
-    private func deleteMessage(_ target: RuntimeEntry) -> String {
-        if listVM.deleteBlockers.isEmpty {
-            return L10n.f("将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。",
-                          target.displayName)
-        }
-        let names = listVM.deleteBlockers
-            .map { "\($0.type ?? ""): \($0.name ?? "")" }
-            .joined(separator: "、")
-        return L10n.f("以下资源仍在使用该运行环境：%@，删除后相关网站将不可用。请输入名称以确认删除。", names)
     }
 }
 
@@ -355,7 +345,7 @@ struct RuntimeBuildLogView: View {
                 if isLoading && lines.isEmpty {
                     LoadingStateView(compact: true)
                         .padding(.vertical, 30)
-                } else if let err = errorMessage {
+                } else if let err = errorMessage, lines.isEmpty {
                     Text(err)
                         .font(.footnote)
                         .foregroundStyle(.red)
