@@ -123,6 +123,7 @@ struct RuntimeNodeModulesView: View {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("安装")) {
                 let name = pendingInstall
+                newModule = ""
                 Task { if let name { await operate("install", name) } }
             }
         } message: {

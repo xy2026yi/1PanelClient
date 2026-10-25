@@ -368,6 +368,10 @@ struct RuntimeRunLogView: View {
     @State private var lines: [String] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    /// 当前流任务：刷新/重进先断旧流，避免两次 SSE 循环并发写 lines
+    @State private var streamTask: Task<Void, Never>?
+    /// 流代号：旧流取消后的收尾（defer/补写）不再触碰新流的状态
+    @State private var streamGeneration = 0
     /// 追底去抖任务：流式逐行 append 时合并滚动（容器日志页同款）
     @State private var followDebounce: Task<Void, Never>?
 
@@ -407,6 +411,12 @@ struct RuntimeRunLogView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
+                    } else if lines.isEmpty, errorMessage == nil {
+                        Text(L10n.t("暂无日志"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding()
                     }
                     ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
                         Text(line)
@@ -416,7 +426,8 @@ struct RuntimeRunLogView: View {
                             .textSelection(.enabled)
                             .id(idx)
                     }
-                    if let errorMessage, lines.isEmpty {
+                    // 错误提示放行尾：空列表显示在占位处，流中断已有内容时追加在末尾
+                    if let errorMessage {
                         Text(errorMessage)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -431,7 +442,7 @@ struct RuntimeRunLogView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        Task { await loadLogs(composePath) }
+                        startStream(composePath)
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
@@ -451,16 +462,28 @@ struct RuntimeRunLogView: View {
             }
         }
         .task {
-            await loadLogs(composePath)
+            startStream(composePath)
+        }
+        .onDisappear {
+            streamTask?.cancel()
         }
     }
 
-    private func loadLogs(_ composePath: String) async {
+    private func startStream(_ composePath: String) {
+        streamGeneration += 1
+        let gen = streamGeneration
+        streamTask?.cancel()
+        streamTask = Task { await loadLogs(composePath, generation: gen) }
+    }
+
+    private func loadLogs(_ composePath: String, generation gen: Int) async {
         isLoading = true
         errorMessage = nil
         lines = []
+        defer {
+            if gen == streamGeneration { isLoading = false }
+        }
         do {
-            isLoading = false
             for try await line in client.streamSSELines(
                 path: APIEndpoint.containersSearchLog.path,
                 queryItems: [
@@ -471,16 +494,16 @@ struct RuntimeRunLogView: View {
                     URLQueryItem(name: "operateNode", value: "local"),
                 ]
             ) {
+                guard gen == streamGeneration else { return }
                 lines.append(line)
                 if lines.count > 2000 {
                     lines.removeFirst(lines.count - 2000)
                 }
             }
         } catch {
-            isLoading = false
-            if lines.isEmpty {
-                errorMessage = L10n.f("加载日志失败：%@", error.localizedDescription)
-            }
+            // 取消不算错误；流中断即使已有内容也给出提示（此前静默吞掉，追底无声停止）
+            guard gen == streamGeneration, !APIError.isCancellation(error) else { return }
+            errorMessage = L10n.f("加载日志失败：%@", error.localizedDescription)
         }
     }
 }

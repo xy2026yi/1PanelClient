@@ -367,7 +367,7 @@ struct RuntimeFormView: View {
             // 扩展源（7 项硬编码，选中同步 params.CONTAINER_PACKAGE_URL 与顶层 source）
             OutlinedPicker(label: L10n.t("扩展源"),
                            options: packageSources.map(\.url),
-                           selection: packageSourceBinding,
+                           selection: $packageSource,
                            optionLabels: Dictionary(uniqueKeysWithValues:
                                packageSources.map { ($0.url, $0.label) }))
             // 扩展模版（可选；带入后仍可增删）
@@ -458,13 +458,6 @@ struct RuntimeFormView: View {
         ("XTOM 镜像站(全球)", "https://mirrors.xtom.com"),
         ("默认", "https://deb.debian.org"),
     ]
-
-    private var packageSourceBinding: Binding<String> {
-        Binding(
-            get: { packageSource },
-            set: { packageSource = $0 }
-        )
-    }
 
     // MARK: - Node / Python / Go 脚本区
 
@@ -610,13 +603,17 @@ struct RuntimeFormView: View {
     private func initialLoad() async {
         if var entry = editingEntry {
             // 编辑回填用详情：列表快照可能缺 port/exposedPorts（Web 编辑页端口值来自详情）
-            if let fresh: RuntimeEntry = try? await client.send(
-                path: APIEndpoint.runtimesGet.path
-                    .replacingOccurrences(of: ":id", with: String(entry.id)),
-                method: APIEndpoint.runtimesGet.method,
-                as: RuntimeEntry.self
-            ) {
+            do {
+                let fresh: RuntimeEntry = try await client.send(
+                    path: APIEndpoint.runtimesGet.path
+                        .replacingOccurrences(of: ":id", with: String(entry.id)),
+                    method: APIEndpoint.runtimesGet.method,
+                    as: RuntimeEntry.self
+                )
                 entry = fresh
+            } catch {
+                // 失败不静默降级：快照缺端口时会回填类型默认值，提交可能覆盖实际端口
+                validationToast = L10n.t("获取运行环境详情失败，端口等字段可能未按实际值回填")
             }
             selectedType = entry.runtimeType ?? .php
             name = entry.displayName

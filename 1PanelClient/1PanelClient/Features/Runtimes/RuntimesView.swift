@@ -92,7 +92,8 @@ struct RuntimesView: View {
         // 过渡态（创建中/构建中）自动轮询收敛；子页/sheet 打开期间暂停
         // （列表不可见无需轮询，且转场动画与列表 diff 叠加会触发系统复合动画警告）
         .adaptivePolling(interval: 5, isActive: {
-            hasTransitioning && route == nil && actionTarget == nil && vm.deleteTarget == nil
+            hasTransitioning && route == nil && editTarget == nil
+                && actionTarget == nil && vm.deleteTarget == nil
         }) {
             await vm.load(animate: false)
         }

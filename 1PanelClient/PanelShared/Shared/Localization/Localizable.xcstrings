@@ -34178,6 +34178,17 @@
         }
       }
     },
+    "获取运行环境详情失败，端口等字段可能未按实际值回填" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load runtime details; port and other fields may not match actual values"
+          }
+        }
+      }
+    },
     "虚拟内存" : {
       "extractionState" : "manual",
       "localizations" : {
