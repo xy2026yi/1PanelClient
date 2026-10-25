@@ -298,6 +298,7 @@ nonisolated struct AppFormField: Decodable, Hashable, Sendable {
     let values: [FormFieldValueItem]?   // select/apps 候选项（可能是 ["v1"] 或 [{label,value}]）
     let child: AppFormFieldChild?       // apps 类型字段的关联子字段（如 PANEL_DB_HOST）
     let random: Bool?                   // 是否支持随机生成（密码、用户名等）
+    let multiple: Bool?                 // select 多选（运行环境 PHP_EXTENSIONS 等）
     let rule: String?                   // 验证规则名（paramPort / paramCommon 等）
 
     /// 显示标签（优先中文；服务端个别标签过长时按映射精简，与 InstalledParamField 同规则）
