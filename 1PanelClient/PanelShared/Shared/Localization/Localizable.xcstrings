@@ -1,6 +1,28 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "" : {},
+    "%@" : {},
+    "%@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%@ %@ / %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ / %3$@ %4$@"
+          }
+        }
+      }
+    },
     "%@ (%%)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -45,6 +67,16 @@
         }
       }
     },
+    "%@ / %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@"
+          }
+        }
+      }
+    },
     "%@ / %ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -63,6 +95,37 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ Docker failed: %@"
+          }
+        }
+      }
+    },
+    "%@ install" : {},
+    "%@ · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ · %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ %3$@"
+          }
+        }
+      }
+    },
+    "%@ · %@ · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ · %3$@"
           }
         }
       }
@@ -166,6 +229,27 @@
         }
       }
     },
+    "%@%%" : {},
+    "%@%%  %@ / %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%%  %2$@ / %3$@"
+          }
+        }
+      }
+    },
+    "%@%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
+          }
+        }
+      }
+    },
     "%@.%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -173,6 +257,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@.%@"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@:%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@:%2$@"
+          }
+        }
+      }
+    },
+    "%@@%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@@%2$@"
+          }
+        }
+      }
+    },
+    "%@×%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@×%2$@"
           }
         }
       }
@@ -1039,6 +1163,7 @@
         }
       }
     },
+    ":%@" : {},
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2157,6 +2282,7 @@
         }
       }
     },
+    "ID: %@" : {},
     "IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2640,6 +2766,7 @@
         }
       }
     },
+    "OpenResty %@" : {},
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2684,6 +2811,7 @@
         }
       }
     },
+    "PID %@" : {},
     "POST 最大尺寸" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3384,6 +3512,7 @@
         }
       }
     },
+    "[%@]" : {},
     "docker-compose" : {
       "localizations" : {
         "en" : {
@@ -3425,6 +3554,7 @@
         }
       }
     },
+    "fd %@" : {},
     "file.txt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3524,6 +3654,7 @@
         }
       }
     },
+    "php.ini" : {},
     "root 用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3557,6 +3688,7 @@
         }
       }
     },
+    "v%@" : {},
     "vLLM" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3588,6 +3720,7 @@
         }
       }
     },
+    "· %@" : {},
     "×%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3609,6 +3742,7 @@
         }
       }
     },
+    "•" : {},
     "••••••••" : {
       "localizations" : {
         "en" : {
@@ -15747,6 +15881,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This will delete all historical monitoring data of instance \"%@\". This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "将删除所有构建产生的缓存，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes all build cache and cannot be undone. Continue?"
           }
         }
       }
@@ -27935,6 +28080,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prune Untagged Images"
+          }
+        }
+      }
+    },
+    "清理构建缓存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean Build Cache"
           }
         }
       }

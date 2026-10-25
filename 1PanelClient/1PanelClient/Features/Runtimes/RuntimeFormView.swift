@@ -109,48 +109,12 @@ struct RuntimeFormView: View {
     private var isPHP: Bool { selectedType == .php }
 
     var body: some View {
-        Form {
-            if isEdit {
-                editLockedSection
-            } else {
-                typeSection
-            }
-            basicSection
-            if isLoadingMeta {
-                Section {
-                    HStack(spacing: 8) {
-                        ProgressView().scaleEffect(0.8)
-                        Text(L10n.t("正在加载版本信息…"))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            if let err = metaError {
-                Section {
-                    Text(err).font(.footnote).foregroundStyle(.red)
-                    Button(L10n.t("重试")) { Task { await loadAppMeta() } }
-                }
-            }
-            if isPHP { phpSection }
-            if selectedType != .php { scriptSection }
-            advancedSection
+        Group {
+            if isEdit { editBody } else { createBody }
         }
         .navigationTitle(isEdit ? L10n.t("编辑运行环境") : L10n.t("创建运行环境"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(L10n.t("取消")) { dismiss() }
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                if isSubmitting {
-                    ProgressView()
-                } else {
-                    Button(isEdit ? L10n.t("保存") : L10n.t("创建")) { Task { await submit() } }
-                        .disabled(!canSubmit)
-                }
-            }
-        }
+        .formWidthLimit()
         .task { await initialLoad() }
         .sheet(isPresented: $showDirPicker) {
             DirectoryPickerSheet(client: client) { path in
@@ -178,21 +142,136 @@ struct RuntimeFormView: View {
         }
     }
 
-    // MARK: - 类型选择（创建）
+    // MARK: - 编辑（单页表单 + 右上角保存，KVM 表单同款）
+
+    private var editBody: some View {
+        Form {
+            editLockedSection
+            basicSection
+            if isPHP { phpSection }
+            if selectedType != .php { scriptSection }
+            advancedSection
+        }
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                if isSubmitting {
+                    ProgressView()
+                } else {
+                    Button(L10n.t("保存")) { Task { await submit() } }
+                        .disabled(!canSubmit)
+                }
+            }
+        }
+    }
+
+    // MARK: - 创建（三页向导：基础 / 配置 / 高级）
+
+    @State private var wizardPage = 0
+    private var wizardPageNames: [String] {
+        [L10n.t("基础"), L10n.t("配置"), L10n.t("高级")]
+    }
+
+    private var createBody: some View {
+        VStack(spacing: 0) {
+            WizardStepsBar(pageNames: wizardPageNames, current: wizardPage)
+            Form {
+                Group {
+                    switch wizardPage {
+                    case 0:
+                        basicPage
+                    case 1:
+                        configPage
+                    default:
+                        advancedSection
+                    }
+                }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WizardBottomBar(
+                page: wizardPage,
+                totalPages: wizardPageNames.count,
+                primaryTitle: L10n.t("创建"),
+                isBusy: isSubmitting,
+                primaryDisabled: pageInvalid,
+                onBack: { withAnimation { wizardPage -= 1 } },
+                onNext: { withAnimation { wizardPage += 1 } },
+                onPrimary: { Task { await submit() } }
+            )
+        }
+        .animation(.easeInOut(duration: 0.22), value: wizardPage)
+        .modifier(WizardDiscardGuard(page: wizardPage, busy: isSubmitting))
+    }
+
+    /// 每页「下一步/创建」可用性：后续页字段不卡当前页
+    private var pageInvalid: Bool {
+        switch wizardPage {
+        case 0:
+            return name.isEmpty || containerName.isEmpty
+        case 1:
+            if isPHP { return false }
+            return codeDir.isEmpty || execScript.isEmpty
+        default:
+            return !canSubmit
+        }
+    }
+
+    /// 第 0 页：类型（形态 3）+ 基础字段 + 版本加载态
+    private var basicPage: some View {
+        Group {
+            typeSection
+            basicSection
+            if isLoadingMeta {
+                Section {
+                    HStack(spacing: 8) {
+                        ProgressView().scaleEffect(0.8)
+                        Text(L10n.t("正在加载版本信息…"))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            if let err = metaError {
+                Section {
+                    Text(err).font(.footnote).foregroundStyle(.red)
+                    Button(L10n.t("重试")) { Task { await loadAppMeta() } }
+                }
+            }
+        }
+    }
+
+    /// 第 1 页：类型相关配置（PHP 动态字段 / 脚本与端口）
+    private var configPage: some View {
+        Group {
+            if isPHP { phpSection }
+            if selectedType != .php { scriptSection }
+        }
+    }
+
+    // MARK: - 类型选择（创建，形态 3）
 
     private var typeSection: some View {
         Section(L10n.t("类型")) {
-            Picker(L10n.t("类型"), selection: $selectedType) {
-                ForEach(RuntimeType.allCases) { t in
-                    Text(t.displayName).tag(t)
+            OutlinedPicker(label: L10n.t("类型"),
+                           options: RuntimeType.allCases.map(\.rawValue),
+                           selection: typeBinding,
+                           optionLabels: Dictionary(uniqueKeysWithValues:
+                               RuntimeType.allCases.map { ($0.rawValue, $0.displayName) }))
+            // 类型切换重拉应用元数据（版本与表单定义）
+                .onChange(of: selectedType) { _, _ in
+                    Task { await loadAppMeta() }
                 }
-            }
-            .pickerStyle(.segmented)
-            .listRowBackground(Color.clear)
-            .onChange(of: selectedType) { _, _ in
-                Task { await loadAppMeta() }
-            }
         }
+    }
+
+    private var typeBinding: Binding<String> {
+        Binding(
+            get: { selectedType.rawValue },
+            set: { selectedType = RuntimeType(rawValue: $0) ?? .php }
+        )
     }
 
     /// 编辑模式锁定的信息
@@ -735,25 +814,37 @@ struct RuntimeExtensionPickerSheet: View {
     @Binding var selection: [String]
 
     @Environment(\.dismiss) private var dismiss
+    /// 打开时的原选择：取消时恢复
+    @State private var initialSelection: [String] = []
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(options, id: \.self) { opt in
-                    Button {
-                        if let idx = selection.firstIndex(of: opt) {
-                            selection.remove(at: idx)
-                        } else {
-                            selection.append(opt)
-                        }
+                Section {
+                    Button(role: .destructive) {
+                        selection = []
                     } label: {
-                        HStack {
-                            Text(opt)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if selection.contains(opt) {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(Color.accentColor)
+                        Label(L10n.t("清空"), systemImage: "trash")
+                    }
+                }
+                Section {
+                    ForEach(options, id: \.self) { opt in
+                        Button {
+                            if let idx = selection.firstIndex(of: opt) {
+                                selection.remove(at: idx)
+                            } else {
+                                selection.append(opt)
+                            }
+                        } label: {
+                            HStack {
+                                Text(opt)
+                                    .font(.system(.body, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if selection.contains(opt) {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(Color.accentColor)
+                                }
                             }
                         }
                     }
@@ -762,14 +853,19 @@ struct RuntimeExtensionPickerSheet: View {
             .navigationTitle(L10n.t("默认扩展"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("取消")) {
+                        selection = initialSelection
+                        dismiss()
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.t("完成")) { dismiss() }
                 }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.t("清空")) { selection = [] }
-                }
             }
+            .onAppear { initialSelection = selection }
         }
+        .bottomSheetDetents([.medium, .large])
     }
 }
 

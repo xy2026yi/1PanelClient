@@ -3,7 +3,7 @@
 //  1PanelClient
 //
 //  运行环境详情：可折叠状态面板（启停/重启，容器详情同构）、基础信息、
-//  构建日志；⋯ 菜单承载 PHP 配置入口/终端/删除，Node 模块管理。
+//  构建日志；⋯ 菜单承载 PHP 配置入口/扩展模版/清理构建缓存/删除，Node 模块管理。
 //
 
 import SwiftUI
@@ -19,6 +19,7 @@ struct RuntimeDetailView: View {
     @State private var current: RuntimeEntry
     @State private var isStatusExpanded = false
     @State private var showTerminal = false
+    @State private var showCleanCacheConfirm = false
     /// ⋯ 菜单子页路由（PHP 各配置页）
     @State private var menuRoute: RuntimeMenuRoute?
     @State private var isLoadingDetail = false
@@ -59,11 +60,6 @@ struct RuntimeDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     if type == .php { phpMenuItems }
-                    Button {
-                        showTerminal = true
-                    } label: {
-                        Label(L10n.t("终端"), systemImage: "terminal")
-                    }
                     Button(role: .destructive) {
                         Task { await listVM.requestDelete(current) }
                     } label: {
@@ -94,6 +90,14 @@ struct RuntimeDetailView: View {
         }
         .sheet(item: $listVM.deleteTarget) { target in
             detailDeleteSheet(target)
+        }
+        .alert(L10n.t("清理构建缓存"), isPresented: $showCleanCacheConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("清理"), role: .destructive) {
+                Task { await listVM.cleanBuildCache() }
+            }
+        } message: {
+            Text(L10n.t("将删除所有构建产生的缓存，该操作无法回滚，是否继续？"))
         }
         .task { await reload() }
     }
@@ -174,6 +178,14 @@ struct RuntimeDetailView: View {
                     await listVM.operate(current, operate: "restart")
                     await reload()
                 }
+            }
+            CardActionButton(
+                title: L10n.t("终端"),
+                icon: "terminal",
+                color: .accentColor,
+                busy: isOperating
+            ) {
+                showTerminal = true
             }
         }
     }
@@ -266,6 +278,14 @@ struct RuntimeDetailView: View {
         }
         menuLink(L10n.t("扩展"), "puzzlepiece") {
             RuntimePHPExtensionsView(entry: current, client: client)
+        }
+        menuLink(L10n.t("扩展模版"), "doc.badge.plus") {
+            RuntimePHPTemplatesView(client: client)
+        }
+        Button {
+            showCleanCacheConfirm = true
+        } label: {
+            Label(L10n.t("清理构建缓存"), systemImage: "trash.slash")
         }
         menuLink(L10n.t("进程守护"), "gearshape.2") {
             RuntimeSupervisorView(entry: current, client: client)

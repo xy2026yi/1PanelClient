@@ -218,6 +218,26 @@ final class RuntimesViewModel: ObservableObject {
         }
     }
 
+    // MARK: - 清理构建缓存（PHP 构建镜像产生的缓存；复用容器清理端点，任务式）
+
+    @discardableResult
+    func cleanBuildCache() async -> String? {
+        let taskID = UUID().uuidString.lowercased()
+        do {
+            let _: EmptyResponse = try await client.send(
+                path: APIEndpoint.containersPrune.path,
+                body: ContainerPruneRequest(taskID: taskID, pruneType: "buildcache",
+                                            withTagAll: false),
+                as: EmptyResponse.self
+            )
+            activeTask = RuntimeTaskTarget(taskID: taskID, title: L10n.t("清理构建缓存"))
+            return taskID
+        } catch {
+            alertMessage = L10n.f("清理失败：%@", error.localizedDescription)
+            return nil
+        }
+    }
+
     // MARK: - 创建 / 编辑提交（表单调用，返回 taskID 由表单推进度页）
 
     func submitCreate(_ request: RuntimeCreateRequest) async -> String? {
