@@ -498,17 +498,9 @@ struct RuntimeFormView: View {
                 OutlinedTextField(label: L10n.t("运行脚本"),
                                   prompt: selectedType == .python ? "python server.py" : "./main",
                                   text: $execScript)
-                if selectedType == .python, isEdit {
-                    // Web 端创建页无依赖源输入（抓包 L1599 无 source 键），仅编辑可改
-                    OutlinedTextField(label: L10n.t("依赖源"), prompt: L10n.t("可选，如镜像站地址"),
-                                      text: $source)
-                }
             }
-            // Web 端创建页无外部端口输入（node/python/go 走默认 4004/8080），仅编辑可改
-            if isEdit {
-                OutlinedTextField(label: L10n.t("外部端口"), prompt: defaultPort.description,
-                                  text: $portText, keyboardType: .numberPad)
-            }
+            // 外部端口/依赖源不在表单（Web 端创建/编辑均无此二项，经网页核对）：
+            // 端口由容器配置的端口映射管理，请求端口走类型默认/详情回填（内部提交）
         }
     }
 
@@ -879,6 +871,9 @@ struct RuntimeFormView: View {
         }
 
         let port = Int(portText) ?? defaultPort
+        // PHP 请求不带顶层 port（抓包 L363/L240 均无），端口由 PANEL_APP_PORT_HTTP 参数承载；
+        // node/python/go 创建走类型默认、编辑用详情回填值（端口由容器配置端口映射管理）
+        let requestPort: Int? = isPHP ? nil : port
         let phpImage = isPHP
             ? "1panel-php-fpm:\(fieldValues["PHP_VERSION"] ?? dynFields.first(where: { $0.key == "PHP_VERSION" })?.defaultValue ?? "")"
             : ""
@@ -908,7 +903,7 @@ struct RuntimeFormView: View {
                 id: entry.id, name: name, appDetailID: appDetailID,
                 image: phpImage.isEmpty ? (entry.image ?? "") : phpImage,
                 params: params, type: selectedType.searchKey,
-                codeDir: codeDir, port: port, source: requestSource,
+                codeDir: codeDir, port: requestPort, source: requestSource,
                 exposedPorts: exposed, environments: envs, volumes: vols, extraHosts: hosts,
                 remark: remark, appID: appID, version: selectedVersion
             )
@@ -935,7 +930,7 @@ struct RuntimeFormView: View {
                 name: name, appDetailID: appDetailID, image: phpImage, params: params,
                 type: selectedType.searchKey,
                 install: selectedType == .node ? installDeps : nil,
-                codeDir: codeDir, port: port, source: requestSource,
+                codeDir: codeDir, port: requestPort, source: requestSource,
                 exposedPorts: exposed, environments: envs, volumes: vols, extraHosts: hosts,
                 remark: remark, appID: appID, version: selectedVersion,
                 taskID: UUID().uuidString.lowercased()
