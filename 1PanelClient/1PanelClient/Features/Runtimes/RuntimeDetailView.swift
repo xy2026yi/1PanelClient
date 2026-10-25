@@ -69,19 +69,18 @@ struct RuntimeDetailView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $showTerminal) {
-            NavigationStack {
-                TerminalScreen(
-                    server: server,
-                    target: .container(
-                        containerID: current.containerName,
-                        user: type?.terminalUser ?? "root",
-                        command: "/bin/bash",
-                        cols: 80, rows: 24
-                    ),
-                    title: current.displayName
-                )
-            }
+        // 终端对齐全站口径用 push（fullScreenCover 无返回按钮；DB/AI/终端模块同款）
+        .navigationDestination(isPresented: $showTerminal) {
+            TerminalScreen(
+                server: server,
+                target: .container(
+                    containerID: current.containerName,
+                    user: type?.terminalUser ?? "root",
+                    command: "/bin/bash",
+                    cols: 80, rows: 24
+                ),
+                title: current.displayName
+            )
         }
         .toastOverlay(message: $listVM.toastMessage)
         .navigationDestination(item: $menuRoute) { route in
@@ -236,6 +235,11 @@ struct RuntimeDetailView: View {
     private var actionsSection: some View {
         Section(L10n.t("操作")) {
             NavigationLink {
+                RuntimeRunLogView(entry: current, client: client)
+            } label: {
+                Label(L10n.t("运行日志"), systemImage: "doc.text.magnifyingglass")
+            }
+            NavigationLink {
                 RuntimeBuildLogView(entry: current, client: client)
             } label: {
                 Label(L10n.t("构建日志"), systemImage: "doc.text")
@@ -327,6 +331,132 @@ struct RuntimeMenuRoute: Identifiable, Hashable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(title)
+    }
+}
+
+// MARK: - 运行日志（容器日志 SSE，按 compose 文件过滤；PHP 为 supervisord 输出）
+
+struct RuntimeRunLogView: View {
+    let entry: RuntimeEntry
+    let client: APIClient
+
+    @State private var lines: [String] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    /// 追底去抖任务：流式逐行 append 时合并滚动（容器日志页同款）
+    @State private var followDebounce: Task<Void, Never>?
+
+    /// compose 文件路径（运行目录 + docker-compose.yml；面板按此过滤容器日志）
+    private var composePath: String? {
+        guard let base = entry.path, !base.isEmpty else { return nil }
+        return base + "/docker-compose.yml"
+    }
+
+    var body: some View {
+        Group {
+            if let composePath {
+                logList(composePath)
+            } else {
+                ContentUnavailableView(
+                    L10n.t("暂无日志"),
+                    systemImage: "doc.text",
+                    description: Text(L10n.t("无法获取运行目录，暂不能读取日志"))
+                )
+                .padding(.vertical, 30)
+            }
+        }
+        .navigationTitle(L10n.t("运行日志"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func logList(_ composePath: String) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 1) {
+                    if isLoading && lines.isEmpty {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text(L10n.t("加载日志…"))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                    }
+                    ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
+                        Text(line)
+                            .font(.dataMonospacedCaption)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                            .id(idx)
+                    }
+                    if let errorMessage, lines.isEmpty {
+                        Text(errorMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding()
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .contentWidthLimit(860)
+            }
+            .background(Color(.secondarySystemBackground))
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await loadLogs(composePath) }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .accessibilityLabel(L10n.t("刷新"))
+                }
+            }
+            .onChange(of: lines.count) { _, count in
+                // 追底走 onChange 显式滚动 + 250ms 去抖（容器日志页同款，
+                // defaultScrollAnchor 与 LazyVStack 高度估算不合）
+                guard count > 0 else { return }
+                followDebounce?.cancel()
+                followDebounce = Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    guard !Task.isCancelled else { return }
+                    proxy.scrollTo(count - 1, anchor: .bottom)
+                }
+            }
+        }
+        .task {
+            await loadLogs(composePath)
+        }
+    }
+
+    private func loadLogs(_ composePath: String) async {
+        isLoading = true
+        errorMessage = nil
+        lines = []
+        do {
+            isLoading = false
+            for try await line in client.streamSSELines(
+                path: APIEndpoint.containersSearchLog.path,
+                queryItems: [
+                    URLQueryItem(name: "compose", value: composePath),
+                    URLQueryItem(name: "since", value: "all"),
+                    URLQueryItem(name: "tail", value: "100"),
+                    URLQueryItem(name: "follow", value: "true"),
+                    URLQueryItem(name: "operateNode", value: "local"),
+                ]
+            ) {
+                lines.append(line)
+                if lines.count > 2000 {
+                    lines.removeFirst(lines.count - 2000)
+                }
+            }
+        } catch {
+            isLoading = false
+            if lines.isEmpty {
+                errorMessage = L10n.f("加载日志失败：%@", error.localizedDescription)
+            }
+        }
     }
 }
 

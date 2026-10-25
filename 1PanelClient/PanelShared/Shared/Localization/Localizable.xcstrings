@@ -41778,6 +41778,17 @@
           }
         }
       }
+    },
+    "无法获取运行目录，暂不能读取日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run directory unavailable; cannot read logs"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
