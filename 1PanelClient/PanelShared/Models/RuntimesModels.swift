@@ -442,6 +442,15 @@ nonisolated struct RuntimePHPConfig: Decodable, Sendable {
     let disableFunctions: [String]?
     let uploadMaxSize: String?
     let maxExecutionTime: String?
+
+    /// 展示/编辑用禁用函数列表：服务端可整串逗号返回（如 ["bash,exec"] 单元素），
+    /// 按逗号拆分并去空；保存仍按拆分后的数组全量提交（抓包口径）
+    var disableFunctionList: [String] {
+        (disableFunctions ?? [])
+            .flatMap { $0.split(separator: ",").map(String.init) }
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
 }
 
 /// 配置保存（POST /runtimes/php/config；按 scope 分四组）

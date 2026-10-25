@@ -99,6 +99,8 @@ struct RuntimeFormView: View {
     @State private var validationToast: String?
     /// codeDir 防抖代号（连续输入只解析最后一次）
     @State private var nodeScriptsGeneration = 0
+    /// 初始加载防重入：高级子编辑页返回时 .task 重跑不再重置已填表单
+    @State private var didInitialLoad = false
 
     private var isEdit: Bool {
         if case .edit = mode { return true }
@@ -119,7 +121,13 @@ struct RuntimeFormView: View {
         .navigationTitle(isEdit ? L10n.t("编辑运行环境") : L10n.t("创建运行环境"))
         .navigationBarTitleDisplayMode(.inline)
         .formWidthLimit()
-        .task { await initialLoad() }
+        .task {
+            // 高级数组子编辑页（端口/环境变量/挂载/主机映射）push 返回时父页 disappear/appear
+            // 会重启 .task：防重入，避免整个表单被 initialLoad 重置
+            guard !didInitialLoad else { return }
+            didInitialLoad = true
+            await initialLoad()
+        }
         .sheet(isPresented: $showDirPicker) {
             DirectoryPickerSheet(client: client) { path in
                 codeDir = path

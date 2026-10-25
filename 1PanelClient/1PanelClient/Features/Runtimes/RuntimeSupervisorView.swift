@@ -23,6 +23,10 @@ struct RuntimeSupervisorView: View {
     @State private var fileTarget: RuntimeSupervisorProcess?
     @State private var deleteTarget: RuntimeSupervisorProcess?
     @State private var restartTarget: RuntimeSupervisorProcess?
+    /// 长按操作菜单目标（全站统一 ActionBottomSheet 半屏）
+    @State private var actionProc: RuntimeSupervisorProcess?
+    /// 收起子进程状态的进程名（默认全展开，点击行切换）
+    @State private var collapsedNames: Set<String> = []
 
     var body: some View {
         List {
@@ -58,6 +62,13 @@ struct RuntimeSupervisorView: View {
         .task { await load() }
         .refreshable { await load() }
         .toastOverlay(message: $toast)
+        .sheet(item: $actionProc) { proc in
+            ActionBottomSheet(
+                title: proc.displayName,
+                items: actionItems(proc),
+                onDismiss: { actionProc = nil }
+            )
+        }
         .sheet(isPresented: $showCreate) {
             RuntimeSupervisorCreateSheet(client: client, runtimeID: entry.id, editing: nil) {
                 Task { await load() }
@@ -118,36 +129,42 @@ struct RuntimeSupervisorView: View {
 
     // MARK: 进程卡片
 
-    @ViewBuilder
     private func processCard(_ proc: RuntimeSupervisorProcess) -> some View {
-        if proc.isBuiltinPHPFPM {
-            // 内置 php-fpm：只读展示（删除会破坏 PHP 运行环境，面板对该行隐藏全部操作）
-            cardBody(proc)
-        } else {
-            cardBody(proc)
-                .contextMenu {
-                    Button {
-                        editTarget = proc
-                    } label: {
-                        Label(L10n.t("编辑"), systemImage: "pencil")
+        // 全站统一行交互：点击收起/展开子进程状态，长按半屏操作菜单；
+        // 内置 php-fpm 只读（删除会破坏 PHP 运行环境，面板对该行隐藏全部操作）
+        cardBody(proc)
+            .rowTapAndLongPress(
+                onTap: {
+                    if collapsedNames.contains(proc.displayName) {
+                        collapsedNames.remove(proc.displayName)
+                    } else {
+                        collapsedNames.insert(proc.displayName)
                     }
-                    Button {
-                        restartTarget = proc
-                    } label: {
-                        Label(L10n.t("重启"), systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    Button {
-                        fileTarget = proc
-                    } label: {
-                        Label(L10n.t("源文"), systemImage: "doc.plaintext")
-                    }
-                    Button(role: .destructive) {
-                        deleteTarget = proc
-                    } label: {
-                        Label(L10n.t("删除"), systemImage: "trash")
-                    }
+                },
+                onLongPress: {
+                    if !proc.isBuiltinPHPFPM { actionProc = proc }
                 }
-        }
+            )
+    }
+
+    /// 长按菜单项（构建时捕获 proc：onDismiss 后回读 @State 会取到 nil）
+    private func actionItems(_ proc: RuntimeSupervisorProcess) -> [ActionMenuItem] {
+        [
+            ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
+                editTarget = proc
+            },
+            ActionMenuItem(title: L10n.t("重启"),
+                           icon: "arrow.triangle.2.circlepath") {
+                restartTarget = proc
+            },
+            ActionMenuItem(title: L10n.t("源文"), icon: "doc.plaintext") {
+                fileTarget = proc
+            },
+            ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                           color: .red, role: .destructive) {
+                deleteTarget = proc
+            },
+        ]
     }
 
     private func cardBody(_ proc: RuntimeSupervisorProcess) -> some View {
@@ -160,6 +177,12 @@ struct RuntimeSupervisorView: View {
                         ProgressView().scaleEffect(0.7)
                     }
                     Spacer()
+                    if let subs = proc.status, !subs.isEmpty {
+                        Image(systemName: collapsedNames.contains(proc.displayName)
+                              ? "chevron.down" : "chevron.up")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 Text(proc.command ?? "—")
                     .font(.system(.caption, design: .monospaced))
@@ -177,8 +200,9 @@ struct RuntimeSupervisorView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
 
-                // 子进程状态
-                if let subs = proc.status, !subs.isEmpty {
+                // 子进程状态（点击行收起/展开）
+                if let subs = proc.status, !subs.isEmpty,
+                   !collapsedNames.contains(proc.displayName) {
                     ForEach(Array(subs.enumerated()), id: \.offset) { _, sub in
                         HStack(spacing: 8) {
                             Image(systemName: sub.isRunning ? "circle.fill" : "circle.slash")

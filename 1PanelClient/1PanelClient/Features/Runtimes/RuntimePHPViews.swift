@@ -65,7 +65,7 @@ struct RuntimePHPSettingsView: View {
             )
             config = cfg
             paramEdits = cfg.params ?? [:]
-            disableFunctions = cfg.disableFunctions ?? []
+            disableFunctions = cfg.disableFunctionList
             savedDisableFunctions = disableFunctions
             uploadMaxSize = cfg.uploadMaxSize ?? ""
             maxExecutionTime = cfg.maxExecutionTime ?? ""
@@ -726,6 +726,9 @@ struct RuntimePHPContainerView: View {
     @State private var errorMessage: String?
     @State private var toast: String?
     @State private var isSaving = false
+    /// 已加载标记：从四数组子编辑页返回时 .task 会重跑（导航父页 disappear/appear），
+    /// 守卫防止服务端数据覆盖编辑中的未保存修改；下拉刷新显式清标记重载
+    @State private var hasLoaded = false
 
     var body: some View {
         Form {
@@ -777,6 +780,10 @@ struct RuntimePHPContainerView: View {
             }
         }
         .task { await load() }
+        .refreshable {
+            hasLoaded = false
+            await load()
+        }
         .toastOverlay(message: $toast)
     }
 
@@ -793,6 +800,7 @@ struct RuntimePHPContainerView: View {
     }
 
     private func load() async {
+        guard !hasLoaded else { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -819,6 +827,7 @@ struct RuntimePHPContainerView: View {
             hosts = (cfg.extraHosts ?? []).map {
                 RuntimeHostRow(hostname: $0.hostname, ip: $0.ip)
             }
+            hasLoaded = true
         } catch {
             if !APIError.isCancellation(error) { errorMessage = error.localizedDescription }
         }

@@ -423,6 +423,21 @@ struct RuntimesModelsTests {
         #expect(uploadSave["uploadMaxSize"] as? String == "3M")
     }
 
+    @Test("禁用函数：整串逗号形态拆分为可单独删除的条目（回归：bash,exec 曾显示为一整条）")
+    func disableFunctionListSplit() throws {
+        // 服务端可整串返回（文档 L1032：允许添加多个用,分割；保存按数组提交）
+        let joined = try decode(RuntimePHPConfig.self,
+                                #"{"disableFunctions": ["bash,exec"]}"#)
+        #expect(joined.disableFunctionList == ["bash", "exec"])
+        // 混合 + 空白 + 空元素容错
+        let mixed = try decode(RuntimePHPConfig.self,
+                               #"{"disableFunctions": ["bash", " exec ,", ""]}"#)
+        #expect(mixed.disableFunctionList == ["bash", "exec"])
+        // null / 空数组
+        let empty = try decode(RuntimePHPConfig.self, #"{"disableFunctions": null}"#)
+        #expect(empty.disableFunctionList == [])
+    }
+
     @Test("配置参数 11 键固定口径")
     func phpParamKeys() {
         #expect(RuntimePHPParamKey.allCases.count == 11)
