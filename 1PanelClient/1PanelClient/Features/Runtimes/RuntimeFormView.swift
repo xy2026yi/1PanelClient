@@ -235,7 +235,9 @@ struct RuntimeFormView: View {
     private var pageInvalid: Bool {
         switch wizardPage {
         case 0:
+            // 运行目录在基础页（非 PHP）：未选不允许进入配置页
             return name.isEmpty || containerName.isEmpty
+                || (selectedType != .php && codeDir.isEmpty)
         case 1:
             // PHP 两页制：配置页即末页，按完整提交校验
             if isPHP { return !canSubmit }

@@ -38,8 +38,18 @@ struct RuntimesView: View {
 
     var body: some View {
         List {
-            segmentSection
             listSection
+        }
+        // 分段条全宽固定顶部（KVM 同款）：嵌 List Section 行内会被 inset 压窄压矮
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("类型"), selection: $vm.segment) {
+                ForEach(RuntimesViewModel.Segment.allCases) { seg in
+                    Text(seg.title).tag(seg)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
         .listStyle(.insetGrouped)
         .navigationTitle(L10n.t("运行环境"))
@@ -129,20 +139,6 @@ struct RuntimesView: View {
         }
         .sheet(item: $vm.deleteTarget) { entry in
             deleteConfirmSheet(entry)
-        }
-    }
-
-    // MARK: - 类型分段
-
-    private var segmentSection: some View {
-        Section {
-            Picker(L10n.t("类型"), selection: $vm.segment) {
-                ForEach(RuntimesViewModel.Segment.allCases) { seg in
-                    Text(seg.title).tag(seg)
-                }
-            }
-            .pickerStyle(.segmented)
-            .listRowBackground(Color.clear)
         }
     }
 
