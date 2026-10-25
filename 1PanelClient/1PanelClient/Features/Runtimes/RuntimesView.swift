@@ -16,8 +16,10 @@ struct RuntimesView: View {
     @State private var editTarget: RuntimeEntry?
     /// 行长按菜单目标（启停/重启/编辑/删除；点击行仍直进详情）
     @State private var actionTarget: RuntimeEntry?
-    /// 详情路由（rowTapAndLongPress 编程式推入，NavigationLink 会吞长按）
+    /// 详情/模版路由（rowTapAndLongPress 编程式推入，NavigationLink 会吞长按）
     @State private var route: RuntimeRoute?
+    /// 清理构建缓存确认（PHP 分段 ⋯ 菜单）
+    @State private var showCleanCacheConfirm = false
 
     init(server: ServerConfig) {
         self.server = server
@@ -41,6 +43,25 @@ struct RuntimesView: View {
         .navigationTitle(L10n.t("运行环境"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // PHP 分段专属：扩展模版 / 清理构建缓存（PHP 级功能，不属单个运行环境）
+            if vm.segment == .php {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            route = .templates
+                        } label: {
+                            Label(L10n.t("扩展模版"), systemImage: "doc.badge.plus")
+                        }
+                        Button(role: .destructive) {
+                            showCleanCacheConfirm = true
+                        } label: {
+                            Label(L10n.t("清理构建缓存"), systemImage: "trash.slash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showCreate = true
@@ -71,9 +92,20 @@ struct RuntimesView: View {
             RuntimeFormView(mode: .edit(entry), initialType: nil, server: server, listVM: vm)
         }
         .navigationDestination(item: $route) { r in
-            if case .detail(let entry) = r {
+            switch r {
+            case .detail(let entry):
                 RuntimeDetailView(entry: entry, server: server, listVM: vm)
+            case .templates:
+                RuntimePHPTemplatesView(client: APIClient.shared(for: server))
             }
+        }
+        .alert(L10n.t("清理构建缓存"), isPresented: $showCleanCacheConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("清理"), role: .destructive) {
+                Task { await vm.cleanBuildCache() }
+            }
+        } message: {
+            Text(L10n.t("将删除所有构建产生的缓存，该操作无法回滚，是否继续？"))
         }
         .sheet(item: $actionTarget) { entry in
             ActionBottomSheet(
@@ -329,4 +361,5 @@ struct RuntimeStatusBadge: View {
 /// 列表行点击 → 详情（编程式推入，配合 rowTapAndLongPress）
 enum RuntimeRoute: Hashable {
     case detail(RuntimeEntry)
+    case templates
 }

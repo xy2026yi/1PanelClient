@@ -101,6 +101,35 @@ struct RuntimesModelsTests {
         #expect(resp.data?.items?.first?.name == "123")
     }
 
+    @Test("详情解码：appParams 的 PHP_EXTENSIONS 值为数组（抓包 2026-10-25 详情失败样本）")
+    func detailAppParamsArrayValue() throws {
+        let json = """
+        { "id": 10, "name": "1234", "type": "php", "status": "Running",
+          "params": { "CONTAINER_NAME": "1234", "PHP_EXTENSIONS": ",zip", "PANEL_APP_PORT_HTTP": 9000 },
+          "appParams": [
+            { "value": ["zip"], "edit": false, "key": "PHP_EXTENSIONS", "rule": "",
+              "labelZh": "默认扩展", "labelEn": "Extensions", "type": "select",
+              "values": [{ "label": "zip", "value": "zip" }],
+              "showValue": "", "required": false, "multiple": true,
+              "label": { "zh": "", "en": "" } },
+            { "value": "8.5.12", "edit": false, "key": "PHP_VERSION", "rule": "",
+              "labelZh": "PHP 版本", "labelEn": "PHP Version", "type": "select",
+              "values": [{ "label": "8.5.12", "value": "8.5.12" }],
+              "showValue": "8.5.12", "required": true, "multiple": false,
+              "label": { "zh": "", "en": "" } }
+          ] }
+        """
+        let entry = try decode(RuntimeEntry.self, json)
+        let ext = entry.appParams?.first { $0.key == "PHP_EXTENSIONS" }
+        #expect(ext?.multiple == true)
+        #expect(ext?.value?.arrayValue == ["zip"])
+        let ver = entry.appParams?.first { $0.key == "PHP_VERSION" }
+        #expect(ver?.value?.stringValue == "8.5.12")
+        // params 里的前导逗号串拆分（服务端拼接产物）
+        let raw = entry.params?["PHP_EXTENSIONS"]?.stringValue ?? ""
+        #expect(raw.split(separator: ",").map(String.init) == ["zip"])
+    }
+
     // MARK: - RuntimeParamValue 混型
 
     @Test("RuntimeParamValue：字符串/数字/数组/null 编解码往返")

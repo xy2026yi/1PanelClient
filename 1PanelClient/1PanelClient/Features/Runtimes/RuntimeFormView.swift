@@ -150,7 +150,7 @@ struct RuntimeFormView: View {
             basicSection
             if isPHP { phpSection }
             if selectedType != .php { scriptSection }
-            advancedSection
+            if selectedType != .php { advancedSection }
         }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -167,8 +167,10 @@ struct RuntimeFormView: View {
     // MARK: - 创建（三页向导：基础 / 配置 / 高级）
 
     @State private var wizardPage = 0
+    /// PHP 无容器高级配置（端口映射/环境变量/挂载/主机映射），只有两页
     private var wizardPageNames: [String] {
-        [L10n.t("基础"), L10n.t("配置"), L10n.t("高级")]
+        isPHP ? [L10n.t("基础"), L10n.t("配置")]
+              : [L10n.t("基础"), L10n.t("配置"), L10n.t("高级")]
     }
 
     private var createBody: some View {
@@ -212,7 +214,8 @@ struct RuntimeFormView: View {
         case 0:
             return name.isEmpty || containerName.isEmpty
         case 1:
-            if isPHP { return false }
+            // PHP 两页制：配置页即末页，按完整提交校验
+            if isPHP { return !canSubmit }
             return codeDir.isEmpty || execScript.isEmpty
         default:
             return !canSubmit
@@ -749,18 +752,23 @@ struct RuntimeFormView: View {
             ? "1panel-php-fpm:\(fieldValues["PHP_VERSION"] ?? dynFields.first(where: { $0.key == "PHP_VERSION" })?.defaultValue ?? "")"
             : ""
 
-        let exposed = exposedPorts.map {
+        // PHP 无容器高级配置：抓包口径仅携带 environments 空数组，四组数组仅非 PHP
+        let exposed: [RuntimeExposedPort]? = isPHP ? nil : exposedPorts.map {
             RuntimeExposedPort(hostPort: Int($0.hostPort) ?? 0,
                                containerPort: Int($0.containerPort) ?? 0,
                                hostIP: $0.hostIP,
                                protocol: $0.`protocol`)
         }
-        let envs = envRows.map { RuntimeEnvironment(key: $0.key, value: $0.value) }
-        let vols = volumeRows.map {
+        let envs: [RuntimeEnvironment] = isPHP ? [] : envRows.map {
+            RuntimeEnvironment(key: $0.key, value: $0.value)
+        }
+        let vols: [RuntimeVolume]? = isPHP ? nil : volumeRows.map {
             RuntimeVolume(source: $0.source, target: $0.target,
                           mode: $0.mode.isEmpty ? "rw" : $0.mode)
         }
-        let hosts = hostRows.map { RuntimeExtraHost(hostname: $0.hostname, ip: $0.ip) }
+        let hosts: [RuntimeExtraHost]? = isPHP ? nil : hostRows.map {
+            RuntimeExtraHost(hostname: $0.hostname, ip: $0.ip)
+        }
 
         if isEdit, let entry = editingEntry {
             var request = RuntimeUpdateRequest(

@@ -177,8 +177,9 @@ nonisolated struct RuntimeEntry: Decodable, Identifiable, Hashable, Sendable {
     let version: String?
     let createdAt: String?
     let codeDir: String?
-    /// 详情接口返回（带当前值的应用表单项；InstalledParamField 复用 Apps 模块模型）
-    let appParams: [InstalledParamField]?
+    /// 详情接口返回（带当前值的应用表单项）。不复用 Apps 的 InstalledParamField：
+    /// 其 value 不认数组，而 PHP_EXTENSIONS 的当前值是 ["zip"]，会让整条解码失败
+    let appParams: [RuntimeAppParam]?
     let port: String?
     let path: String?
     let exposedPorts: [RuntimeExposedPort]?
@@ -219,6 +220,24 @@ nonisolated struct RuntimeEntry: Decodable, Identifiable, Hashable, Sendable {
 }
 
 typealias RuntimeListResponse = PageEnvelope<RuntimeEntry>
+
+/// 详情 appParams 条目（value 为混型：PHP_EXTENSIONS 当前值是字符串数组）
+nonisolated struct RuntimeAppParam: Decodable, Identifiable, Hashable, Sendable {
+    let value: RuntimeParamValue?
+    let edit: Bool?
+    let key: String?
+    let rule: String?
+    let labelZh: String?
+    let labelEn: String?
+    let type: String?
+    let values: [FormFieldValueItem]?
+    let showValue: String?
+    let required: Bool?
+    let multiple: Bool?
+
+    var id: String { key ?? UUID().uuidString }
+    var displayLabel: String { labelZh ?? labelEn ?? key ?? "" }
+}
 
 // MARK: - 创建 / 编辑
 
