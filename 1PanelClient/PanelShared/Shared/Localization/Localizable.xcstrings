@@ -2916,28 +2916,6 @@
         }
       }
     },
-    "SSH 登陆成功/失败记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH login success/failure records"
-          }
-        }
-      }
-    },
-    "SSH 登陆日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH Login Logs"
-          }
-        }
-      }
-    },
     "SSH 终端" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9563,6 +9541,17 @@
         }
       }
     },
+    "删除操作不可回滚，是否继续？\n如果确认操作，请手动输入 '清空日志'" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletion cannot be undone. Continue?\nType 'Clear Logs' to confirm"
+          }
+        }
+      }
+    },
     "删除操作无法回滚，请输入 \"%@\" 删除此编排" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15444,6 +15433,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export data is too large (a single table exceeds 4 GiB). Please shorten the time range and try again."
+          }
+        }
+      }
+    },
+    "导出日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Logs"
           }
         }
       }
@@ -21344,6 +21344,17 @@
         }
       }
     },
+    "操作 / 访问 / 登陆记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operation / access / login records"
+          }
+        }
+      }
+    },
     "操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22763,6 +22774,17 @@
         }
       }
     },
+    "日志已清空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logs cleared"
+          }
+        }
+      }
+    },
     "日志文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22792,6 +22814,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Log Type"
+          }
+        }
+      }
+    },
+    "日志记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Records"
           }
         }
       }
@@ -23133,17 +23166,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No MCP servers"
-          }
-        }
-      }
-    },
-    "暂无 SSH 登陆日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No SSH login logs"
           }
         }
       }
@@ -23958,6 +23980,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No users"
+          }
+        }
+      }
+    },
+    "暂无登陆日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No login logs"
           }
         }
       }
@@ -24974,17 +25007,6 @@
         }
       }
     },
-    "服务器日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server Logs"
-          }
-        }
-      }
-    },
     "服务器时间" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25861,6 +25883,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permissions"
+          }
+        }
+      }
+    },
+    "条数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count"
           }
         }
       }
@@ -29616,6 +29649,17 @@
         }
       }
     },
+    "登陆日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login Logs"
+          }
+        }
+      }
+    },
     "白名单" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33268,17 +33312,6 @@
         }
       }
     },
-    "网站访问日志文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Website access log files"
-          }
-        }
-      }
-    },
     "网站证书到期" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33286,6 +33319,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Website certificate expiring"
+          }
+        }
+      }
+    },
+    "网站运行与错误日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website runtime and error logs"
           }
         }
       }
@@ -35622,13 +35666,13 @@
         }
       }
     },
-    "该网站暂无访问日志" : {
+    "该网站暂无%@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No access logs for this website"
+            "value" : "This website has no %@ yet"
           }
         }
       }
@@ -40451,17 +40495,6 @@
         }
       }
     },
-    "面板 API 操作记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel API operation records"
-          }
-        }
-      }
-    },
     "面板 IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -40660,17 +40693,6 @@
         }
       }
     },
-    "面板日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel Logs"
-          }
-        }
-      }
-    },
     "面板有新版本发布时通知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -40766,17 +40788,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Panel Login Anomaly"
-          }
-        }
-      }
-    },
-    "面板登录记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel Login Records"
           }
         }
       }

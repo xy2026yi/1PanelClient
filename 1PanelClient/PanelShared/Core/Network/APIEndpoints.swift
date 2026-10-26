@@ -606,8 +606,11 @@ enum APIEndpoint {
     // MARK: - 日志模块
     case logsOperation           // POST 操作日志分页查询
     case logsLogin               // POST 访问日志（面板登录记录）分页查询
+    case logsClean               // POST 清空面板日志（logType: operation/login）
     case logsSystemFiles         // GET  系统日志日期列表
     case logsSSHLog              // POST SSH 登陆日志分页查询
+    case logsSSHLogClean         // POST 清空 SSH 登陆日志（空请求体）
+    case logsSSHLogExport        // POST 导出 SSH 登陆日志（返回服务器上 csv 路径）
     case logsWebsitesList        // GET  网站列表（网站日志下拉用）
     case logsReadSystem          // POST 读取系统日志行（files/read/system）
     case logsReadWebsite         // POST 读取网站日志行（files/read/website）
@@ -1291,8 +1294,11 @@ enum APIEndpoint {
         case .backupAccountsClientInfo: return "/api/v2/core/backups/client/:type"
         case .logsOperation:         return "/api/v2/core/logs/operation"
         case .logsLogin:             return "/api/v2/core/logs/login"
+        case .logsClean:             return "/api/v2/core/logs/clean"
         case .logsSystemFiles:       return "/api/v2/logs/system/files"
         case .logsSSHLog:            return "/api/v2/hosts/ssh/log"
+        case .logsSSHLogClean:       return "/api/v2/hosts/ssh/log/clean"
+        case .logsSSHLogExport:      return "/api/v2/hosts/ssh/log/export"
         case .logsWebsitesList:      return "/api/v2/websites/list"
         case .logsReadSystem:        return "/api/v2/files/read/system"
         case .logsReadWebsite:       return "/api/v2/files/read/website"

@@ -71,6 +71,24 @@ nonisolated struct SSHLogRequest: Encodable {
     var pageSize: Int = 100
 }
 
+/// 清空 SSH 登陆日志（POST /hosts/ssh/log/clean，空请求体；抓包 2026-10-26）
+nonisolated struct SSHLogCleanRequest: Encodable {}
+
+/// 清空面板日志（POST /core/logs/clean；operation=操作日志 login=面板登录记录；抓包 2026-10-26）
+nonisolated struct CoreLogCleanRequest: Encodable {
+    let logType: String
+}
+
+/// 导出 SSH 登陆日志（POST /hosts/ssh/log/export，返回服务器上 csv 路径；抓包 2026-10-26）
+nonisolated struct SSHLogExportRequest: Encodable {
+    var info: String = ""
+    /// All / Success / Failed
+    var status: String = "All"
+    var page: Int = 1
+    /// -1 = 所有（不限条数）
+    var pageSize: Int = -1
+}
+
 typealias SSHLogResponse = PageEnvelope<SSHLogItem>
 
 nonisolated struct SSHLogItem: Decodable, Identifiable {
