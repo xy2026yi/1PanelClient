@@ -1,18 +1,6 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "" : {},
-    "%@" : {},
-    "%@ %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@"
-          }
-        }
-      }
-    },
     "%@ (%%)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -174,17 +162,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ verification failed. Not enabled."
-          }
-        }
-      }
-    },
-    "%@%%" : {},
-    "%@%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@%2$@"
           }
         }
       }
@@ -3525,7 +3502,6 @@
         }
       }
     },
-    "php.ini" : {},
     "root 用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3559,7 +3535,6 @@
         }
       }
     },
-    "v%@" : {},
     "vLLM" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3591,7 +3566,6 @@
         }
       }
     },
-    "· %@" : {},
     "×%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3613,7 +3587,6 @@
         }
       }
     },
-    "•" : {},
     "••••••••" : {
       "localizations" : {
         "en" : {
@@ -3641,6 +3614,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "\"%@\" added to download queue"
+          }
+        }
+      }
+    },
+    "「%@」需为数字，可带 K/M/G 单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" must be a number, optionally with a K/M/G unit"
+          }
+        }
+      }
+    },
+    "「%@」需为非负整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" must be a non-negative integer"
           }
         }
       }
@@ -4004,6 +3999,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upload limit saved"
+          }
+        }
+      }
+    },
+    "上传限制需为数字，可带 K/M/G 单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload limit must be a number, optionally with a K/M/G unit"
           }
         }
       }
@@ -4862,6 +4868,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Host-%ld"
+          }
+        }
+      }
+    },
+    "主机映射第 %ld 行：主机名与 IP 不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host mapping row %ld: hostname and IP are required"
           }
         }
       }
@@ -6263,17 +6280,6 @@
         }
       }
     },
-    "依赖源" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Package Source"
-          }
-        }
-      }
-    },
     "保存" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6765,6 +6771,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Changes take effect after a restart. Type \"Restart Now\" to confirm."
+          }
+        }
+      }
+    },
+    "修改配置需要重启运行环境，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving restarts the runtime. Continue?"
           }
         }
       }
@@ -9838,6 +9855,28 @@
         }
       }
     },
+    "删除证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Certificate"
+          }
+        }
+      }
+    },
+    "删除证书颁发机构" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Certificate Authority"
+          }
+        }
+      }
+    },
     "删除负载均衡" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10894,6 +10933,17 @@
         }
       }
     },
+    "卸载扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Extension"
+          }
+        }
+      }
+    },
     "卸载技能" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10923,6 +10973,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uninstall Plugin %@"
+          }
+        }
+      }
+    },
+    "卸载模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Module"
           }
         }
       }
@@ -13919,17 +13980,6 @@
         }
       }
     },
-    "多个函数以数组提交，删除即从列表移除后保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Functions are submitted as a list; removing one and saving updates it"
-          }
-        }
-      }
-    },
     "多个扩展名用英文逗号分隔" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14542,6 +14592,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Install source"
+          }
+        }
+      }
+    },
+    "安装模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Module"
           }
         }
       }
@@ -15877,6 +15938,17 @@
         }
       }
     },
+    "将删除选中的 %ld 个镜像，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the %ld selected image(s)?"
+          }
+        }
+      }
+    },
     "将删除镜像「%@」，是否继续？" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16291,6 +16363,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clean %ld items and free up %@ of disk space. This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "将清理全部未使用镜像，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will prune all unused images. This cannot be undone. Continue?"
           }
         }
       }
@@ -19628,6 +19711,17 @@
         }
       }
     },
+    "所选目录未找到 package.json，无法解析运行脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "package.json not found in the selected directory; cannot parse run scripts"
+          }
+        }
+      }
+    },
     "手动" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20031,6 +20125,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Templates apply a set of extensions when creating a PHP runtime"
+          }
+        }
+      }
+    },
+    "扩展源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extension Source"
           }
         }
       }
@@ -20570,6 +20675,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "High disk usage on \"%@\""
+          }
+        }
+      }
+    },
+    "挂载第 %ld 行：主机目录与容器目录不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume row %ld: host and container paths are required"
           }
         }
       }
@@ -21362,17 +21478,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Operating on an http registry requires restarting the Docker service.\nTo confirm, type 'Restart Now'"
-          }
-        }
-      }
-    },
-    "操作同步执行，大模块安装可能耗时较长" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Operations run synchronously; large modules may take a while"
           }
         }
       }
@@ -22642,6 +22747,17 @@
         }
       }
     },
+    "无法获取运行目录，暂不能读取日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run directory unavailable; cannot read logs"
+          }
+        }
+      }
+    },
     "无法读取 vLLM /metrics：实例未运行、无 GPU 或首次采样无前值可算速率。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22946,6 +23062,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable"
+          }
+        }
+      }
+    },
+    "是否安装 %@ 模块？操作可能导致运行环境异常，请确认后操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install module %@? This may disrupt the runtime. Confirm to proceed."
           }
         }
       }
@@ -24541,6 +24668,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update Plugin %@"
+          }
+        }
+      }
+    },
+    "更新模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Module"
           }
         }
       }
@@ -28945,6 +29083,17 @@
         }
       }
     },
+    "点函数名删除；多个函数以数组提交，删除即从列表移除后保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a function name to remove it; the list is submitted as an array and removal takes effect on save"
+          }
+        }
+      }
+    },
     "点赞" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29139,6 +29288,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Env-%ld"
+          }
+        }
+      }
+    },
+    "环境变量第 %ld 行：变量名不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment variable row %ld: name is required"
           }
         }
       }
@@ -30639,6 +30799,28 @@
         }
       }
     },
+    "确认卸载扩展「%@」？卸载需重建镜像，期间站点可能短暂不可用。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall extension \"%@\"? Uninstalling rebuilds the image; sites may be briefly unavailable."
+          }
+        }
+      }
+    },
+    "确认卸载模块「%@」？卸载后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall module \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
     "确认名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30657,6 +30839,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm domain"
+          }
+        }
+      }
+    },
+    "确认安装模块「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install module \"%@\"?"
           }
         }
       }
@@ -30690,6 +30883,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm New Password"
+          }
+        }
+      }
+    },
+    "确认更新模块「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update module \"%@\"?"
           }
         }
       }
@@ -30767,6 +30971,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm Restart"
+          }
+        }
+      }
+    },
+    "确认重启进程「%@」？重启会中断正在执行的进程。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart process \"%@\"? Restarting will interrupt running processes."
           }
         }
       }
@@ -31603,6 +31818,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ports"
+          }
+        }
+      }
+    },
+    "端口映射第 %ld 行：主机端口与容器端口需为 1-65535 的整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port mapping row %ld: host and container ports must be integers from 1 to 65535"
           }
         }
       }
@@ -32498,6 +32724,17 @@
         }
       }
     },
+    "继续" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
     "继续编辑" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33132,6 +33369,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Websites"
+          }
+        }
+      }
+    },
+    "网站 / 证书 / 运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Websites / Certificates / Runtimes"
           }
         }
       }
@@ -35754,6 +36002,17 @@
         }
       }
     },
+    "该运行环境被以下网站使用：%@。请先在「网站」中解绑或删除对应网站，再删除运行环境。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This runtime is used by the following websites: %@. Unbind or delete them in Websites first, then delete the runtime."
+          }
+        }
+      }
+    },
     "该面板使用 HTTP 明文连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37173,6 +37432,17 @@
         }
       }
     },
+    "超时时间需为非负整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout must be a non-negative integer"
+          }
+        }
+      }
+    },
     "超级用户" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37499,6 +37769,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter New Passcode"
+          }
+        }
+      }
+    },
+    "输入模块名后点右上角安装；操作同步执行，大模块安装可能耗时较长" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a module name and tap Install (top right); operations run synchronously and large modules may take a while"
           }
         }
       }
@@ -39347,6 +39628,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restart Policy"
+          }
+        }
+      }
+    },
+    "重启进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Process"
           }
         }
       }
@@ -41481,358 +41773,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ": %@"
-          }
-        }
-      }
-    },
-    "重启进程" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart Process"
-          }
-        }
-      }
-    },
-    "确认重启进程「%@」？重启会中断正在执行的进程。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restart process \"%@\"? Restarting will interrupt running processes."
-          }
-        }
-      }
-    },
-    "安装模块" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Install Module"
-          }
-        }
-      }
-    },
-    "更新模块" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Update Module"
-          }
-        }
-      }
-    },
-    "卸载模块" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uninstall Module"
-          }
-        }
-      }
-    },
-    "确认安装模块「%@」？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Install module \"%@\"?"
-          }
-        }
-      }
-    },
-    "确认更新模块「%@」？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Update module \"%@\"?"
-          }
-        }
-      }
-    },
-    "确认卸载模块「%@」？卸载后不可恢复。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uninstall module \"%@\"? This cannot be undone."
-          }
-        }
-      }
-    },
-    "该运行环境被以下网站使用：%@。请先在「网站」中解绑或删除对应网站，再删除运行环境。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This runtime is used by the following websites: %@. Unbind or delete them in Websites first, then delete the runtime."
-          }
-        }
-      }
-    },
-    "端口映射第 %ld 行：主机端口与容器端口需为 1-65535 的整数" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Port mapping row %ld: host and container ports must be integers from 1 to 65535"
-          }
-        }
-      }
-    },
-    "环境变量第 %ld 行：变量名不能为空" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Environment variable row %ld: name is required"
-          }
-        }
-      }
-    },
-    "挂载第 %ld 行：主机目录与容器目录不能为空" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Volume row %ld: host and container paths are required"
-          }
-        }
-      }
-    },
-    "主机映射第 %ld 行：主机名与 IP 不能为空" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Host mapping row %ld: hostname and IP are required"
-          }
-        }
-      }
-    },
-    "「%@」需为数字，可带 K/M/G 单位" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"%@\" must be a number, optionally with a K/M/G unit"
-          }
-        }
-      }
-    },
-    "「%@」需为非负整数" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"%@\" must be a non-negative integer"
-          }
-        }
-      }
-    },
-    "上传限制需为数字，可带 K/M/G 单位" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upload limit must be a number, optionally with a K/M/G unit"
-          }
-        }
-      }
-    },
-    "超时时间需为非负整数" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timeout must be a non-negative integer"
-          }
-        }
-      }
-    },
-    "网站 / 证书 / 运行环境" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Websites / Certificates / Runtimes"
-          }
-        }
-      }
-    },
-    "更新于 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updated %@"
-          }
-        }
-      }
-    },
-    "服务器状态" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server Status"
-          }
-        }
-      }
-    },
-    "卸载扩展" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uninstall Extension"
-          }
-        }
-      }
-    },
-    "确认卸载扩展「%@」？卸载需重建镜像，期间站点可能短暂不可用。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uninstall extension \"%@\"? Uninstalling rebuilds the image; sites may be briefly unavailable."
-          }
-        }
-      }
-    },
-    "将清理全部未使用镜像，该操作无法回滚，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will prune all unused images. This cannot be undone. Continue?"
-          }
-        }
-      }
-    },
-    "将删除选中的 %ld 个镜像，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete the %ld selected image(s)?"
-          }
-        }
-      }
-    },
-    "删除证书颁发机构" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Certificate Authority"
-          }
-        }
-      }
-    },
-    "删除证书" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Certificate"
-          }
-        }
-      }
-    },
-    "无法获取运行目录，暂不能读取日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run directory unavailable; cannot read logs"
-          }
-        }
-      }
-    },
-    "继续" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue"
-          }
-        }
-      }
-    },
-    "修改配置需要重启运行环境，是否继续？" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saving restarts the runtime. Continue?"
-          }
-        }
-      }
-    },
-    "所选目录未找到 package.json，无法解析运行脚本" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "package.json not found in the selected directory; cannot parse run scripts"
-          }
-        }
-      }
-    },
-    "输入模块名后点右上角安装；操作同步执行，大模块安装可能耗时较长" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter a module name and tap Install (top right); operations run synchronously and large modules may take a while"
-          }
-        }
-      }
-    },
-    "是否安装 %@ 模块？操作可能导致运行环境异常，请确认后操作" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Install module %@? This may disrupt the runtime. Confirm to proceed."
           }
         }
       }
