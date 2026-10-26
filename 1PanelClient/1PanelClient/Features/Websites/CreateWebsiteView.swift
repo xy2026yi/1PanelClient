@@ -201,10 +201,7 @@ struct CreateWebsiteView: View {
         .onChange(of: createDB) { _, on in
             guard on else { return }
             if dbPassword.isEmpty { dbPassword = Self.randomPassword() }
-            if dbName.isEmpty {
-                // 名称缺省由代号带入（php.test.com → php-test），用户名跟随名称
-                dbName = alias.replacingOccurrences(of: ".", with: "-")
-            }
+            // 名称/用户名留空由用户填写（用户名随名称输入镜像带入）
             if vm.availableDBServices.isEmpty {
                 Task { await vm.loadDBServices(dbType: dbType) }
             }
