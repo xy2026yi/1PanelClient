@@ -13,16 +13,6 @@
         }
       }
     },
-    "%@ %@ / %@ %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@ / %3$@ %4$@"
-          }
-        }
-      }
-    },
     "%@ (%%)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -67,16 +57,6 @@
         }
       }
     },
-    "%@ / %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ / %2$@"
-          }
-        }
-      }
-    },
     "%@ / %ld 核" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -95,37 +75,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ Docker failed: %@"
-          }
-        }
-      }
-    },
-    "%@ install" : {},
-    "%@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%@ · %@ %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@ %3$@"
-          }
-        }
-      }
-    },
-    "%@ · %@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@ · %3$@"
           }
         }
       }
@@ -230,16 +179,6 @@
       }
     },
     "%@%%" : {},
-    "%@%%  %@ / %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@%%  %2$@ / %3$@"
-          }
-        }
-      }
-    },
     "%@%@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -257,46 +196,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@.%@"
-          }
-        }
-      }
-    },
-    "%@: %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@: %2$@"
-          }
-        }
-      }
-    },
-    "%@:%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@:%2$@"
-          }
-        }
-      }
-    },
-    "%@@%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@@%2$@"
-          }
-        }
-      }
-    },
-    "%@×%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@×%2$@"
           }
         }
       }
@@ -1163,7 +1062,6 @@
         }
       }
     },
-    ":%@" : {},
     "ACME 服务 URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2282,7 +2180,6 @@
         }
       }
     },
-    "ID: %@" : {},
     "IP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2766,7 +2663,6 @@
         }
       }
     },
-    "OpenResty %@" : {},
     "OpenResty 未安装" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2811,7 +2707,6 @@
         }
       }
     },
-    "PID %@" : {},
     "POST 最大尺寸" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3512,7 +3407,6 @@
         }
       }
     },
-    "[%@]" : {},
     "docker-compose" : {
       "localizations" : {
         "en" : {
@@ -3554,7 +3448,6 @@
         }
       }
     },
-    "fd %@" : {},
     "file.txt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10979,17 +10872,6 @@
         }
       }
     },
-    "卸载 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uninstall %@"
-          }
-        }
-      }
-    },
     "卸载后该频道将不可用，需重新安装插件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11888,17 +11770,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Optional, one per line, in key=value format"
-          }
-        }
-      }
-    },
-    "可选，如镜像站地址" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Optional, e.g. a mirror URL"
           }
         }
       }

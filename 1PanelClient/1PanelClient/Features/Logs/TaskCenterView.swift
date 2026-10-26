@@ -36,19 +36,6 @@ struct TaskCenterView: View {
         // 否则切到空筛选（如「执行中」）后无法再切回其他状态
         List {
             Section {
-                Picker(L10n.t("状态"), selection: $filter) {
-                    ForEach(TaskStatusFilter.allCases) { f in
-                        Text(f.title).tag(f)
-                    }
-                }
-                .pickerStyle(.segmented)
-            } footer: {
-                if !isLoading && errorMessage == nil {
-                    Text(L10n.f("共 %ld 条", total))
-                }
-            }
-
-            Section {
                 if isLoading && items.isEmpty {
                     HStack {
                         Spacer()
@@ -93,9 +80,24 @@ struct TaskCenterView: View {
                         .onAppear { Task { await loadMore() } }
                     }
                 }
+            } footer: {
+                if !isLoading && errorMessage == nil {
+                    Text(L10n.f("共 %ld 条", total))
+                }
             }
         }
         .listStyle(.insetGrouped)
+        // 分段条全宽固定顶部（KVM/运行环境同款）：嵌 List Section 行内会被 inset 压窄压矮
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("状态"), selection: $filter) {
+                ForEach(TaskStatusFilter.allCases) { f in
+                    Text(f.title).tag(f)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
         .navigationTitle(L10n.t("任务中心"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }

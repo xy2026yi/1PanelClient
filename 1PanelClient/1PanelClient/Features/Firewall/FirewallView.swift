@@ -112,6 +112,19 @@ struct FirewallView: View {
                 unsupportedSection
             } else {
                 statusSection
+
+                switch segment {
+                case 0: rulesSection
+                case 1: forwardSection
+                case 2: dockerSection
+                default: FirewallSettingsContent(vm: vm)
+                }
+            }
+        }
+        // 分段条全宽固定顶部（KVM/运行环境同款）：嵌 List Section 行内会被 inset 压窄压矮；
+        // 面板不支持时不显示分段条
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if !vm.unsupportedPanel {
                 Picker("", selection: $segment) {
                     Text(L10n.t("规则")).tag(0)
                     Text(L10n.t("转发")).tag(1)
@@ -119,18 +132,11 @@ struct FirewallView: View {
                     Text(L10n.t("设置")).tag(3)
                 }
                 .pickerStyle(.segmented)
-                .segmentedPickerRow()
-                .listRowBackground(Color.clear)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
                 .onChange(of: segment) { _, new in
                     // 切段重拉该段（VM 内 5 秒节流防往返闪刷）
                     Task { await vm.refreshSegment(new) }
-                }
-
-                switch segment {
-                case 0: rulesSection
-                case 1: forwardSection
-                case 2: dockerSection
-                default: FirewallSettingsContent(vm: vm)
                 }
             }
         }

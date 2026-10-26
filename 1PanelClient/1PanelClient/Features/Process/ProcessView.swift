@@ -122,7 +122,7 @@ struct ProcessView: View {
         monitor.mode == .processes ? L10n.t("搜索进程名称 / PID / 用户") : L10n.t("搜索进程 / PID / 端口")
     }
 
-    // MARK: - 模式切换（List 首个 Section，与监控/证书详情一致）
+    // MARK: - 模式切换（固定顶分段条，KVM/运行环境同款）
 
     private var modePicker: some View {
         Picker("", selection: $monitor.mode) {
@@ -132,8 +132,8 @@ struct ProcessView: View {
             }
         }
         .pickerStyle(.segmented)
-        .segmentedPickerRow()
-        .listRowSeparator(.hidden)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 
     // MARK: - 状态栏
@@ -210,9 +210,6 @@ struct ProcessView: View {
                         .padding(.vertical, 30)
                 }
             } else {
-                Section {
-                    modePicker
-                }
                 if monitor.mode == .processes {
                     ForEach(filteredProcesses) { proc in
                         ProcessRow(process: proc)
@@ -227,6 +224,13 @@ struct ProcessView: View {
             }
         }
         .listStyle(.insetGrouped)
+        // 分段条全宽固定顶部（KVM/运行环境同款）：连接失败/连接中不显示；
+        // 搜索无结果的空态保留分段条（原行内版该场景会整段替换成分段条消失）
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if monitor.errorMessage == nil, !(monitor.isConnecting && isEmpty) {
+                modePicker
+            }
+        }
     }
 
     private var isEmpty: Bool {

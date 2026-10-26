@@ -21,16 +21,6 @@ struct WAFMonitorView: View {
 
     var body: some View {
         List {
-            Section {
-                Picker(L10n.t("板块"), selection: $segment) {
-                    Text(L10n.t("概览")).tag(0)
-                    Text(L10n.t("拦截记录")).tag(1)
-                    Text(L10n.t("封锁记录")).tag(2)
-                }
-                .pickerStyle(.segmented)
-                .segmentedPickerRow()
-            }
-
             switch segment {
             case 0:
                 WAFOverviewView(server: server)
@@ -44,6 +34,17 @@ struct WAFMonitorView: View {
             }
         }
         .listStyle(.insetGrouped)
+        // 分段条全宽固定顶部（KVM/运行环境同款）：嵌 List Section 行内会被 inset 压窄压矮
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("板块"), selection: $segment) {
+                Text(L10n.t("概览")).tag(0)
+                Text(L10n.t("拦截记录")).tag(1)
+                Text(L10n.t("封锁记录")).tag(2)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
         .refreshable { reloadToken += 1 }
         .navigationTitle(L10n.t("WAF 监控"))
         .navigationBarTitleDisplayMode(.inline)

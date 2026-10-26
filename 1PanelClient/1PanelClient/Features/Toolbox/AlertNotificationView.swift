@@ -36,9 +36,6 @@ struct AlertNotificationView: View {
 
     var body: some View {
         List {
-            Section {
-                segmentPicker
-            }
             switch segment {
             case 0: ruleContent
             case 1: logContent
@@ -46,6 +43,17 @@ struct AlertNotificationView: View {
             }
         }
         .listStyle(.insetGrouped)
+        // 分段条全宽固定顶部（KVM/运行环境同款）：嵌 List Section 行内会被 inset 压窄压矮
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("模块"), selection: $segment) {
+                Text(L10n.t("告警")).tag(0)
+                Text(L10n.t("日志")).tag(1)
+                Text(L10n.t("设置")).tag(2)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
         .refreshable {
             switch segment {
             case 0: await vm.loadRules()
@@ -250,19 +258,6 @@ struct AlertNotificationView: View {
             }
         }
         .task { await PageVMStore.shared.autoRefresh(vm: vm) { await vm.refreshAll() } }
-    }
-
-    // MARK: - 段切换（List 首个 Section，与监控/证书详情一致）
-
-    private var segmentPicker: some View {
-        Picker(L10n.t("模块"), selection: $segment) {
-            Text(L10n.t("告警")).tag(0)
-            Text(L10n.t("日志")).tag(1)
-            Text(L10n.t("设置")).tag(2)
-        }
-        .pickerStyle(.segmented)
-        .segmentedPickerRow()
-        .listRowSeparator(.hidden)
     }
 
     // MARK: - 告警规则列表

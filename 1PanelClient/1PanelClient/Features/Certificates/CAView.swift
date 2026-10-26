@@ -145,22 +145,22 @@ struct CADetailView: View {
 
     var body: some View {
         List {
-            Section {
-                Picker("", selection: $tab) {
-                    ForEach(CADetailTab.allCases) { t in
-                        Text(L10n.t(t.rawValue)).tag(t)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-            }
-
             switch tab {
             case .info:    infoSection
             case .cert:    pemSection(title: L10n.t("证书"), content: (detail ?? ca).csr)
             case .privKey: pemSection(title: L10n.t("私钥"), content: (detail ?? ca).privateKey)
             }
+        }
+        // 分段条全宽固定顶部（KVM/运行环境同款）：嵌 List Section 行内会被 inset 压窄压矮
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker("", selection: $tab) {
+                ForEach(CADetailTab.allCases) { t in
+                    Text(L10n.t(t.rawValue)).tag(t)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
         .navigationTitle((detail ?? ca).name)
         .navigationBarTitleDisplayMode(.inline)

@@ -93,20 +93,6 @@ struct AIAgentSkillsView: View {
 
     var body: some View {
         List {
-            Section {
-                Picker(L10n.t("视图"), selection: $mode) {
-                    Text(L10n.t("技能市场")).tag(0)
-                    Text(L10n.t("已安装")).tag(1)
-                }
-                .pickerStyle(.segmented)
-                .segmentedPickerRow()
-                .onChange(of: mode) { _, newValue in
-                    if newValue == 1 {
-                        Task { await loadInstalled() }
-                    }
-                }
-            }
-
             if mode == 0 {
                 marketSection
             } else {
@@ -114,6 +100,21 @@ struct AIAgentSkillsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        // 分段条全宽固定顶部（KVM/运行环境同款）：嵌 List Section 行内会被 inset 压窄压矮
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("视图"), selection: $mode) {
+                Text(L10n.t("技能市场")).tag(0)
+                Text(L10n.t("已安装")).tag(1)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .onChange(of: mode) { _, newValue in
+                if newValue == 1 {
+                    Task { await loadInstalled() }
+                }
+            }
+        }
         .navigationTitle(L10n.t("技能"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

@@ -139,7 +139,7 @@ location / {
                 Text("只读").tag(true)
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal, 12)
+            .padding(.horizontal)
             .padding(.vertical, 8)
 
             if readOnly {

@@ -67,16 +67,6 @@ struct WebsiteMonitorView: View {
                 }
             }
 
-            Section {
-                Picker(L10n.t("板块"), selection: $tab) {
-                    ForEach(Tab.allCases) { t in
-                        Text(t.label).tag(t)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .segmentedPickerRow()
-            }
-
             if selectedID != 0 {
                 switch tab {
                 case .overview:
@@ -97,6 +87,17 @@ struct WebsiteMonitorView: View {
                     .frame(maxWidth: .infinity)
                 }
             }
+        }
+        // 分段条全宽固定顶部（KVM/运行环境同款）：网站选择器保留为列表首段
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("板块"), selection: $tab) {
+                ForEach(Tab.allCases) { t in
+                    Text(t.label).tag(t)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
         .navigationTitle(L10n.t("网站监控"))
         .navigationBarTitleDisplayMode(.inline)
