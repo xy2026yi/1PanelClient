@@ -1,6 +1,9 @@
 # 创建/编辑表单描边包裹式改造评估（2026-09）
 
-依据：`create-edit-forms-inventory-2026-09.md`（131 个表单）+ `-installFormDemo` 原型页（DebugInstallFormView）实测结论。
+> **存档说明（2026-10-25）**：本文为 2026-09 描边化改造的推进评估与批次记录，只增不改。
+> 形态 1–10 的现行定义、选用判据与组件 API 已析出至活文档 **`docs/UI组件形态手册.md`**——查形态请以手册为准，本文仅作历史溯源。
+
+依据：`create-edit-forms-inventory-2026-09.md`（131 个表单，本地 archive 存档）+ `-installFormDemo` 原型页（DebugInstallFormView）实测结论。
 
 ## 结论
 

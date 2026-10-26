@@ -302,8 +302,6 @@ struct ScriptLibraryView: View {
                 ],
                 onDismiss: { showCreateMenu = false }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-            .presentationDragIndicator(.visible)
         }
         .toastOverlay(message: $vm.toastMessage)
         .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
@@ -354,8 +352,6 @@ struct ScriptLibraryView: View {
                 ],
                 onDismiss: { actionScript = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: Binding(
             get: { editingScript != nil },
@@ -486,7 +482,7 @@ struct ScriptRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if script.isSystem == true {
                         StatusBadge(text: L10n.t("系统"), color: .blue)
                     }

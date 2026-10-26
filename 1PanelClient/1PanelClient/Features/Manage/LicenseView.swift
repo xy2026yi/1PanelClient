@@ -192,8 +192,6 @@ struct LicenseView: View {
             )
             // 高度按实际菜单项数算：Bound（解绑/同步/删除）与 Free 同为 3 项，
             // 按 isBound ? 2 : 3 会把已绑定条目的删除/取消裁出屏幕外
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionMenuItems(for: item).count))])
-            .presentationDragIndicator(.visible)
         }
         // 绑定表单（节点下拉）
         .sheet(item: $bindingItem) { item in
@@ -456,7 +454,7 @@ private struct LicenseRow: View {
     let item: LicenseItem
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(item.licenseName ?? "—")
                     .font(.dataMonospacedBody.bold())

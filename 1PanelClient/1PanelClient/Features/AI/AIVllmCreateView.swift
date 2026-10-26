@@ -285,7 +285,7 @@ struct AIVllmCreateView: View {
                 // 编辑时类型/版本不可修改（服务端约定），以信息行展示；
                 // 未知类型保留服务端原字符串
                 InfoRow(L10n.t("类型"), value: originalImageTypeRaw ?? imageType.displayName)
-                InfoRow(L10n.t("版本"), value: appVersion)
+                InfoRow(L10n.t("版本"), value: appVersion, monospaced: true)
             } else {
                 OutlinedPicker(label: L10n.t("类型"), options: VllmImageType.allCases,
                                selection: $imageType) { $0.displayName }

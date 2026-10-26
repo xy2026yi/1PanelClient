@@ -46,9 +46,11 @@ struct KVMSnapshotListView: View {
                         }
                         .listRowBackground(Color.clear)
                     } else {
-                        Text(L10n.t("暂无快照"))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        ContentUnavailableView(
+                            L10n.t("暂无快照"),
+                            systemImage: "externaldrive.badge.timemachine"
+                        )
+                        .listRowBackground(Color.clear)
                     }
                 } else {
                     ForEach(snapshots) { snapshot in
@@ -104,7 +106,7 @@ struct KVMSnapshotListView: View {
 
     private func snapshotRow(_ snapshot: KVMSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(snapshot.name ?? "-")
                     .font(.body.weight(.medium))
                     .lineLimit(1)

@@ -143,8 +143,6 @@ struct CronjobsTab: View {
                     showImport = true
                 },
             ]) { showAddMenu = false }
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showExport) {
             CronjobExportView(server: server, cronjobs: vm.cronjobs,
@@ -181,8 +179,6 @@ struct CronjobsTab: View {
         )) {
             ActionBottomSheet(title: actionJob?.name ?? L10n.t("计划任务"),
                               items: actionMenuItems) { actionJob = nil }
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionMenuItems.count))])
-                .presentationDragIndicator(.visible)
         }
         // 批量删除确认（含备份文件/远程备份文件选项）
         .sheet(isPresented: $showBatchDelete) {
@@ -509,7 +505,7 @@ struct CronjobRow: View {
                     .font(.body.bold())
                     .lineLimit(1)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     StatusBadge(text: job.jobType.displayName, color: job.jobType.color)
                     StatusBadge(text: job.specDisplay, color: .secondary)
                 }

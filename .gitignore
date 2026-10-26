@@ -39,3 +39,6 @@ __pycache__/
 
 # ZCode 临时验证工程（编辑器视觉回归用，不进仓库）
 .zcode-scratch/
+
+# Xcode 构建系统模块校验缓存（本地测试构建会再生成）
+**/xcodeproj/-Xcc/

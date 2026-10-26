@@ -65,7 +65,7 @@ struct FirewallRuleFormView: View {
             } header: {
                 SectionLabel(title: L10n.t("规则内容"), systemImage: "shield")
             } footer: {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.t("端口支持 8000-8099 区间；IP 支持 IP 或 CIDR，留空表示全部来源。"))
                     if !preservedFieldNotes.isEmpty {
                         // 精简表单不提供这些字段的编辑：原样回传，避免整规则替换时
@@ -469,8 +469,6 @@ struct FirewallWhitelistView: View {
                     ],
                     onDismiss: { actionEntry = nil }
                 )
-                .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-                .presentationDragIndicator(.visible)
         }
         .interactiveDismissDisabled(isSubmitting)
         // 提交中禁止侧滑返回：先删后写在途 pop 后，本地基线与服务器分叉

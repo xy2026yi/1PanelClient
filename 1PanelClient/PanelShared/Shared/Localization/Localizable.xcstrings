@@ -111,6 +111,17 @@
         }
       }
     },
+    "%@ 完成" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ done"
+          }
+        }
+      }
+    },
     "%@ 已开启" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2662,6 +2673,28 @@
         }
       }
     },
+    "PHP / Node.js / Python / Go" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PHP / Node.js / Python / Go"
+          }
+        }
+      }
+    },
+    "POST 最大尺寸" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max POST Size"
+          }
+        }
+      }
+    },
     "QEMU 日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2860,28 +2893,6 @@
         }
       }
     },
-    "SSH 登陆成功/失败记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH login success/failure records"
-          }
-        }
-      }
-    },
-    "SSH 登陆日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH Login Logs"
-          }
-        }
-      }
-    },
     "SSH 终端" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2998,6 +3009,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shell script"
+          }
+        }
+      }
+    },
+    "Socket 超时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Socket Timeout"
           }
         }
       }
@@ -3544,6 +3566,17 @@
         }
       }
     },
+    "×%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "×%@"
+          }
+        }
+      }
+    },
     "—" : {
       "localizations" : {
         "en" : {
@@ -3581,6 +3614,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "\"%@\" added to download queue"
+          }
+        }
+      }
+    },
+    "「%@」需为数字，可带 K/M/G 单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" must be a number, optionally with a K/M/G unit"
+          }
+        }
+      }
+    },
+    "「%@」需为非负整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" must be a non-negative integer"
           }
         }
       }
@@ -3805,6 +3860,17 @@
         }
       }
     },
+    "上传与超时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload & Timeout"
+          }
+        }
+      }
+    },
     "上传中" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3871,6 +3937,17 @@
         }
       }
     },
+    "上传文件最大尺寸" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Upload File Size"
+          }
+        }
+      }
+    },
     "上传方式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3900,6 +3977,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upload Request Expiry"
+          }
+        }
+      }
+    },
+    "上传限制" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload Limit"
+          }
+        }
+      }
+    },
+    "上传限制已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload limit saved"
+          }
+        }
+      }
+    },
+    "上传限制需为数字，可带 K/M/G 单位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload limit must be a number, optionally with a K/M/G unit"
           }
         }
       }
@@ -4208,6 +4318,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Download Queue · %d tasks"
+          }
+        }
+      }
+    },
+    "不使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
           }
         }
       }
@@ -4729,6 +4850,39 @@
         }
       }
     },
+    "主机映射" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra Hosts"
+          }
+        }
+      }
+    },
+    "主机映射-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host-%ld"
+          }
+        }
+      }
+    },
+    "主机映射第 %ld 行：主机名与 IP 不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host mapping row %ld: hostname and IP are required"
+          }
+        }
+      }
+    },
     "主机目录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5044,6 +5198,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Only installed apps of type Website that are not in use"
+          }
+        }
+      }
+    },
+    "仅显示运行中的运行环境，网站代理端口取其 HTTP 端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only running runtimes are listed; the site proxy port uses the runtime's HTTP port"
           }
         }
       }
@@ -6192,6 +6357,17 @@
         }
       }
     },
+    "保存后重建容器使配置生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The container is rebuilt on save to apply changes"
+          }
+        }
+      }
+    },
     "保存后需要重启 %@ 才能生效，期间连接将短暂中断。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6533,6 +6709,17 @@
         }
       }
     },
+    "修改模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Template"
+          }
+        }
+      }
+    },
     "修改用户密码" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6584,6 +6771,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Changes take effect after a restart. Type \"Restart Now\" to confirm."
+          }
+        }
+      }
+    },
+    "修改配置需要重启运行环境，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving restarts the runtime. Continue?"
           }
         }
       }
@@ -8469,6 +8667,17 @@
         }
       }
     },
+    "创建或编辑重建后产生构建日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build logs appear after creating or rebuilding"
+          }
+        }
+      }
+    },
     "创建数据库" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8553,6 +8762,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create User"
+          }
+        }
+      }
+    },
+    "创建站点时同步创建数据库，用户名缺省跟随名称" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The database is created along with the site; the username defaults to the database name"
+          }
+        }
+      }
+    },
+    "创建站点时同步开通 FTP" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FTP is provisioned together with the site"
           }
         }
       }
@@ -8740,6 +8971,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create Forward"
+          }
+        }
+      }
+    },
+    "创建运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Runtime"
+          }
+        }
+      }
+    },
+    "创建运行环境 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Runtime %@"
+          }
+        }
+      }
+    },
+    "创建进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Process"
           }
         }
       }
@@ -9272,6 +9536,17 @@
         }
       }
     },
+    "删除扩展模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Extension Template"
+          }
+        }
+      }
+    },
     "删除挂载" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9279,6 +9554,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Mount"
+          }
+        }
+      }
+    },
+    "删除操作不可回滚，是否继续？\n如果确认操作，请手动输入 '清空日志'" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletion cannot be undone. Continue?\nType 'Clear Logs' to confirm"
           }
         }
       }
@@ -9569,6 +9855,28 @@
         }
       }
     },
+    "删除证书" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Certificate"
+          }
+        }
+      }
+    },
+    "删除证书颁发机构" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Certificate Authority"
+          }
+        }
+      }
+    },
     "删除负载均衡" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9587,6 +9895,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete Account"
+          }
+        }
+      }
+    },
+    "删除运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Runtime"
+          }
+        }
+      }
+    },
+    "删除运行环境 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Runtime %@"
           }
         }
       }
@@ -9987,6 +10317,17 @@
         }
       }
     },
+    "加载数据库服务…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading database services…"
+          }
+        }
+      }
+    },
     "加载新版本配置失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10053,6 +10394,17 @@
         }
       }
     },
+    "加载运行环境…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading runtimes…"
+          }
+        }
+      }
+    },
     "加载配置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10115,6 +10467,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mirror endpoint for restricted networks, e.g. https://hf-mirror.com; leave empty for the official endpoint"
+          }
+        }
+      }
+    },
+    "动态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dynamic"
           }
         }
       }
@@ -10203,6 +10566,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Select tasks to export as a JSON file for migration or backup"
+          }
+        }
+      }
+    },
+    "包管理器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Package Manager"
           }
         }
       }
@@ -10526,17 +10900,6 @@
         }
       }
     },
-    "卸载 %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uninstall %@"
-          }
-        }
-      }
-    },
     "卸载后该频道将不可用，需重新安装插件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10570,6 +10933,17 @@
         }
       }
     },
+    "卸载扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Extension"
+          }
+        }
+      }
+    },
     "卸载技能" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10599,6 +10973,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uninstall Plugin %@"
+          }
+        }
+      }
+    },
+    "卸载模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Module"
           }
         }
       }
@@ -11138,6 +11523,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "File extensions subject to hotlink protection, comma-separated"
+          }
+        }
+      }
+    },
+    "变量名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variable"
           }
         }
       }
@@ -13067,6 +13463,17 @@
         }
       }
     },
+    "填目录后自动解析 package.json" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "package.json scripts are parsed once the directory is set"
+          }
+        }
+      }
+    },
     "备份" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13419,6 +13826,17 @@
         }
       }
     },
+    "备注保存失败：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to save remark: %@"
+          }
+        }
+      }
+    },
     "备用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13558,6 +13976,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Separate multiple IPs with commas, e.g. 172.16.10.111,172.16.10.112"
+          }
+        }
+      }
+    },
+    "多个扩展名用英文逗号分隔" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separate extension names with commas"
           }
         }
       }
@@ -14057,6 +14486,28 @@
         }
       }
     },
+    "安装 node_modules" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install node_modules"
+          }
+        }
+      }
+    },
+    "安装为异步任务，卸载即时生效" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install runs as an async task; uninstall applies immediately"
+          }
+        }
+      }
+    },
     "安装失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14075,6 +14526,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Install App"
+          }
+        }
+      }
+    },
+    "安装扩展 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Extension %@"
           }
         }
       }
@@ -14130,6 +14592,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Install source"
+          }
+        }
+      }
+    },
+    "安装模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Module"
           }
         }
       }
@@ -15025,6 +15498,17 @@
         }
       }
     },
+    "导出日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Logs"
+          }
+        }
+      }
+    },
     "导出格式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15377,6 +15861,17 @@
         }
       }
     },
+    "将删除所有构建产生的缓存，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deletes all build cache and cannot be undone. Continue?"
+          }
+        }
+      }
+    },
     "将删除服务器上的模型目录「%@」及其文件，不可恢复。请输入模型名称以确认删除。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15410,6 +15905,17 @@
         }
       }
     },
+    "将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete runtime \"%@\" with its container and configuration. This cannot be undone. Type the name to confirm."
+          }
+        }
+      }
+    },
     "将删除选中的 %ld 个任务，该操作不可恢复。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15428,6 +15934,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This deletes the %ld selected websites and their configs. This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
+    "将删除选中的 %ld 个镜像，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the %ld selected image(s)?"
           }
         }
       }
@@ -15850,6 +16367,17 @@
         }
       }
     },
+    "将清理全部未使用镜像，该操作无法回滚，是否继续？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will prune all unused images. This cannot be undone. Continue?"
+          }
+        }
+      }
+    },
     "将用新的证书内容替换「%@」。原证书的 ID 保持不变，已绑定该证书的网站会自动生效。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16077,6 +16605,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saved to the Files app: %@"
+          }
+        }
+      }
+    },
+    "已保存并重载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved and reloaded"
+          }
+        }
+      }
+    },
+    "已保存，正在重建 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved, rebuilding %@"
           }
         }
       }
@@ -16367,6 +16917,17 @@
         }
       }
     },
+    "已加载扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loaded Extensions"
+          }
+        }
+      }
+    },
     "已取消" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16583,6 +17144,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Installed apps / app store"
+          }
+        }
+      }
+    },
+    "已安装模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed Modules"
           }
         }
       }
@@ -17346,6 +17918,17 @@
         }
       }
     },
+    "常用扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Common Extensions"
+          }
+        }
+      }
+    },
     "常规" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17430,6 +18013,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Year(s)"
+          }
+        }
+      }
+    },
+    "并发方案" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concurrency Preset"
           }
         }
       }
@@ -17529,6 +18123,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App Store"
+          }
+        }
+      }
+    },
+    "应用商店未提供该类型的运行环境应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app store has no runtime app for this type"
           }
         }
       }
@@ -17936,6 +18541,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abnormal"
+          }
+        }
+      }
+    },
+    "异常自动重启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart on Failure"
           }
         }
       }
@@ -18974,6 +19590,17 @@
         }
       }
     },
+    "慢日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slow Log"
+          }
+        }
+      }
+    },
     "成功" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19080,6 +19707,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Owner"
+          }
+        }
+      }
+    },
+    "所选目录未找到 package.json，无法解析运行脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "package.json not found in the selected directory; cannot parse run scripts"
           }
         }
       }
@@ -19425,6 +20063,28 @@
         }
       }
     },
+    "扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extensions"
+          }
+        }
+      }
+    },
+    "扩展 %@ 已卸载" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extension %@ uninstalled"
+          }
+        }
+      }
+    },
     "扩展名" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19443,6 +20103,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Extra skills"
+          }
+        }
+      }
+    },
+    "扩展模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extension Templates"
+          }
+        }
+      }
+    },
+    "扩展模版可在创建 PHP 运行环境时一键带入扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Templates apply a set of extensions when creating a PHP runtime"
+          }
+        }
+      }
+    },
+    "扩展源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extension Source"
           }
         }
       }
@@ -19986,6 +20679,17 @@
         }
       }
     },
+    "挂载第 %ld 行：主机目录与容器目录不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume row %ld: host and container paths are required"
+          }
+        }
+      }
+    },
     "挂载设置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20063,6 +20767,17 @@
         }
       }
     },
+    "按服务器内存选择预设，自动回填上方进程参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick a preset by server memory to fill in the process parameters above"
+          }
+        }
+      }
+    },
     "按监测类型统计磁盘使用，超过阈值即触发" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20081,6 +20796,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Per group"
+          }
+        }
+      }
+    },
+    "按需" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On-demand"
           }
         }
       }
@@ -20734,6 +21460,17 @@
         }
       }
     },
+    "操作 / 访问 / 登陆记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operation / access / login records"
+          }
+        }
+      }
+    },
     "操作 http 类型仓库需要重启 Docker 服务。\n如果确认操作，请手动输入 '立即重启'" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21284,6 +22021,17 @@
         }
       }
     },
+    "整组覆盖保存：未展示项沿用服务端默认值" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving overwrites the group as a whole; unshown items use server defaults"
+          }
+        }
+      }
+    },
     "整群共享" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21735,6 +22483,17 @@
         }
       }
     },
+    "新建模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Template"
+          }
+        }
+      }
+    },
     "新版本" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21988,6 +22747,17 @@
         }
       }
     },
+    "无法获取运行目录，暂不能读取日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run directory unavailable; cannot read logs"
+          }
+        }
+      }
+    },
     "无法读取 vLLM /metrics：实例未运行、无 GPU 或首次采样无前值可算速率。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22120,6 +22890,17 @@
         }
       }
     },
+    "日志已清空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logs cleared"
+          }
+        }
+      }
+    },
     "日志文件" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22149,6 +22930,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Log Type"
+          }
+        }
+      }
+    },
+    "日志记录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Records"
           }
         }
       }
@@ -22274,6 +23066,17 @@
         }
       }
     },
+    "是否安装 %@ 模块？操作可能导致运行环境异常，请确认后操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install module %@? This may disrupt the runtime. Confirm to proceed."
+          }
+        }
+      }
+    },
     "是否开启压缩传输" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22358,6 +23161,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show secret"
+          }
+        }
+      }
+    },
+    "显示错误" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display Errors"
           }
         }
       }
@@ -22483,17 +23297,6 @@
         }
       }
     },
-    "暂无 SSH 登陆日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No SSH login logs"
-          }
-        }
-      }
-    },
     "暂无主机" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22611,6 +23414,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Updates Available"
+          }
+        }
+      }
+    },
+    "暂无可安装扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No extensions available"
           }
         }
       }
@@ -22945,6 +23759,17 @@
         }
       }
     },
+    "暂无已加载扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No loaded extensions"
+          }
+        }
+      }
+    },
     "暂无已安装应用" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22963,6 +23788,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No installed skills"
+          }
+        }
+      }
+    },
+    "暂无已安装模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No installed modules"
+          }
+        }
+      }
+    },
+    "暂无已安装的该类型数据库，请先安装对应数据库应用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No installed database of this type. Install the corresponding database app first"
           }
         }
       }
@@ -23029,6 +23876,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No run records"
+          }
+        }
+      }
+    },
+    "暂无扩展模版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No extension templates"
           }
         }
       }
@@ -23249,6 +24107,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No users"
+          }
+        }
+      }
+    },
+    "暂无登陆日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No login logs"
           }
         }
       }
@@ -23491,6 +24360,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No forwarding rules"
+          }
+        }
+      }
+    },
+    "暂无运行中的运行环境，请先创建并启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No running runtimes. Create and start one first"
+          }
+        }
+      }
+    },
+    "暂无运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Runtimes"
           }
         }
       }
@@ -23781,6 +24672,17 @@
         }
       }
     },
+    "更新模块" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Module"
+          }
+        }
+      }
+    },
     "更新状态失败：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23913,6 +24815,17 @@
         }
       }
     },
+    "最大上传文件数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max File Uploads"
+          }
+        }
+      }
+    },
     "最大值" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23942,6 +24855,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Max Fails"
+          }
+        }
+      }
+    },
+    "最大执行时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Execution Time"
+          }
+        }
+      }
+    },
+    "最大输入时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Input Time"
           }
         }
       }
@@ -24206,17 +25141,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "File Manager"
-          }
-        }
-      }
-    },
-    "服务器日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server Logs"
           }
         }
       }
@@ -24859,6 +25783,17 @@
         }
       }
     },
+    "未设置禁用函数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No disabled functions"
+          }
+        }
+      }
+    },
     "未连接" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25090,6 +26025,17 @@
         }
       }
     },
+    "条数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count"
+          }
+        }
+      }
+    },
     "来源" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25134,6 +26080,17 @@
         }
       }
     },
+    "构建中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Building"
+          }
+        }
+      }
+    },
     "构建方式" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25141,6 +26098,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Build Mode"
+          }
+        }
+      }
+    },
+    "构建日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build Log"
           }
         }
       }
@@ -25673,6 +26641,28 @@
         }
       }
     },
+    "模块名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Module Name"
+          }
+        }
+      }
+    },
+    "模块管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modules"
+          }
+        }
+      }
+    },
     "模块详情" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25999,6 +26989,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A download is already in progress. Please wait."
+          }
+        }
+      }
+    },
+    "正在加载版本信息…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading versions…"
           }
         }
       }
@@ -26762,6 +27763,17 @@
         }
       }
     },
+    "淘宝镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "npmmirror (Taobao)"
+          }
+        }
+      }
+    },
     "深度归档存储" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26835,6 +27847,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Link Databases"
+          }
+        }
+      }
+    },
+    "添加函数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Function"
           }
         }
       }
@@ -27143,6 +28166,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prune Untagged Images"
+          }
+        }
+      }
+    },
+    "清理构建缓存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean Build Cache"
           }
         }
       }
@@ -27598,6 +28632,17 @@
         }
       }
     },
+    "点击右上角 + 创建常驻进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + to create a daemon process"
+          }
+        }
+      }
+    },
     "点击右上角 + 创建快照" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27715,6 +28760,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + in the top-right corner to create a role"
+          }
+        }
+      }
+    },
+    "点击右上角 + 创建运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + to create a runtime"
           }
         }
       }
@@ -28027,6 +29083,17 @@
         }
       }
     },
+    "点函数名删除；多个函数以数组提交，删除即从列表移除后保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a function name to remove it; the list is submitted as an array and removal takes effect on save"
+          }
+        }
+      }
+    },
     "点赞" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28210,6 +29277,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Environment"
+          }
+        }
+      }
+    },
+    "环境变量-%ld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Env-%ld"
+          }
+        }
+      }
+    },
+    "环境变量第 %ld 行：变量名不能为空" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment variable row %ld: name is required"
           }
         }
       }
@@ -28419,6 +29508,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Addresses assigned to virtual machines by libvirt DHCP."
+          }
+        }
+      }
+    },
+    "由名称自动带入，可修改" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defaults to the name; editable"
           }
         }
       }
@@ -28705,6 +29805,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sign In (captcha entered)"
+          }
+        }
+      }
+    },
+    "登陆日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login Logs"
           }
         }
       }
@@ -29156,6 +30267,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SMS: %ld / %ld used"
+          }
+        }
+      }
+    },
+    "短标签" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Short Open Tag"
           }
         }
       }
@@ -29655,6 +30777,50 @@
         }
       }
     },
+    "确认删除模版「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete template \"%@\"?"
+          }
+        }
+      }
+    },
+    "确认删除进程「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete process \"%@\"?"
+          }
+        }
+      }
+    },
+    "确认卸载扩展「%@」？卸载需重建镜像，期间站点可能短暂不可用。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall extension \"%@\"? Uninstalling rebuilds the image; sites may be briefly unavailable."
+          }
+        }
+      }
+    },
+    "确认卸载模块「%@」？卸载后不可恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall module \"%@\"? This cannot be undone."
+          }
+        }
+      }
+    },
     "确认名称" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29673,6 +30839,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm domain"
+          }
+        }
+      }
+    },
+    "确认安装模块「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install module \"%@\"?"
           }
         }
       }
@@ -29706,6 +30883,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm New Password"
+          }
+        }
+      }
+    },
+    "确认更新模块「%@」？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update module \"%@\"?"
           }
         }
       }
@@ -29783,6 +30971,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm Restart"
+          }
+        }
+      }
+    },
+    "确认重启进程「%@」？重启会中断正在执行的进程。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart process \"%@\"? Restarting will interrupt running processes."
           }
         }
       }
@@ -30113,6 +31312,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disable CNAME: enable if applying fails for domains with CNAME records. Skip DNS check: enable only for apply timeouts."
+          }
+        }
+      }
+    },
+    "禁用函数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled Functions"
+          }
+        }
+      }
+    },
+    "禁用函数已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled functions saved"
           }
         }
       }
@@ -30597,6 +31818,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ports"
+          }
+        }
+      }
+    },
+    "端口映射第 %ld 行：主机端口与容器端口需为 1-65535 的整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port mapping row %ld: host and container ports must be integers from 1 to 65535"
           }
         }
       }
@@ -31415,6 +32647,17 @@
         }
       }
     },
+    "绑定运行中的运行环境（PHP/Node/Java/Go/Python/.NET）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bind a running runtime as the site backend (PHP/Node/Java/Go/Python/.NET)"
+          }
+        }
+      }
+    },
     "结束" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31477,6 +32720,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kill Process"
+          }
+        }
+      }
+    },
+    "继续" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
           }
         }
       }
@@ -31965,6 +33219,17 @@
         }
       }
     },
+    "编辑运行环境" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Runtime"
+          }
+        }
+      }
+    },
     "编辑进程" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32108,13 +33373,13 @@
         }
       }
     },
-    "网站 / 证书" : {
+    "网站 / 证书 / 运行环境" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Websites / Certificates"
+            "value" : "Websites / Certificates / Runtimes"
           }
         }
       }
@@ -32295,17 +33560,6 @@
         }
       }
     },
-    "网站访问日志文件" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Website access log files"
-          }
-        }
-      }
-    },
     "网站证书到期" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32313,6 +33567,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Website certificate expiring"
+          }
+        }
+      }
+    },
+    "网站运行与错误日志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website runtime and error logs"
           }
         }
       }
@@ -32614,6 +33879,17 @@
         }
       }
     },
+    "腾讯镜像" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tencent Mirror"
+          }
+        }
+      }
+    },
     "自动删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32808,6 +34084,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Custom Service"
+          }
+        }
+      }
+    },
+    "自定义脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Script"
           }
         }
       }
@@ -33138,6 +34425,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to load monitor data"
+          }
+        }
+      }
+    },
+    "获取运行环境详情失败，端口等字段可能未按实际值回填" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load runtime details; port and other fields may not match actual values"
           }
         }
       }
@@ -34616,13 +35914,13 @@
         }
       }
     },
-    "该网站暂无访问日志" : {
+    "该网站暂无%@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No access logs for this website"
+            "value" : "This website has no %@ yet"
           }
         }
       }
@@ -34700,6 +35998,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No certificates under this account"
+          }
+        }
+      }
+    },
+    "该运行环境被以下网站使用：%@。请先在「网站」中解绑或删除对应网站，再删除运行环境。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This runtime is used by the following websites: %@. Unbind or delete them in Websites first, then delete the runtime."
           }
         }
       }
@@ -35771,6 +37080,17 @@
         }
       }
     },
+    "负载状态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Status"
+          }
+        }
+      }
+    },
     "账号" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36097,6 +37417,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You will be logged out automatically after this period of inactivity."
+          }
+        }
+      }
+    },
+    "超时时间已保存" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout saved"
+          }
+        }
+      }
+    },
+    "超时时间需为非负整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout must be a non-negative integer"
           }
         }
       }
@@ -36431,6 +37773,17 @@
         }
       }
     },
+    "输入模块名后点右上角安装；操作同步执行，大模块安装可能耗时较长" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a module name and tap Install (top right); operations run synchronously and large modules may take a while"
+          }
+        }
+      }
+    },
     "输入类型" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36574,6 +37927,17 @@
         }
       }
     },
+    "运行模式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Mode"
+          }
+        }
+      }
+    },
     "运行状态" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36614,6 +37978,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Working Directory"
+          }
+        }
+      }
+    },
+    "运行脚本" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run Script"
           }
         }
       }
@@ -36893,6 +38268,28 @@
         }
       }
     },
+    "进程参数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Parameters"
+          }
+        }
+      }
+    },
+    "进程参数需为数字" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process parameters must be numeric"
+          }
+        }
+      }
+    },
     "进程守护" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36904,6 +38301,17 @@
         }
       }
     },
+    "进程数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Count"
+          }
+        }
+      }
+    },
     "进程数量" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36911,6 +38319,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Process Count"
+          }
+        }
+      }
+    },
+    "进程数需为正整数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process count must be a positive integer"
           }
         }
       }
@@ -37498,6 +38917,17 @@
         }
       }
     },
+    "选择已安装数据库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Installed Database"
+          }
+        }
+      }
+    },
     "选择已有镜像" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37648,6 +39078,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose the mounts to monitor"
+          }
+        }
+      }
+    },
+    "选择预设" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Preset"
           }
         }
       }
@@ -38191,6 +39632,17 @@
         }
       }
     },
+    "重启进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Process"
+          }
+        }
+      }
+    },
     "重启面板" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38308,6 +39760,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rebuild"
+          }
+        }
+      }
+    },
+    "重建 %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild %@"
           }
         }
       }
@@ -38620,6 +40083,17 @@
         }
       }
     },
+    "错误报告级别" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error Reporting Level"
+          }
+        }
+      }
+    },
     "错误日志" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38803,6 +40277,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Image tags saved"
+          }
+        }
+      }
+    },
+    "镜像源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registry Source"
           }
         }
       }
@@ -39104,6 +40589,17 @@
         }
       }
     },
+    "随容器启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start with Container"
+          }
+        }
+      }
+    },
     "随机数生成失败（%ld）" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39214,6 +40710,17 @@
         }
       }
     },
+    "静态" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Static"
+          }
+        }
+      }
+    },
     "静态模块" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39276,17 +40783,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Panel / SSH / website logs"
-          }
-        }
-      }
-    },
-    "面板 API 操作记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel API operation records"
           }
         }
       }
@@ -39489,17 +40985,6 @@
         }
       }
     },
-    "面板日志" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel Logs"
-          }
-        }
-      }
-    },
     "面板有新版本发布时通知" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39599,17 +41084,6 @@
         }
       }
     },
-    "面板登录记录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Panel Login Records"
-          }
-        }
-      }
-    },
     "面板端口白名单" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39661,6 +41135,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Session Timeout"
+          }
+        }
+      }
+    },
+    "项目代码所在的服务器目录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server directory containing the project code"
           }
         }
       }
@@ -40061,6 +41546,17 @@
         }
       }
     },
+    "默认 (npmjs)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default (npmjs)"
+          }
+        }
+      }
+    },
     "默认 Bot 不可删除" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -40134,6 +41630,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expose the port by default"
+          }
+        }
+      }
+    },
+    "默认扩展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Extensions"
           }
         }
       }

@@ -118,6 +118,40 @@ enum APIEndpoint {
     case websitesDatabases        // GET 查询可关联数据库 / POST 切换关联数据库
     case runtimesSearch           // POST 查询运行环境列表（{page,pageSize,type}）
 
+    // MARK: - 运行环境（logs/runtimes.md，面板 v2.4.1）
+    case runtimesCreate           // POST 创建运行环境（任务式，带 taskID）
+    case runtimesUpdate           // POST 编辑保存（rebuild:true 重建，任务式）
+    case runtimesDel              // POST 删除（任务式，带 taskID）
+    case runtimesOperate          // POST 启动/停止/重启（{operate, ID}）
+    case runtimesGet              // GET  单实例详情（:id 路径参数；编辑回填）
+    case runtimesDeleteCheck      // GET  删除前关联资源检查（:id 路径参数）
+    case runtimesSync             // POST 同步各运行环境容器状态
+    case runtimesRemark           // POST 修改备注（{id, remark}）
+    case runtimesBuildLog         // POST 构建日志行（files/read/:type；type=php/node/...，慢日志 php-fpm-slow-logs）
+    case runtimesNodePackage      // POST 解析 package.json scripts（{codeDir}）
+    case runtimesNodeModules      // POST Node 已装模块列表（{ID}）
+    case runtimesNodeModulesOperate // POST Node 模块安装/更新/卸载（同步等待）
+    case runtimesPhpExtList       // GET  已加载+可装扩展（:id 路径参数）
+    case runtimesPhpExtInstall    // POST 安装扩展（任务式，带 taskID）
+    case runtimesPhpExtUninstall  // POST 卸载扩展（同步）
+    case runtimesPhpTplSearch     // POST 扩展模版分页查询（{all,page,pageSize}）
+    case runtimesPhpTplCreate     // POST 新建扩展模版（{name,extensions}）
+    case runtimesPhpTplUpdate     // POST 修改扩展模版（{id,name,extensions}）
+    case runtimesPhpTplDel        // POST 删除扩展模版（{id}）
+    case runtimesPhpConfigGet     // GET  php.ini 配置项读取（:id 路径参数）
+    case runtimesPhpConfigUpdate  // POST php.ini 配置保存（按 scope 分四组）
+    case runtimesPhpFile          // POST 配置文件读取（{id,type}；php/fpm）
+    case runtimesPhpFileUpdate    // POST 配置文件保存并重载
+    case runtimesPhpFpmConfigGet  // GET  FPM 性能调整读取（:id 路径参数）
+    case runtimesPhpFpmConfigUpdate // POST FPM 性能调整保存
+    case runtimesPhpFpmStatus     // GET  FPM 负载状态（:id 路径参数）
+    case runtimesPhpContainerGet  // GET  PHP 容器配置读取（:id 路径参数）
+    case runtimesPhpContainerUpdate // POST PHP 容器配置保存（整组覆盖）
+    case runtimesSupervisorList   // GET  进程守护列表（:id 路径参数）
+    case runtimesSupervisorOperate // POST 进程创建/重启/删除（operate 区分）
+    case runtimesSupervisorFile   // POST 进程配置文件读写（operate=get/update）
+    case appsDetailRuntime        // GET  应用版本详情-运行环境形态（:id/:version 路径参数）
+
     // MARK: - SSL 证书（独立管理）
     case websitesSSLList          // POST 分页查询证书
     case websitesSSLDetail        // GET  证书详情（:id 路径参数）
@@ -572,8 +606,11 @@ enum APIEndpoint {
     // MARK: - 日志模块
     case logsOperation           // POST 操作日志分页查询
     case logsLogin               // POST 访问日志（面板登录记录）分页查询
+    case logsClean               // POST 清空面板日志（logType: operation/login）
     case logsSystemFiles         // GET  系统日志日期列表
     case logsSSHLog              // POST SSH 登陆日志分页查询
+    case logsSSHLogClean         // POST 清空 SSH 登陆日志（空请求体）
+    case logsSSHLogExport        // POST 导出 SSH 登陆日志（返回服务器上 csv 路径）
     case logsWebsitesList        // GET  网站列表（网站日志下拉用）
     case logsReadSystem          // POST 读取系统日志行（files/read/system）
     case logsReadWebsite         // POST 读取网站日志行（files/read/website）
@@ -847,6 +884,38 @@ enum APIEndpoint {
         case .websitesCrosssite:     return "/api/v2/websites/crosssite"
         case .websitesDatabases:     return "/api/v2/websites/databases"
         case .runtimesSearch:        return "/api/v2/runtimes/search"
+        case .runtimesCreate:        return "/api/v2/runtimes"
+        case .runtimesUpdate:        return "/api/v2/runtimes/update"
+        case .runtimesDel:           return "/api/v2/runtimes/del"
+        case .runtimesOperate:       return "/api/v2/runtimes/operate"
+        case .runtimesGet:           return "/api/v2/runtimes/:id"
+        case .runtimesDeleteCheck:   return "/api/v2/runtimes/installed/delete/check/:id"
+        case .runtimesSync:          return "/api/v2/runtimes/sync"
+        case .runtimesRemark:        return "/api/v2/runtimes/remark"
+        case .runtimesBuildLog:      return "/api/v2/files/read/:type?operateNode=local"
+        case .runtimesNodePackage:   return "/api/v2/runtimes/node/package"
+        case .runtimesNodeModules:   return "/api/v2/runtimes/node/modules"
+        case .runtimesNodeModulesOperate: return "/api/v2/runtimes/node/modules/operate"
+        case .runtimesPhpExtList:    return "/api/v2/runtimes/php/:id/extensions"
+        case .runtimesPhpExtInstall: return "/api/v2/runtimes/php/extensions/install"
+        case .runtimesPhpExtUninstall: return "/api/v2/runtimes/php/extensions/uninstall"
+        case .runtimesPhpTplSearch:  return "/api/v2/runtimes/php/extensions/search"
+        case .runtimesPhpTplCreate:  return "/api/v2/runtimes/php/extensions"
+        case .runtimesPhpTplUpdate:  return "/api/v2/runtimes/php/extensions/update"
+        case .runtimesPhpTplDel:     return "/api/v2/runtimes/php/extensions/del"
+        case .runtimesPhpConfigGet:  return "/api/v2/runtimes/php/config/:id"
+        case .runtimesPhpConfigUpdate: return "/api/v2/runtimes/php/config"
+        case .runtimesPhpFile:       return "/api/v2/runtimes/php/file"
+        case .runtimesPhpFileUpdate: return "/api/v2/runtimes/php/update"
+        case .runtimesPhpFpmConfigGet: return "/api/v2/runtimes/php/fpm/config/:id"
+        case .runtimesPhpFpmConfigUpdate: return "/api/v2/runtimes/php/fpm/config"
+        case .runtimesPhpFpmStatus:  return "/api/v2/runtimes/php/fpm/status/:id"
+        case .runtimesPhpContainerGet: return "/api/v2/runtimes/php/container/:id"
+        case .runtimesPhpContainerUpdate: return "/api/v2/runtimes/php/container/update"
+        case .runtimesSupervisorList: return "/api/v2/runtimes/supervisor/process/:id"
+        case .runtimesSupervisorOperate: return "/api/v2/runtimes/supervisor/process"
+        case .runtimesSupervisorFile: return "/api/v2/runtimes/supervisor/process/file"
+        case .appsDetailRuntime:     return "/api/v2/apps/detail/:id/:version/runtime"
         case .websitesNginxConfig:   return "/api/v2/websites/:id/config/openresty"
         case .websitesNginxUpdate:   return "/api/v2/websites/nginx/update"
         case .websitesLogRead:       return "/api/v2/files/read/website?operateNode=local"
@@ -1225,8 +1294,11 @@ enum APIEndpoint {
         case .backupAccountsClientInfo: return "/api/v2/core/backups/client/:type"
         case .logsOperation:         return "/api/v2/core/logs/operation"
         case .logsLogin:             return "/api/v2/core/logs/login"
+        case .logsClean:             return "/api/v2/core/logs/clean"
         case .logsSystemFiles:       return "/api/v2/logs/system/files"
         case .logsSSHLog:            return "/api/v2/hosts/ssh/log"
+        case .logsSSHLogClean:       return "/api/v2/hosts/ssh/log/clean"
+        case .logsSSHLogExport:      return "/api/v2/hosts/ssh/log/export"
         case .logsWebsitesList:      return "/api/v2/websites/list"
         case .logsReadSystem:        return "/api/v2/files/read/system"
         case .logsReadWebsite:       return "/api/v2/files/read/website"
@@ -1390,6 +1462,10 @@ enum APIEndpoint {
              .kvmNetworkBridges, .kvmNetworkInterfaces,
              .appsIgnoredList, .appsStoreDetail,
              .appsTags,
+             .runtimesGet, .runtimesDeleteCheck,
+             .runtimesPhpExtList, .runtimesPhpConfigGet, .runtimesPhpFpmConfigGet,
+             .runtimesPhpFpmStatus, .runtimesPhpContainerGet, .runtimesSupervisorList,
+             .appsDetailRuntime,
              .disksList,
              .appsInstalledDeleteCheck, .appsInstalledParams,
              .appStoreSettingConfig,

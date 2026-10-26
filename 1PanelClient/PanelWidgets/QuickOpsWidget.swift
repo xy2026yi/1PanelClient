@@ -115,7 +115,7 @@ struct QuickOpsEntryView: View {
     }
 
     private var unconfiguredView: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Image(systemName: "server.rack")
                 .font(.title2)
             Text(L10n.t("请先添加服务器"))
@@ -139,7 +139,7 @@ struct QuickOpsEntryView: View {
     }
 
     private func row(_ container: ContainerEntity) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Circle()
                 .fill(container.state == "running" ? Color.green : Color.gray)
                 .frame(width: 6, height: 6)

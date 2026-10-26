@@ -87,8 +87,6 @@ struct SSHSessionsView: View {
                 ],
                 onDismiss: { actionSession = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-            .presentationDragIndicator(.visible)
         }
     }
 }

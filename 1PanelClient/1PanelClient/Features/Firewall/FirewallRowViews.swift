@@ -22,7 +22,7 @@ struct FirewallRuleRowView: View {
     private var rule: FirewallRule? { item.rule }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 // 行格式对齐 Web 端：优先级 端口 协议 地址族 使用方 策略
                 if let priority {
@@ -106,7 +106,7 @@ struct FirewallForwardRowView: View {
     let rule: FirewallForwardRule
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 Text(rule.port ?? "-")
                     .font(.dataMonospacedBody.bold())

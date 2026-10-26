@@ -145,22 +145,22 @@ struct CADetailView: View {
 
     var body: some View {
         List {
-            Section {
-                Picker("", selection: $tab) {
-                    ForEach(CADetailTab.allCases) { t in
-                        Text(L10n.t(t.rawValue)).tag(t)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-            }
-
             switch tab {
             case .info:    infoSection
             case .cert:    pemSection(title: L10n.t("证书"), content: (detail ?? ca).csr)
             case .privKey: pemSection(title: L10n.t("私钥"), content: (detail ?? ca).privateKey)
             }
+        }
+        // 分段条全宽固定顶部（KVM/运行环境同款）：嵌 List Section 行内会被 inset 压窄压矮
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker("", selection: $tab) {
+                ForEach(CADetailTab.allCases) { t in
+                    Text(L10n.t(t.rawValue)).tag(t)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
         .navigationTitle((detail ?? ca).name)
         .navigationBarTitleDisplayMode(.inline)
@@ -185,7 +185,7 @@ struct CADetailView: View {
         .navigationDestination(isPresented: $showIssue) {
             IssueCertificateView(ca: detail ?? ca, vm: vm)
         }
-        .alert(L10n.t("删除"), isPresented: $pendingDelete) {
+        .alert(L10n.t("删除证书颁发机构"), isPresented: $pendingDelete) {
             Button(L10n.t("取消"), role: .cancel) {}
             Button(L10n.t("删除"), role: .destructive) {
                 Haptic.warning()

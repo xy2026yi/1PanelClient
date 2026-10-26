@@ -73,7 +73,9 @@ struct WebsiteLogPage: View {
                 Text(L10n.t("错误日志")).tag(WebsiteLogType.error)
             }
             .pickerStyle(.segmented)
-            .padding()
+            // 全站固定顶分段条统一口径（KVM/运行环境同款）
+            .padding(.horizontal)
+            .padding(.vertical, 8)
 
             Divider()
 

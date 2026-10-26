@@ -1,0 +1,352 @@
+//
+//  RuntimesView.swift
+//  1PanelClient
+//
+//  运行环境列表页（网站 Hub 子页）：类型分段筛选、创建入口、
+//  行点击进详情；滑动/长按快捷启停与删除（删除先查关联资源）。
+//
+
+import SwiftUI
+
+struct RuntimesView: View {
+    let server: ServerConfig
+
+    @StateObject private var vm: RuntimesViewModel
+    @State private var showCreate = false
+    @State private var editTarget: RuntimeEntry?
+    /// 行长按菜单目标（启停/重启/编辑/删除；点击行仍直进详情）
+    @State private var actionTarget: RuntimeEntry?
+    /// 详情/模版路由（rowTapAndLongPress 编程式推入，NavigationLink 会吞长按）
+    @State private var route: RuntimeRoute?
+    /// 清理构建缓存确认（PHP 分段 ⋯ 菜单）
+    @State private var showCleanCacheConfirm = false
+    /// PHP 分段自绘菜单展开态（EllipsisMenu 替代系统 Menu，避免 UIKit 弹层动画警告）
+    @State private var showPHPMenu = false
+
+    init(server: ServerConfig) {
+        self.server = server
+        _vm = StateObject(wrappedValue: PageVMStore.shared.vm(
+            key: ManageItem.runtimes.storeKey(server: server)
+        ) {
+            RuntimesViewModel(server: server)
+        })
+    }
+
+    private var hasTransitioning: Bool {
+        vm.runtimes.contains { $0.isTransitional }
+    }
+
+    var body: some View {
+        List {
+            listSection
+        }
+        // 分段条全宽固定顶部（KVM 同款）：嵌 List Section 行内会被 inset 压窄压矮
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("类型"), selection: $vm.segment) {
+                ForEach(RuntimesViewModel.Segment.allCases) { seg in
+                    Text(seg.title).tag(seg)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(L10n.t("运行环境"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // PHP 分段专属：扩展模版 / 清理构建缓存（PHP 级功能，不属单个运行环境）
+            if vm.segment == .php {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EllipsisMenuButton { showPHPMenu = true }
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel(L10n.t("创建运行环境"))
+            }
+        }
+        .overlay {
+            if showPHPMenu {
+                EllipsisMenuPopup(entries: [
+                    .action(title: L10n.t("扩展模版"), icon: "doc.badge.plus") {
+                        route = .templates
+                    },
+                    .action(title: L10n.t("清理构建缓存"), icon: "trash.slash",
+                            role: .destructive) {
+                        showCleanCacheConfirm = true
+                    },
+                ]) {
+                    showPHPMenu = false
+                }
+            }
+        }
+        .task {
+            await vm.syncStatus()
+            await PageVMStore.shared.autoRefresh(vm: vm) { await vm.load() }
+        }
+        // 过渡态（创建中/构建中）自动轮询收敛；子页/sheet 打开期间暂停
+        // （列表不可见无需轮询，且转场动画与列表 diff 叠加会触发系统复合动画警告）
+        .adaptivePolling(interval: 5, isActive: {
+            hasTransitioning && route == nil && editTarget == nil
+                && actionTarget == nil && vm.deleteTarget == nil
+        }) {
+            await vm.load(animate: false)
+        }
+        .toastOverlay(message: $vm.toastMessage)
+        .alert(L10n.t("提示"), isPresented: $vm.showAlert) {
+            Button(L10n.t("好的"), role: .cancel) {}
+        } message: {
+            Text(vm.alertMessage)
+        }
+        .navigationDestination(isPresented: $showCreate) {
+            RuntimeFormView(mode: .create, initialType: nil, server: server, listVM: vm)
+        }
+        .navigationDestination(item: $editTarget) { entry in
+            RuntimeFormView(mode: .edit(entry), initialType: nil, server: server, listVM: vm)
+        }
+        .navigationDestination(item: $route) { r in
+            switch r {
+            case .detail(let entry):
+                RuntimeDetailView(entry: entry, server: server, listVM: vm)
+            case .templates:
+                RuntimePHPTemplatesView(client: APIClient.shared(for: server))
+            }
+        }
+        .alert(L10n.t("清理构建缓存"), isPresented: $showCleanCacheConfirm) {
+            Button(L10n.t("取消"), role: .cancel) {}
+            Button(L10n.t("清理"), role: .destructive) {
+                Task { await vm.cleanBuildCache() }
+            }
+        } message: {
+            Text(L10n.t("将删除所有构建产生的缓存，该操作无法回滚，是否继续？"))
+        }
+        .sheet(item: $actionTarget) { entry in
+            ActionBottomSheet(
+                title: entry.displayName,
+                items: actionItems(entry),
+                onDismiss: { actionTarget = nil }
+            )
+        }
+        .navigationDestination(item: $vm.activeTask) { target in
+            TaskProgressView(taskID: target.taskID, title: target.title, node: "local") { isDone in
+                if isDone { Task { await vm.load() } }
+                return false
+            }
+        }
+        .sheet(item: $vm.deleteTarget) { entry in
+            deleteConfirmSheet(entry)
+        }
+    }
+
+    // MARK: - 列表
+
+    @ViewBuilder
+    private var listSection: some View {
+        Section {
+            if vm.isLoading && vm.runtimes.isEmpty {
+                LoadingStateView(compact: true)
+                    .padding(.vertical, 30)
+                    .listRowBackground(Color.clear)
+            } else if let err = vm.errorMessage, vm.runtimes.isEmpty {
+                ContentUnavailableView {
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(err)
+                } actions: {
+                    Button(L10n.t("重试")) { Task { await vm.load() } }
+                }
+                .listRowBackground(Color.clear)
+            } else if vm.runtimes.isEmpty {
+                ContentUnavailableView(
+                    L10n.t("暂无运行环境"),
+                    systemImage: "shippingbox",
+                    description: Text(L10n.t("点击右上角 + 创建运行环境"))
+                )
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(vm.runtimes) { entry in
+                    RuntimeListRow(entry: entry,
+                                   isOperating: vm.operatingIDs.contains(entry.id))
+                        .rowTapAndLongPress(
+                            onTap: { route = .detail(entry) },
+                            onLongPress: { actionTarget = entry }
+                        )
+                        .onAppear {
+                            if entry.id == vm.runtimes.last?.id {
+                                Task { await vm.loadMore() }
+                            }
+                        }
+                }
+            }
+        }
+    }
+
+    /// 长按菜单项（启停/重启/编辑/删除；停止态也可重启）
+    private func actionItems(_ entry: RuntimeEntry) -> [ActionMenuItem] {
+        var items: [ActionMenuItem] = []
+        if entry.isRunning {
+            items.append(ActionMenuItem(title: L10n.t("停止"), icon: "stop") {
+                Task { await vm.operate(entry, operate: "down") }
+            })
+        } else {
+            items.append(ActionMenuItem(title: L10n.t("启动"), icon: "play") {
+                Task { await vm.operate(entry, operate: "up") }
+            })
+        }
+        items.append(ActionMenuItem(title: L10n.t("重启"),
+                                    icon: "arrow.triangle.2.circlepath") {
+            Task { await vm.operate(entry, operate: "restart") }
+        })
+        items.append(ActionMenuItem(title: L10n.t("编辑"), icon: "pencil") {
+            editTarget = entry
+        })
+        items.append(ActionMenuItem(title: L10n.t("删除"), icon: "trash",
+                                    color: .red, role: .destructive) {
+            Task { await vm.requestDelete(entry) }
+        })
+        return items
+    }
+
+    // MARK: - 删除确认（关联资源非空时 requestDelete 直接提示解绑，不进此表）
+
+    private func deleteConfirmSheet(_ entry: RuntimeEntry) -> some View {
+        TextInputConfirmSheet(
+            title: L10n.t("删除运行环境"),
+            message: L10n.f("将删除运行环境「%@」及其容器与配置，不可恢复。请输入名称以确认删除。",
+                            entry.displayName),
+            expectedText: entry.displayName
+        ) {
+            await vm.confirmDelete(entry, force: false, deleteImage: false)
+        }
+    }
+}
+
+// MARK: - 列表行
+
+struct RuntimeListRow: View {
+    let entry: RuntimeEntry
+    let isOperating: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconBadge(systemName: typeIcon, color: typeColor)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(entry.displayName)
+                        .font(.body.bold())
+                        .lineLimit(1)
+                    if isOperating || entry.isTransitional {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    }
+                }
+                HStack(spacing: 8) {
+                    Text(entry.runtimeType?.displayName ?? (entry.type ?? "—"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if let version = entry.version, !version.isEmpty {
+                        Text("v\(version)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let port = entry.port, !port.isEmpty {
+                        Label(port, systemImage: "number")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                if let dir = entry.codeDir, !dir.isEmpty {
+                    Text(dir)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+                if let remark = entry.remark, !remark.isEmpty {
+                    Text(remark)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            RuntimeStatusBadge(status: entry.status)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+
+    private var typeIcon: String {
+        switch entry.runtimeType {
+        case .php: return "server.rack"
+        case .node: return "triangle"
+        case .python: return "chevron.left.forwardslash.chevron.right"
+        case .go: return "goforward"
+        case .java: return "cup.and.saucer"
+        case .dotnet: return "circle.grid.cross"
+        case nil: return "shippingbox"
+        }
+    }
+
+    private var typeColor: Color {
+        switch entry.runtimeType {
+        case .php: return .indigo
+        case .node: return .green
+        case .python: return .blue
+        case .go: return .cyan
+        case .java: return .orange
+        case .dotnet: return .purple
+        case nil: return .gray
+        }
+    }
+}
+
+/// 运行状态徽标（Running 绿 / 过渡态蓝 / Stopped 灰 / Error 红 / 其余原样）
+struct RuntimeStatusBadge: View {
+    let status: String?
+
+    var body: some View {
+        StatusBadge(text: RuntimeStatusBadge.text(for: status),
+                    color: RuntimeStatusBadge.color(for: status))
+    }
+
+    nonisolated static func text(for status: String?) -> String {
+        let s = status?.lowercased() ?? ""
+        switch s {
+        case "running": return L10n.t("运行中")
+        case "stopped": return L10n.t("已停止")
+        case "error": return L10n.t("错误")
+        case "creating": return L10n.t("创建中")
+        case "building": return L10n.t("构建中")
+        case "": return L10n.t("未知")
+        default: return status ?? "—"
+        }
+    }
+
+    nonisolated static func color(for status: String?) -> Color {
+        let s = status?.lowercased() ?? ""
+        switch s {
+        case "running": return .statusRunning
+        case "stopped": return .secondary
+        case "error": return .statusError
+        case "creating", "building": return .blue
+        default: return .blue
+        }
+    }
+}
+
+
+// MARK: - 详情路由
+
+/// 列表行点击 → 详情（编程式推入，配合 rowTapAndLongPress）
+enum RuntimeRoute: Hashable {
+    case detail(RuntimeEntry)
+    case templates
+}

@@ -385,7 +385,7 @@ struct ChartEmptyPlaceholder: View {
     var compact: Bool = false
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Text(text)
                 .font(compact ? .caption : .subheadline)
                 .foregroundStyle(compact ? .tertiary : .secondary)
@@ -458,7 +458,7 @@ struct SectionLabel: View {
     var systemImage: String?
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             if let systemImage {
                 Image(systemName: systemImage)
                     .font(.caption.bold())
@@ -761,14 +761,13 @@ enum ActionRole {
     case destructive
 }
 
-/// 底部操作菜单视图（配合 `.sheet` + `.presentationDetents` 使用）。
-/// 全站统一不带底部取消按钮，关闭靠下拉（各调用点均已开启 drag indicator）。
+/// 底部操作菜单视图（配合 `.sheet` 使用）。
+/// 全站统一不带底部取消按钮，关闭靠下拉（组件内已统一挂 detents 与 drag indicator，
+/// 按条目数自适应高度，调用点无需再挂）。
 /// 使用方式：
 /// ```
 /// .sheet(isPresented: $showSheet) {
 ///     ActionBottomSheet(title: "标题", items: [...]) { selectedItem = nil }
-///     .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-///     .presentationDragIndicator(.visible)
 /// }
 /// ```
 ///
@@ -807,7 +806,7 @@ struct ActionBottomSheet: View {
                     onDismiss()
                     Task { @MainActor in act() }
                 } label: {
-                    HStack(spacing: 14) {
+                    HStack(spacing: 12) {
                         if let icon = item.icon {
                             Image(systemName: icon)
                                 .foregroundStyle(item.color)
@@ -834,6 +833,9 @@ struct ActionBottomSheet: View {
         // 大模态：菜单只有两三行却占整幅，收紧为内容大小的居中小卡（类 popover 观感，
         // 且免掉逐调用点锚定 popover 的分支互换风险）；iPhone 半屏 sheet 不受影响
         .adaptiveMenuSizing()
+        // 组件内统一挂 detents/拖动指示器（按条目数算高），调用点无需再挂
+        .bottomSheetDetents([.height(ActionBottomSheet.height(for: items.count))])
+        .presentationDragIndicator(.visible)
     }
 
     /// 根据 items 数量计算 sheet 高度（标题区 + 菜单行；无取消行）

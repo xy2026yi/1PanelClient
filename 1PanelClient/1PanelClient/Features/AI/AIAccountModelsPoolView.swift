@@ -122,8 +122,6 @@ struct AIAccountModelsPoolView: View {
                 items: modelMenuItems(model),
                 onDismiss: { actionModel = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: modelMenuItems(model).count))])
-            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("删除模型"), isPresented: Binding(
             get: { pendingDelete != nil },

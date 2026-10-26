@@ -817,7 +817,8 @@ final class ContainersViewModel: ObservableObject {
         do {
             let _: EmptyResponse = try await client.send(
                 path: APIEndpoint.containersRepoSync.path,
-                body: RepoIDRequest(id: id), as: EmptyResponse.self
+                body: RepoIDRequest(id: id),
+                timeout: 600, as: EmptyResponse.self
             )
             showToast(L10n.t("仓库同步任务已提交"))
             return true

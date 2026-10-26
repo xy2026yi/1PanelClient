@@ -72,8 +72,6 @@ struct AcmeAccountListView: View {
                 ],
                 onDismiss: { actionAccount = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("删除 Acme 账户"), isPresented: Binding(
             get: { pendingDelete != nil },
@@ -146,7 +144,7 @@ struct AcmeAccountRow: View {
                 Text(account.email.isEmpty ? L10n.t("（未设置邮箱）") : account.email)
                     .font(.body.bold())
                     .lineLimit(1)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(AcmeType(rawValue: account.type)?.displayName ?? account.type)
                     Text("·")
                     Text(SSLKeyType(rawValue: account.keyType)?.displayName ?? account.keyType)
@@ -347,8 +345,6 @@ struct DNSAccountListView: View {
                 ],
                 onDismiss: { actionAccount = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("删除 DNS 账户"), isPresented: Binding(
             get: { pendingDelete != nil },

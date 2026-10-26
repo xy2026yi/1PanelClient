@@ -554,7 +554,7 @@ struct PanelTerminalSession: Decodable, Identifiable, Hashable {
         case kind, title, hostId, attached, createdAt, detachedAt
     }
 
-    var id: String { sessionID ?? UUID().uuidString }
+    var id: String { sessionID ?? "" }
 }
 
 /// POST /hosts/terminal/sessions/close {id}

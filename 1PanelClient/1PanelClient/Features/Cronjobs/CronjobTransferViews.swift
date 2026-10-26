@@ -217,7 +217,7 @@ struct CronjobImportView: View {
                                         Text(item.name)
                                             .font(.body.bold())
                                             .lineLimit(1)
-                                        HStack(spacing: 6) {
+                                        HStack(spacing: 8) {
                                             StatusBadge(
                                                 text: (CronjobType(rawValue: item.type) ?? .shell).displayName,
                                                 color: (CronjobType(rawValue: item.type) ?? .shell).color

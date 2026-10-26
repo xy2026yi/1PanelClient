@@ -285,6 +285,7 @@ final class KVMViewModel: ObservableObject {
         do {
             _ = try await client.send(path: APIEndpoint.kvmOrphansClean.path,
                                       body: KVMOrphansCleanRequest(items: items),
+                                      timeout: 300,
                                       as: [KVMOrphanItem].self)
             toastMessage = L10n.f("已清理 %ld 项", items.count)
             await scanOrphans()

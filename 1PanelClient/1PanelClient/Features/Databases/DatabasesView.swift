@@ -283,7 +283,7 @@ struct NotInstalledDatabaseRow: View {
     let category: DBCategory
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             BrandIcon(brand: category.brand, size: 44)
                 .opacity(0.4)   // 未安装：图标变淡
             VStack(alignment: .leading, spacing: 3) {
@@ -377,7 +377,7 @@ struct DatabaseSystemRow: View {
     let system: DatabaseSystem
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             // 优先显示内置品牌图标，未知类型回退到 SF Symbol
             if let brand = Brand.from(dbType: system.type) {
                 BrandIcon(brand: brand, size: 44)

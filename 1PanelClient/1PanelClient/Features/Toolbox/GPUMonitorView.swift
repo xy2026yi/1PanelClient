@@ -231,7 +231,7 @@ struct GPUMonitorView: View {
 
     /// 标题 + 数值 + 进度条的统计行
     private func statRow(title: String, percent: Double?, text: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title).foregroundStyle(.secondary)
                 Spacer()
@@ -282,9 +282,11 @@ struct GPUMonitorView: View {
                 (device.processes ?? []).map { (device: device, process: $0) }
             }
             if all.isEmpty {
-                Text(L10n.t("暂无进程占用"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                ContentUnavailableView(
+                    L10n.t("暂无进程占用"),
+                    systemImage: "cpu"
+                )
+                .listRowBackground(Color.clear)
             } else {
                 ForEach(all, id: \.process.id) { item in
                     HStack {

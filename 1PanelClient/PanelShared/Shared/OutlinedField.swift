@@ -46,6 +46,9 @@ struct OutlinedShape<Content: View, Trailing: View>: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(borderColor, lineWidth: isFocused ? 1.5 : 1)
                     .frame(height: boxHeight)
+                    // 动画只挂边框自身：子树级 .animation 会让 Menu 弹层（UIKit）的
+                    // position 动画进同一协调器，触发 iOS 26 composite 警告
+                    .animation(.easeInOut(duration: 0.18), value: isFocused)
 
                 HStack {
                     content
@@ -63,6 +66,7 @@ struct OutlinedShape<Content: View, Trailing: View>: View {
                     .frame(height: boxHeight, alignment: .center)
                     .opacity(isFloating ? 0 : 1)
                     .accessibilityHidden(isFloating)
+                    .animation(.easeInOut(duration: 0.18), value: isFloating)
 
                 // 浮动标签：小字横跨框顶线（背景截断边框线），左缩进嵌线
                 Text(label)
@@ -73,8 +77,8 @@ struct OutlinedShape<Content: View, Trailing: View>: View {
                     .offset(x: 10, y: -floatLift)
                     .opacity(isFloating ? 1 : 0)
                     .accessibilityHidden(!isFloating)
+                    .animation(.easeInOut(duration: 0.18), value: isFloating)
             }
-            .animation(.easeInOut(duration: 0.18), value: isFloating)
         }
     }
 }
@@ -350,6 +354,8 @@ struct OutlinedMultiLineField: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(borderColor, lineWidth: isFocused ? 1.5 : 1)
                     .frame(minHeight: minHeight, maxHeight: maxHeight)
+                    // 同 OutlinedShape：动画只挂边框/标签，不挂含 TextEditor（UIKit）的子树
+                    .animation(.easeInOut(duration: 0.18), value: isFocused)
 
                 TextEditor(text: $text)
                     .font(.system(size: bodyFontSize))
@@ -394,6 +400,7 @@ struct OutlinedMultiLineField: View {
                     .opacity(isFloating ? 0 : 1)
                     .accessibilityHidden(isFloating)
                     .allowsHitTesting(false)
+                    .animation(.easeInOut(duration: 0.18), value: isFloating)
 
                 if isFocused, text.isEmpty, let prompt {
                     Text(prompt)
@@ -414,8 +421,8 @@ struct OutlinedMultiLineField: View {
                     .opacity(isFloating ? 1 : 0)
                     .accessibilityHidden(!isFloating)
                     .allowsHitTesting(false)
+                    .animation(.easeInOut(duration: 0.18), value: isFloating)
             }
-            .animation(.easeInOut(duration: 0.18), value: isFloating)
         }
         // 全屏编辑（放大按钮进入；实时绑定，返回即最新内容）
         .fullScreenCover(isPresented: $showZoom) {

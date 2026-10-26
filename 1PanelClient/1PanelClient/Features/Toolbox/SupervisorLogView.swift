@@ -35,17 +35,6 @@ struct SupervisorProcessLogView: View {
     var body: some View {
         List {
             Section {
-                Picker(L10n.t("日志类型"), selection: $logFile) {
-                    Text(L10n.t("运行日志")).tag("out.log")
-                    Text(L10n.t("错误日志")).tag("err.log")
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: logFile) { _, _ in
-                    Task { await load() }
-                }
-            }
-
-            Section {
                 if isLoading && lines.isEmpty {
                     HStack {
                         Spacer()
@@ -76,6 +65,19 @@ struct SupervisorProcessLogView: View {
             }
         }
         .listStyle(.insetGrouped)
+        // 分段条全宽固定顶部（KVM/运行环境同款）
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("日志类型"), selection: $logFile) {
+                Text(L10n.t("运行日志")).tag("out.log")
+                Text(L10n.t("错误日志")).tag("err.log")
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .onChange(of: logFile) { _, _ in
+                Task { await load() }
+            }
+        }
         .navigationTitle(L10n.t("日志"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

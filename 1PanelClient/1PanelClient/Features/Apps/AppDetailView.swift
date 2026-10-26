@@ -53,7 +53,7 @@ struct AppDetailView: View {
         listContent
             .sheet(isPresented: $showUninstall) {
                 TextInputConfirmSheet(
-                    title: L10n.f("卸载 %@", app.displayName),
+                    title: L10n.t("卸载应用"),
                     message: L10n.f("此操作不可恢复。请输入应用名称「%@」以确认卸载。", app.displayName),
                     expectedText: app.displayName,
                     fieldLabel: L10n.t("确认名称"),
@@ -75,7 +75,7 @@ struct AppDetailView: View {
         .navigationDestination(isPresented: $showUninstallProgress) {
             TaskProgressView(
                 taskID: uninstallTaskID,
-                title: L10n.f("卸载 %@", app.displayName),
+                title: L10n.t("卸载应用"),
                 onComplete: { isDone in
                     vm.needsRefresh = true
                     if isDone {

@@ -476,8 +476,6 @@ struct ClamView: View {
                 ],
                 onDismiss: { actionRule = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 4))])
-            .presentationDragIndicator(.visible)
         }
         .sheet(item: $vm.pendingDeleteRule) { rule in
             TextInputConfirmSheet(
@@ -619,7 +617,7 @@ struct ClamRuleRow: View {
             IconBadge(systemName: "magnifyingglass", color: .green)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(rule.name)
                         .font(.body.bold())
                         .lineLimit(1)

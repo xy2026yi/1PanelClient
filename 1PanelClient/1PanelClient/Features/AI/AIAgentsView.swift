@@ -354,13 +354,13 @@ struct AIAgentRow: View {
             IconBadge(systemName: "figure.run", color: .green)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(agent.name)
                         .font(.body.bold())
                         .lineLimit(1)
                     StatusBadge(text: agent.status ?? "-", color: statusColor)
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(agent.providerName ?? agent.provider ?? "-")
                     Text("·")
                     Text(agent.model ?? "-")

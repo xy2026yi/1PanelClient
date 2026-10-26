@@ -140,8 +140,6 @@ struct TerminalHostsView: View {
                 ],
                 onDismiss: { actionHost = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: Binding(
             get: { connectedHost != nil },
@@ -255,7 +253,7 @@ struct SSHHostRow: View {
             )
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(host.displayName)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -811,8 +809,6 @@ struct PanelTerminalSessionsView: View {
                 ],
                 onDismiss: { actionSession = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-            .presentationDragIndicator(.visible)
         }
         .refreshable { await load() }
         .toastOverlay(message: $toastMessage)

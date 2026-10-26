@@ -232,8 +232,6 @@ struct GroupManageView: View {
                 items: menuItems(for: group),
                 onDismiss: { actionGroup = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: menuItems(for: group).count))])
-            .presentationDragIndicator(.visible)
         }
     }
 
@@ -241,7 +239,7 @@ struct GroupManageView: View {
     /// 长按松手不触发单击
     private func groupRow(_ group: PanelGroup) -> some View {
         HStack(spacing: 12) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(group.displayName)
                     .font(.body.bold())
                     .foregroundStyle(.primary)

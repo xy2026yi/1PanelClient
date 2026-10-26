@@ -1,9 +1,9 @@
 # UI 设计规范
 
-> 阶段 0 产出，依据 `doc/UI一致化实施计划.md`。后续所有 UI 改动以此为依据；规范本身可通过 PR review 修订，修订后同步更新本文件版本号。
-> 2026-09-16 从 `archive/doc/` 移回 `doc/`（DesignTokens.swift / Haptic.swift 等源码一直引用本路径；archive/ 为 gitignore 的本地资料目录）。
+> 阶段 0 产出，依据 `UI一致化实施计划.md`（本地 archive 存档，未入库）。后续所有 UI 改动以此为依据；规范本身可通过 PR review 修订，修订后同步更新本文件版本号。
+> 2026-09-16 从 `archive/doc/` 移回版本库（现 `docs/`，2026-10 由 `doc/` 更名；archive/ 为 gitignore 的本地资料目录）。
 
-版本：v1.1（2026-09-16）——§一 补删除分层判定细则与批量强度规则（依据 2026-09-16 四维审查 P1 结论）；其余与 v1.0 一致。
+版本：v1.2（2026-10-25）——新增 §八 表单形态与分页条款（指向《UI组件形态手册》）；v1.1（2026-09-16）§一 补删除分层判定细则与批量强度规则；其余与 v1.0 一致。
 
 ---
 
@@ -112,5 +112,17 @@
 
 ## 七、图表
 
-- 统计图表主体已全部使用 Swift Charts（MonitorView / WebsiteMonitorViews / ContainerMonitorView / WAFMonitorViews）；`chartOverlay` 内的手势采样位吸附、数值气泡、自绘时间轴为官方推荐的交互扩展模式与硬需求（系统轴不支持段位居中），**不属于自绘图表，不迁移**。详见 `doc/图表迁移评估.md`。
+- 统计图表主体已全部使用 Swift Charts（MonitorView / WebsiteMonitorViews / ContainerMonitorView / WAFMonitorViews）；`chartOverlay` 内的手势采样位吸附、数值气泡、自绘时间轴为官方推荐的交互扩展模式与硬需求（系统轴不支持段位居中），**不属于自绘图表，不迁移**。详见 `图表迁移评估.md`（本地 archive 存档，未入库）。
 - 新增统计图表一律使用 Swift Charts；Gauge 类控件（RingStatView 进度环、微型指标条）保持 `Circle().trim` / Capsule 自绘。
+
+## 八、表单形态与分页（v1.2）
+
+表单控件形态（形态 1–10）、包边组件（Outlined 系列）参数、分页向导、列表分页加载的**定义与用法见 `docs/UI组件形态手册.md`**（活文档）。本节仅列硬性规则：
+
+- 表单字段控件一律从形态 1–10 选型，禁止新造字段样式；新形态先在手册补条目再落地。
+- **表单字段的互斥选择用形态 2 菜单（OutlinedPicker），不用 segmented**；segmented 仅限页面级控件（板块切换/列表筛选/图表时间范围）。判据：切换的是页面内容 → segmented；提交的表单值 → 形态 2。
+- 配置全文（nginx/sshd/supervisord 等）走代码编辑器（形态 7），禁止用多行描边框（7.1）装配置全文。
+- 多字段动态行（端口/挂载/规则组）用「入口行 → 行编辑页」（形态 8），禁止行内堆多个描边框；行编辑页按样式 A（节头 `XX-N` + trash）并做行级校验（空行丢弃、非法值带行号报错）。
+- 向导仅用于**多段新建流**；仅编辑型与微表单（1–2 字段）保持单页。
+- 列表分页为无限滚动（末行 onAppear 触发 loadMore，去重合并、失败回退页码），不引入页码控件。
+- 列表错误分支与 loading 分支必须带数据非空守卫：已有数据时刷新失败不得整页替换（保持旧数据，可降级 toast）。

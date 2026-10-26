@@ -339,8 +339,6 @@ struct DisksView: View {
             items: partitionMenuItems(action),
             onDismiss: { actionPartition = nil }
         )
-        .bottomSheetDetents([.height(ActionBottomSheet.height(for: partitionMenuItems(action).count))])
-        .presentationDragIndicator(.visible)
     }
 
     private func partitionMenuItems(_ action: PartitionAction) -> [ActionMenuItem] {
@@ -384,8 +382,6 @@ struct DisksView: View {
             ],
             onDismiss: { actionUnpartitioned = nil }
         )
-        .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-        .presentationDragIndicator(.visible)
     }
 }
 
@@ -444,7 +440,7 @@ private struct PartitionRow: View {
     var body: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(partition.shortDevice)
                         .font(.subheadline.monospaced().weight(.medium))
                     if partition.isSwap {
@@ -562,7 +558,7 @@ private struct DiskMountFormSheet: View {
                     Button(L10n.t("取消")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.t("确认")) {
+                    Button(L10n.t("保存")) {
                         Task { await submit() }
                     }
                     .disabled(!canSubmit)

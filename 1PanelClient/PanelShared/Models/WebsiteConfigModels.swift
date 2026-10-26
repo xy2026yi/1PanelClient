@@ -180,7 +180,7 @@ nonisolated struct WebsiteProxy: Decodable, Identifiable, Hashable {
     let proxySSLName: String?
     let sslVerify: Bool?
 
-    var id: String { name ?? UUID().uuidString }
+    var id: String { name ?? "" }
 
     var displayName: String { name ?? L10n.t("(未命名)") }
     var displayMatch: String { match ?? "—" }

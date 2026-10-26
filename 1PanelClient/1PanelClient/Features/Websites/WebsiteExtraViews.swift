@@ -26,9 +26,9 @@ struct WebsiteDomainsView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && domains.isEmpty {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, domains.isEmpty {
                 LoadErrorStateView(message: err) { Task { await load() } }
             } else {
                 list
@@ -71,8 +71,6 @@ struct WebsiteDomainsView: View {
                 ],
                 onDismiss: { actionDomain = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("删除域名"), isPresented: Binding(
             get: { pendingDelete != nil },
@@ -541,9 +539,9 @@ struct WebsiteLeechView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && config.cacheUint.isEmpty {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, config.cacheUint.isEmpty {
                 LoadErrorStateView(message: err) { Task { await load() } }
             } else {
                 form
@@ -701,9 +699,9 @@ struct WebsiteRewriteView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && content.isEmpty {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, content.isEmpty {
                 LoadErrorStateView(message: err) { Task { await load() } }
             } else {
                 form
@@ -830,9 +828,9 @@ struct WebsiteRealIPView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && config.ipFrom.isEmpty {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, config.ipFrom.isEmpty {
                 LoadErrorStateView(message: err) { Task { await load() } }
             } else {
                 form

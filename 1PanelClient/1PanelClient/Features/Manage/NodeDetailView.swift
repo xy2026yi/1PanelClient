@@ -211,7 +211,7 @@ struct NodeDetailView: View {
     /// 卡片1：名称 / 地址 / 健康 / 当前节点 / 专业版标记
     private func headerSection(_ item: NodeDetailItem) -> some View {
         Section {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Text(item.displayName)
                         .font(.headline)
@@ -222,7 +222,7 @@ struct NodeDetailView: View {
                     StatusBadge(text: NodeUI.statusText(vm.current?.status ?? item.status),
                                 color: NodeUI.statusColor(vm.current?.status ?? item.status))
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text("\(item.name).\(item.addr ?? "")")
                     if item.isXpack == true {
                         StatusBadge(text: L10n.t("专业版已启用"), color: .purple)

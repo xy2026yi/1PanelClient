@@ -299,8 +299,6 @@ struct SSHCertsView: View {
                 ],
                 onDismiss: { actionCert = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .sheet(item: $vm.pendingDeleteCert) { cert in
             TextInputConfirmSheet(
@@ -482,7 +480,7 @@ struct SSHCertCreateView: View {
 
     /// 密钥文本编辑器：等宽小字 + placeholder 浮层（TextEditor 原生不显示 placeholder）
     private func keyEditor(title: String, text: Binding<String>, optional: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 Text(title)
                     .font(.caption)

@@ -668,13 +668,14 @@ nonisolated struct AIAgentWeixinLoginRequest: Encodable {
 
 // MARK: - 频道 Bot 条目（凭证在 bots 数组内，各频道字段不同）
 
-/// Bot 行身份：accountId / name 非空串优先，全空兜底 UUID
-/// （空串视为缺失——服务端可能返回 ""，多条会互相撞身份）
+/// Bot 行身份：accountId / name 非空串优先；全空回落稳定组合串
+/// （不能用 UUID 兜底——计算属性每次访问换身份，ForEach 重建/动画全乱；
+/// 全空行本就不该出现，稳定撞 id 的退化场景远好于身份抖动）
 nonisolated enum AIChannelBotIdentity {
     static func make(_ accountId: String?, _ name: String?) -> String {
         if let id = accountId, !id.isEmpty { return id }
         if let n = name, !n.isEmpty { return n }
-        return UUID().uuidString
+        return "\(accountId ?? "")|\(name ?? "")"
     }
 }
 

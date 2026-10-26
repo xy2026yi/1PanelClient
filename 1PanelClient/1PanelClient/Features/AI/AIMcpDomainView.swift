@@ -271,9 +271,9 @@ struct AIMcpDomainView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && info == nil {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, info == nil {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {

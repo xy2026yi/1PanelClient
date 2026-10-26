@@ -93,7 +93,7 @@ struct FileWgetProgress: Decodable, Identifiable {
     let name: String?
     let status: String?
 
-    var id: String { key ?? name ?? UUID().uuidString }
+    var id: String { key ?? name ?? "" }
 
     var isFinished: Bool {
         let s = status?.lowercased() ?? ""
@@ -917,7 +917,7 @@ struct FileWgetProgressView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(session.items) { item in
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 8) {
                                 Text(item.name ?? "-")
                                     .font(.body.weight(.medium))
@@ -987,8 +987,6 @@ struct FileWgetProgressView: View {
                 ],
                 onDismiss: { actionItem = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 1))])
-            .presentationDragIndicator(.visible)
         }
         .task { session.start() }
         .onDisappear {

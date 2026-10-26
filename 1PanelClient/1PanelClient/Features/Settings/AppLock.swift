@@ -464,7 +464,7 @@ struct PasscodeVerifyPanel: View {
 
     /// 锁定等待视图：秒级倒计时，到点自动恢复键盘
     private func lockoutView(until: Date) -> some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
             Image(systemName: "lock.fill")
                 .font(.panelScaled(40))
                 .foregroundStyle(.secondary)

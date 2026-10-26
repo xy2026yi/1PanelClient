@@ -43,10 +43,10 @@ struct WAFWebsiteApplySheet: View {
     var body: some View {
         NavigationStack {
             List {
-                if isLoading {
+                if isLoading && websites.isEmpty {
                     LoadingStateView()
                         .listRowBackground(Color.clear)
-                } else if let err = loadError {
+                } else if let err = loadError, websites.isEmpty {
                     LoadErrorStateView(message: err) {
                         Task { await loadWebsites() }
                     }

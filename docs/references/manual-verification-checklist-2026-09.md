@@ -1,6 +1,6 @@
 # 真机 / 人工验证清单（2026-09-06）
 
-> 配套：`doc/references/audit-fix-log-2026-09.md`（本轮代码修复）、`doc/references/project-audit-report-2026-09.md`（审计）。
+> 配套：`docs/references/audit-fix-log-2026-09.md`（本轮代码修复）、`docs/references/project-audit-report-2026-09.md`（审计）。
 > 以下事项**无法在模拟器/静态检查中闭环**，需按序人工验证。建议一台 iPhone（iOS 26+）+ 一台局域网 1Panel 面板。
 > 勾选方式：把 `[ ]` 改 `[x]` 并补充一行「结果：…」。
 
@@ -154,7 +154,7 @@
       结果：正常（本地页/双语切换/诊断数据入口均通过）；「查看在线版本」404 已定位——
       链接原指向占位仓库 `a412316/1panel`，实际仓库为 `xy2026yi/1PanelClient`（公开），
       且对外文档目录是 git 跟踪的 `doc/`（`docs/` 被 gitignore，仅本地工作文档），链接
-      已改指 `blob/main/doc/privacy-policy.md`、Issue 链接同步修正；`doc/privacy-policy.md`
+      已改指 `blob/main/doc/privacy-policy.md`、Issue 链接同步修正；`docs/privacy-policy.md`
       为新入库文件，**推送后在线链接生效**，装新构建复验一次即可
 
 ## E. 发布链路（提审前）
@@ -184,7 +184,7 @@
   A3/D2 内存基线已于 2026-09-07 记录，数字健康（监控 30min 终点低于起点、
   重列表滚动后回落，无泄漏迹象）。
 - ~~F2 主流程回归 + E5-3 隐私政策本地页走查~~（第四轮完成并勾选：Widget / FaceID /
-  底部栏复验通过、FaceID 时序疑问已答复；E5-3 在线链接已随 `doc/privacy-policy.md`
+  底部栏复验通过、FaceID 时序疑问已答复；E5-3 在线链接已随 `docs/privacy-policy.md`
   推送生效，新构建装机后顺手点一次「查看在线版本」即彻底闭环）。
 
 > B4/B5/E7 已于 2026-09-07 完成勾选；B5 的无障碍修复（命中区/标签/字号）随本日构建生效，

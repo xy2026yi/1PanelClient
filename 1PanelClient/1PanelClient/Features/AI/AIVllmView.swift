@@ -297,8 +297,6 @@ struct AIVllmView: View {
                 items: actionItems(instance),
                 onDismiss: { actionInstance = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: actionItems(instance).count))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: Binding(
             get: { logInstance != nil },
@@ -438,7 +436,7 @@ private struct VllmInstanceRow: View {
             IconBadge(systemName: "bolt.horizontal.circle", color: .mint)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(instance.displayName)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -447,7 +445,7 @@ private struct VllmInstanceRow: View {
                             .scaleEffect(0.7)
                     }
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     StatusBadge(text: instance.typeDisplay, color: .indigo)
                     Text(instance.appVersion ?? "-")
                         .font(.caption)
@@ -465,7 +463,7 @@ private struct VllmInstanceRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 6) {
+            VStack(alignment: .trailing, spacing: 8) {
                 if let status = instance.status, !status.isEmpty {
                     StatusBadge(text: status, color: statusColor)
                 }

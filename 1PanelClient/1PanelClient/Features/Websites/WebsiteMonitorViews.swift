@@ -67,16 +67,6 @@ struct WebsiteMonitorView: View {
                 }
             }
 
-            Section {
-                Picker(L10n.t("板块"), selection: $tab) {
-                    ForEach(Tab.allCases) { t in
-                        Text(t.label).tag(t)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .segmentedPickerRow()
-            }
-
             if selectedID != 0 {
                 switch tab {
                 case .overview:
@@ -97,6 +87,17 @@ struct WebsiteMonitorView: View {
                     .frame(maxWidth: .infinity)
                 }
             }
+        }
+        // 分段条全宽固定顶部（KVM/运行环境同款）：网站选择器保留为列表首段
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("板块"), selection: $tab) {
+                ForEach(Tab.allCases) { t in
+                    Text(t.label).tag(t)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
         .navigationTitle(L10n.t("网站监控"))
         .navigationBarTitleDisplayMode(.inline)
@@ -151,7 +152,7 @@ struct MonitorStatCard: View {
     var text: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             if count == nil && text == nil {
                 ProgressView()
                     .scaleEffect(0.7)
@@ -1035,7 +1036,7 @@ struct WebsiteMonitorLogsSection: View {
     }
 
     private func logRow(_ item: MonitorLogItem) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(item.ip ?? "-")
                     .font(.callout.bold())
@@ -1121,16 +1122,16 @@ struct WebsiteMonitorLogDetailView: View {
             } else if let d = detail {
                 Form {
                     Section {
-                        InfoRow("IP", value: d.ip ?? "-")
+                        InfoRow("IP", value: d.ip ?? "-", monospaced: true)
                         InfoRow(L10n.t("日期"), value: WAFTime.short(d.localtime) ?? d.localtime ?? "-")
                         InfoRow(L10n.t("响应流量"), value: formatBytes(d.sendBytes))
                         InfoRow(L10n.t("响应时间"), value: d.requestTime.map { "\($0)ms" } ?? "-")
-                        InfoRow(L10n.t("来源"), value: nonEmpty(d.referer))
+                        InfoRow(L10n.t("来源"), value: nonEmpty(d.referer), monospaced: true)
                         InfoRow(L10n.t("请求类型"), value: nonEmpty(d.method))
                         InfoRow(L10n.t("状态码"), value: d.statusCode.map(String.init) ?? "-")
                     }
                     Section {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("User-Agent")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -1139,7 +1140,7 @@ struct WebsiteMonitorLogDetailView: View {
                                 .textSelection(.enabled)
                         }
                         .padding(.vertical, 2)
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("URL")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

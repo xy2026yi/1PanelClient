@@ -19,22 +19,23 @@ struct WizardStepsBar: View {
     var body: some View {
         HStack(spacing: 10) {
             ForEach(0..<pageNames.count, id: \.self) { i in
-                VStack(spacing: 5) {
+                VStack(spacing: 4) {
                     Capsule()
                         .fill(i <= current ? Color.accentColor : Color.secondary.opacity(0.25))
                         .frame(height: 4)
                         .frame(maxWidth: .infinity)
+                        .animation(.easeInOut(duration: 0.22), value: current)
                     Text(pageNames[i])
                         .font(.caption2.weight(i == current ? .bold : .regular))
                         .foregroundStyle(i <= current ? Color.accentColor : .secondary)
                         .frame(maxWidth: .infinity)
+                        .animation(.easeInOut(duration: 0.22), value: current)
                 }
             }
         }
         .padding(.horizontal)
         .padding(.top, 8)
         .padding(.bottom, 6)
-        .animation(.easeInOut(duration: 0.22), value: current)
     }
 }
 

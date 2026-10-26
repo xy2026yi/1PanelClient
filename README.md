@@ -22,7 +22,8 @@ Unofficial third-party iOS client for [1Panel](https://1panel.cn) — the open-s
 | v0.2.2 – v0.2.3 | v2.3.2 | |
 | v0.2.4 | v2.3.2 | 面板 v2.3.2 系列最后一版 |
 | v0.2.5 | v2.4.0 – v2.4.1 | |
-| v0.2.6 | v2.4.0 – v2.4.1 | 现行（新增账号密码引导登录） |
+| v0.2.6 | v2.4.0 – v2.4.1 | 新增账号密码引导登录 |
+| v0.2.7 | v2.4.1 | 现行（创建网站新增运行环境类型；运行环境支持 Java/.NET；日志记录三段合一并支持清空/导出） |
 
 This client is currently aligned with 1Panel **v2.4.1** (the firewall module targets the v2.3.0+ rebuilt API without rule sync/adopt; older panels are prompted to upgrade).
 Requests and UI are aligned against this version via packet captures; if the panel version is newer or older, API field shapes may differ, causing display issues or unavailable features. Each release's notes (and the AltStore update prompt) state the panel version it targets.

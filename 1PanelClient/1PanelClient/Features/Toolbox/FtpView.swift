@@ -436,8 +436,6 @@ struct FTPView: View {
                 ],
                 onDismiss: { actionAccount = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 3))])
-            .presentationDragIndicator(.visible)
         }
     }
 
@@ -502,7 +500,7 @@ struct FTPAccountRow: View {
             IconBadge(systemName: "person.fill", color: .teal)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(account.user)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -690,18 +688,6 @@ struct FTPLogView: View {
     var body: some View {
         List {
             Section {
-                Picker(L10n.t("操作"), selection: $operation) {
-                    Text(L10n.t("全部")).tag("")
-                    Text(L10n.t("上传")).tag("PUT")
-                    Text(L10n.t("下载")).tag("GET")
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: operation) { _, _ in
-                    Task { await load() }
-                }
-            }
-
-            Section {
                 if isLoading && logs.isEmpty {
                     HStack {
                         Spacer()
@@ -739,6 +725,20 @@ struct FTPLogView: View {
             }
         }
         .listStyle(.insetGrouped)
+        // 分段条全宽固定顶部（KVM/运行环境同款）
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker(L10n.t("操作"), selection: $operation) {
+                Text(L10n.t("全部")).tag("")
+                Text(L10n.t("上传")).tag("PUT")
+                Text(L10n.t("下载")).tag("GET")
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .onChange(of: operation) { _, _ in
+                Task { await load() }
+            }
+        }
         .navigationTitle(L10n.t("日志"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

@@ -188,8 +188,6 @@ struct AppsTab: View {
                 items: appActions(app),
                 onDismiss: { actionApp = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: appActions(app).count))])
-            .presentationDragIndicator(.visible)
         }
         // 长按菜单：启停/重启/重建确认（口径同详情页操作区）
         .alert(
@@ -213,7 +211,7 @@ struct AppsTab: View {
         // 长按菜单：卸载确认（输入应用名 + 连带删除选项，与详情页同款组件）
         .sheet(item: $uninstallTarget) { app in
             TextInputConfirmSheet(
-                title: L10n.f("卸载 %@", app.displayName),
+                title: L10n.t("卸载应用"),
                 message: L10n.f("此操作不可恢复。请输入应用名称「%@」以确认卸载。", app.displayName),
                 expectedText: app.displayName,
                 fieldLabel: L10n.t("确认名称"),
@@ -379,7 +377,7 @@ struct AppRow: View {
                     .font(.body.bold())
                     .lineLimit(1)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if let v = app.version, !v.isEmpty {
                         Text("v\(v)")
                             .font(.caption)

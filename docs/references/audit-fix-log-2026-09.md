@@ -1,9 +1,9 @@
 # 审计修复记录（2026-09-06）
 
-> 依据：`doc/references/project-audit-report-2026-09.md` §7 执行顺序。
+> 依据：`docs/references/project-audit-report-2026-09.md` §7 执行顺序。
 > 结果：P0 全部落地、P1 全部落地；**Swift 6 已开启并零错误零警告；全量测试 109/109 通过**
 > （107 原有 + 2 个 SF Symbol 审计用例）。
-> 需真机/Instruments 的验证项已单独拆出：`doc/references/manual-verification-checklist-2026-09.md`。
+> 需真机/Instruments 的验证项已单独拆出：`docs/references/manual-verification-checklist-2026-09.md`。
 
 ## P0 修复
 
@@ -12,7 +12,7 @@
 | C1 | `NSLocalNetworkUsageDescription` 补入 app 与 Widget 的 Info.plist（中文基准值 + `en.lproj/InfoPlist.strings` 英文）；连接错误文案补 iOS 真机「设置 → 隐私与安全性 → 本地网络」指引 | `1PanelClient/Info.plist`、`PanelWidgets/Info.plist`、两个 `en.lproj/InfoPlist.strings`、`APIError.swift:30-40`、`Localizable.xcstrings`（词条已替换并带 en） |
 | B1 | `certificate` → `checkmark.seal`（3 处：CertificatesTab:178、CAView:34、CAView:133）；`SFSymbolAuditTests.swift` 落库——运行时扫描源码全部 `systemName/systemImage/systemImageName` 字面量，逐个 `UIImage(systemName:)` 断言（iOS 真机语义，替代 NSImage 代理法） | `Features/Certificates/`、`1PanelClientTests/SFSymbolAuditTests.swift` |
 | E1 | 两份 `PrivacyInfo.xcprivacy`：app（UserDefaults CA92.1 + FileTimestamp C617.1）、PanelWidgets（UserDefaults CA92.1）；NSPrivacyCollectedData 为空（零遥测）。已验证进包 | `1PanelClient/1PanelClient/PrivacyInfo.xcprivacy`、`PanelWidgets/PrivacyInfo.xcprivacy` |
-| E8 | 7 个归档脚本的同一把真实 API 密钥全部移除（.sh 改环境变量 `${1PANEL_API_KEY:?…}`，.py 改占位符）；决策记录 ADR（轮换密钥=待人工、不改写 git 历史） | `archive/logs/*.sh`、`archive/doc/*.py`、`docs/adr-0001-e8-archive-key-exposure.md` |
+| E8 | 7 个归档脚本的同一把真实 API 密钥全部移除（.sh 改环境变量 `${1PANEL_API_KEY:?…}`，.py 改占位符）；决策记录 ADR（轮换密钥=待人工、不改写 git 历史） | `archive/logs/*.sh`、`archive/doc/*.py`、`docs/adr/adr-0001-e8-archive-key-exposure.md` |
 
 ### B1 的重要新发现
 
@@ -58,9 +58,9 @@
 
 | 项 | 内容 | 落点 |
 |---|---|---|
-| D6 | 接入 MetricKit 本地诊断（ADR-0002）：MXMetricManager 订阅落盘 `Application Support/Metrics/`（保留 30 天自动清理），设置-关于-「诊断数据（本地）」可列表 + 分享导出；零上报、隐私清单不变 | `PanelShared/Core/Metrics/MetricKitSubscriber.swift`、`_PanelClientApp.swift`、`SettingsTab.swift`、`doc/adr/adr-0002-d6-metrickit-local-diagnostics.md` |
-| E2 | ATS 立场文档 + 提审备注中英文模板（纯写作，未来提审直接取用） | `doc/references/ats-stance-and-review-notes.md` |
-| E5 | App 内隐私政策：中文政策文档 + 关于页入口（URL 暂指仓库 docs 地址，上架前换正式页）；**中国区备案暂缓**，上架前数周再启动 | `doc/privacy-policy.md`、`SettingsTab.swift` |
+| D6 | 接入 MetricKit 本地诊断（ADR-0002）：MXMetricManager 订阅落盘 `Application Support/Metrics/`（保留 30 天自动清理），设置-关于-「诊断数据（本地）」可列表 + 分享导出；零上报、隐私清单不变 | `PanelShared/Core/Metrics/MetricKitSubscriber.swift`、`_PanelClientApp.swift`、`SettingsTab.swift`、`docs/adr/adr-0002-d6-metrickit-local-diagnostics.md` |
+| E2 | ATS 立场文档 + 提审备注中英文模板（纯写作，未来提审直接取用） | `docs/references/ats-stance-and-review-notes.md` |
+| E5 | App 内隐私政策：中文政策文档 + 关于页入口（URL 暂指仓库 docs 地址，上架前换正式页）；**中国区备案暂缓**，上架前数周再启动 | `docs/privacy-policy.md`、`SettingsTab.swift` |
 | C3 | 超时与不可达文案区分：`timedOut` 单独成文（端口/防火墙 + 本地网络权限指引——真机权限被拒也常表现为超时，故指引保留）；其余不可达错误沿用原长文案。服务器页无服务器空态补 ContentUnavailableView + 「添加服务器」CTA | `APIError.swift`、`ServersView.swift` |
 | B2 | 固定字号收敛：实际 `.font(.system(size:))` 仅 26 处（审计的 118 处含 97 处语义档，本就支持 Dynamic Type）。26 处统一改 `Font.panelScaled`（UIFontMetrics 按字号就近挂 TextStyle，默认视觉不变、缩放生效）；替换后 grep 归零 | `PanelShared/Shared/PanelFont.swift` 及 26 处调用点 |
 | B3 | 「暂无」空态统一：视图上下文 6 处纯 Text 改 ContentUnavailableView（LogsView×2、CronjobRecordViews、CertificatesTab、WebsiteConfigViews 账号区）。**保留 Text 的合理形态**（豁免）：表单/Picker 内占位（CreateDatabaseView×3、ContainerImagesView、CreateWebsiteView）、固定高度图表占位（MonitorView×2、ContainerMonitorView、WebsiteMonitorViews×3）、Widget/Intents 非视图上下文 | 各 Features 视图 |
@@ -78,7 +78,7 @@ P2 验证：`1PanelClient`/`PanelWidgets` 两 target 构建零错误零警告；
 | W1b 新装小组件刷新慢 | F2 复验：新装 App 后小组件刷新明显慢于秒级——重装后系统可能丢弃此前的 reload 请求，拖到分钟级。修复：`ContentView` 回前台（scenePhase → active）时补一次 `reloadAllTimelines` 兜底，请求由系统合并调度 | `1PanelClient/ContentView.swift` |
 | W3 小组件永远离线（ATS） | 三轮复验（Xcode 直装 + 添加服务器 + 桌面小组件 + 等 30s）仍显示离线——reload 机制已生效，但时间线条目本身连接失败。根因：**小组件扩展进程用自己的 Info.plist，缺 ATS 豁免**（主 App 有 `NSAllowsArbitraryLoads`），所有 `http://` 明文面板地址的请求在扩展进程被 ATS 掐断（-1022），与 App Group/Keychain/时间线均无关。修复：`PanelWidgets/Info.plist` 补齐与主 App 一致的 `NSAppTransportSecurity`（已验证进包） | `PanelWidgets/Info.plist` |
 | W2 底部栏丢失复发（首页/设置） | 真机反馈首页底部栏仍会丢失。根因与 eefa651 管理 Tab 同源但未修完：首页/设置仍用 `navigationDestination(isPresented:)` + onChange 同步 atRoot，iOS 26 back 返回后绑定写回延迟甚至丢失，onChange 收不到 pop，atRoot 卡 false。修复：三个 Tab 导航路径统一由 MainTabView 持有，`showTabBar` 直接由路径计数计算（纯函数、单一真源），删除三个 atRoot 镜像 @State 与 0.2s 对账 Timer；首页/设置改 path 驱动导航（route enum），设置页内二级推入（隐私政策/诊断）一并 path 化 | `MainTabView.swift`、`OverviewTab.swift`、`SettingsTab.swift` |
-| E5-2 隐私政策本地页 | 「设置 → 关于 → 隐私政策」由网页链接改为 App 内本地页（离线可读、随应用内语言双语），页底保留在线版入口；新增 28 条 en 词条。E5-3 走查发现在线版/Issue 链接指向占位仓库，已改指真实仓库 `xy2026yi/1PanelClient` 的 `doc/privacy-policy.md`（对外文档目录为 git 跟踪的 `doc/`；`docs/` 被 gitignore 仅本地） | `PrivacyPolicyView.swift`（新）、`SettingsTab.swift`、`Localizable.xcstrings`、`doc/privacy-policy.md` |
+| E5-2 隐私政策本地页 | 「设置 → 关于 → 隐私政策」由网页链接改为 App 内本地页（离线可读、随应用内语言双语），页底保留在线版入口；新增 28 条 en 词条。E5-3 走查发现在线版/Issue 链接指向占位仓库，已改指真实仓库 `xy2026yi/1PanelClient` 的 `docs/privacy-policy.md`（对外文档目录为 git 跟踪的 `doc/`；`docs/` 被 gitignore 仅本地） | `PrivacyPolicyView.swift`（新）、`SettingsTab.swift`、`Localizable.xcstrings`、`docs/privacy-policy.md` |
 | C5 分页加载 | 真机确认的静默截断补齐（防火墙 215 条只显示 200、操作日志 509 条只显示 100）：防火墙三段（端口规则/端口转发/IP 规则）与操作日志、访问日志列表改为「首屏一页 + 滚动到底自动追加下一页」——末行与加载行双触发、组合 id 去重防跨页重复、首屏重载后丢弃过期追加、段头计数改显面板总数；追加失败不打断列表（下拉刷新重试）。系统/SSH/网站日志为文件尾部读取语义（latest=true），不属分页截断，维持现状。任务中心原有同款分页不动 | `FirewallView.swift`、`LogsView.swift`（操作/访问日志） |
 
 第三轮验证：两 target 构建零错误零警告；测试 109/109 通过。四项待真机复验（见 checklist D 节 F2 备注、C5 结果行）。
@@ -140,7 +140,7 @@ E1 ASC 隐私页/TestFlight 验证、E4 出口合规生效确认、E9 提审自�
 | UI-9 | 错误日志类型色 `.orange` → `.statusError`（语义颠倒修正） | `WebsiteLogViews.swift:37` |
 | UI-克隆 | 6 处手绘「加载失败+wifi.exclamationmark+重试」全部替换为 `LoadErrorStateView`：操作/访问/系统/SSH 日志 + 网站日志选择器 + 防火墙端口白名单编辑 | `LogsView.swift` ×5、`FirewallView.swift:1819-1824` |
 | UI-克隆 | `StatusBadge` 增加可选 `label` 前缀参数（键值两段式胶囊：「键」secondary「值」主样式，既有 110+ 调用点零影响）；`BackupListView.metaBadge` 手绘克隆改走共享组件 | `CommonComponents.swift:307-339`、`BackupListView.swift:587-589` |
-| 弹窗-标准成文 | `UI设计规范` v1.0→v1.1：§一 补 R1 判定细则（四条）、「列表/详情/批量同强度」「批量 ≥ 单删」两条硬规则、存量偏差对齐清单（容器→R1、批量网站→升强度等待办 P2）；文档从 `archive/doc/`（gitignore）移回 `doc/`（源码引用路径，随库版本控制） | `doc/UI设计规范.md` |
+| 弹窗-标准成文 | `UI设计规范` v1.0→v1.1：§一 补 R1 判定细则（四条）、「列表/详情/批量同强度」「批量 ≥ 单删」两条硬规则、存量偏差对齐清单（容器→R1、批量网站→升强度等待办 P2）；文档从 `archive/doc/`（gitignore）移回 `doc/`（源码引用路径，随库版本控制） | `docs/UI设计规范.md` |
 
 ### 备注
 
@@ -180,7 +180,7 @@ E1 ASC 隐私页/TestFlight 验证、E4 出口合规生效确认、E9 提审自�
 
 ## 2026-09-17 M1：防火墙对齐 v2.3.0 重构 API（代码侧完成，抓包验证待办）
 
-> 依据：`doc/references/v2.3.0-upstream-diff.md`（上游源码 diff）。结果：**257 用例 / 46 套件通过**（+7 防火墙 V2 解码测试、-1 旧链规则套件）；构建零警告。
+> 依据：`docs/references/v2.3.0-upstream-diff.md`（上游源码 diff）。结果：**257 用例 / 46 套件通过**（+7 防火墙 V2 解码测试、-1 旧链规则套件）；构建零警告。
 
 | 项 | 内容 |
 |---|---|

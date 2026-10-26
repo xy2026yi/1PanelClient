@@ -140,7 +140,7 @@ struct KVMDiskManageView: View {
 
     private func diskRow(_ disk: KVMDisk) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: "internaldrive")
                     .foregroundStyle(.secondary)
                 Text("\(disk.target ?? "-") · \(disk.bus ?? "-") · \(disk.format ?? "-")")

@@ -398,8 +398,6 @@ struct AIOllamaView: View {
                 items: modelMenuItems(model),
                 onDismiss: { actionModel = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: modelMenuItems(model).count))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showProgress) {
             TaskProgressView(taskID: activeTaskID, title: progressTitle) { isDone in
@@ -668,7 +666,7 @@ struct AIOllamaModelRow: View {
             IconBadge(systemName: "cpu.fill", color: .purple)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(model.displayName)
                         .font(.body.bold())
                         .lineLimit(1)
@@ -773,9 +771,9 @@ struct AIOllamaGatewayView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && info == nil {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, info == nil {
                 ContentUnavailableView {
                     Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
                 } description: {

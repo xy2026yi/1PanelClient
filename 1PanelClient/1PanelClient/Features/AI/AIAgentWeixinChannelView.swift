@@ -76,7 +76,7 @@ struct AIAgentWeixinChannelView: View {
             if !(agentType == "openclaw" && pluginStatus?.installed == false) {
                 Section {
                     if let url = qrURL {
-                        VStack(spacing: 14) {
+                        VStack(spacing: 12) {
                             QRCodeView(text: url, side: 200)
                             Text(L10n.t("请使用微信扫描二维码"))
                                 .font(.footnote)

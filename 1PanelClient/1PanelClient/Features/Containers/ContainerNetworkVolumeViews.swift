@@ -360,10 +360,10 @@ struct ContainerNetworksView: View {
 
     var body: some View {
         List {
-            if isLoading {
+            if isLoading && networks.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = loadError {
+            } else if let err = loadError, networks.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -467,8 +467,6 @@ struct ContainerNetworksView: View {
                 ]),
                 onDismiss: { actionItem = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: isPredefined ? 1 : 2))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(item: $detailTarget) { target in
             ContainerInspectDetailView(client: client, target: target)
@@ -855,10 +853,10 @@ struct ContainerVolumesView: View {
 
     var body: some View {
         List {
-            if isLoading {
+            if isLoading && volumes.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = loadError {
+            } else if let err = loadError, volumes.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -964,8 +962,6 @@ struct ContainerVolumesView: View {
                 ],
                 onDismiss: { actionItem = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(item: $detailVolume) { volume in
             ContainerVolumeDetailView(volume: volume, server: server)

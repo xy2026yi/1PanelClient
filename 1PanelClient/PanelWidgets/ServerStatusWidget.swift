@@ -117,7 +117,7 @@ struct ServerStatusEntryView: View {
     }
 
     private func offlineView(_ message: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Circle().fill(Color.red).frame(width: 8, height: 8)
                 Text(entry.serverName).font(.headline).lineLimit(1)

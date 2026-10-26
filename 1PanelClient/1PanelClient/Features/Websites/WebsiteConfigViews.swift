@@ -23,9 +23,9 @@ struct WebsiteDefaultDocView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && docText.isEmpty {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, docText.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -377,8 +377,6 @@ struct WebsiteRedirectView: View {
                 ],
                 onDismiss: { actionRedirect = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 4))])
-            .presentationDragIndicator(.visible)
         }
         .alert(
             L10n.t("删除"),
@@ -733,9 +731,9 @@ struct WebsiteAuthsView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && items.isEmpty {
                 LoadingStateView()
-            } else if let err = loadError {
+            } else if let err = loadError, items.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await load() }
                 }
@@ -789,8 +787,6 @@ struct WebsiteAuthsView: View {
                 ],
                 onDismiss: { actionItem = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .alert(
             L10n.t("删除"),
@@ -842,7 +838,7 @@ struct WebsiteAuthsView: View {
                 ForEach(items) { item in
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
-                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 // 「用户名」灰标让账号值可自解释（与反代/重定向列表一致）
                                 Text(L10n.t("用户名"))
                                     .font(.caption)

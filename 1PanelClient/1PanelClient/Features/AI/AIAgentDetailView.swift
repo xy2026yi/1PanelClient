@@ -212,7 +212,7 @@ struct AIAgentDetailView: View {
 
             Section {
                 InfoRow(L10n.t("类型"), value: a.agentType ?? "-")
-                InfoRow(L10n.t("应用版本"), value: a.appVersion ?? "-")
+                InfoRow(L10n.t("应用版本"), value: a.appVersion ?? "-", monospaced: true)
                 // 凭证行：OpenClaw 为 Token（默认掩码，可切换显示/复制），
                 // 其余类型为控制台用户名/密码
                 if isOpenClawAgent(a) {
@@ -680,9 +680,9 @@ struct AIAgentWebsiteBindView: View {
                 }
             } else {
                 Section {
-                    if isLoading {
+                    if isLoading && websites.isEmpty {
                         LoadingStateView(compact: true)
-                    } else if let err = loadError {
+                    } else if let err = loadError, websites.isEmpty {
                         LoadErrorStateView(message: err) {
                             Task { await loadWebsites() }
                         }

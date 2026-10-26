@@ -410,7 +410,7 @@ struct BackupAccountEditView: View {
     /// 阿里云盘：粘贴 token JSON 一键解析（drive_id / refresh_token）
     private var aliyunSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Token")
                         .font(.caption)
@@ -481,7 +481,7 @@ struct BackupAccountEditView: View {
                               keyboardType: .URL)
             OutlinedTextField(label: L10n.t("重定向 Url"), text: $oauthRedirectURI,
                               keyboardType: .URL)
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(L10n.t("授权码"))
                         .font(.caption)

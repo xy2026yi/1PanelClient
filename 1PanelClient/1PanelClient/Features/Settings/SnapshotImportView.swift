@@ -68,10 +68,10 @@ struct SnapshotImportView: View {
 
             Section {
                 if let account = selectedAccount {
-                    if isLoadingFiles {
+                    if isLoadingFiles && files.isEmpty {
                         HStack { Spacer(); LoadingStateView(); Spacer() }
                             .listRowBackground(Color.clear)
-                    } else if let err = filesError {
+                    } else if let err = filesError, files.isEmpty {
                         LoadErrorStateView(message: err) {
                             Task { await loadFiles(for: account) }
                         }

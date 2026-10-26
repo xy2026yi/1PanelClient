@@ -110,8 +110,6 @@ struct WebsiteProxiesView: View {
                 ],
                 onDismiss: { actionProxy = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 4))])
-            .presentationDragIndicator(.visible)
         }
         .alert(
             L10n.t("删除"),

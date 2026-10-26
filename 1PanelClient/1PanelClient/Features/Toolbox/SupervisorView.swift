@@ -474,8 +474,6 @@ struct SupervisorView: View {
                 items: processActionItems(process),
                 onDismiss: { actionProcess = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 7))])
-            .presentationDragIndicator(.visible)
         }
     }
 
@@ -566,7 +564,7 @@ struct SupervisorProcessRow: View {
             IconBadge(systemName: "gearshape.fill", color: .blue)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(process.name)
                         .font(.body.bold())
                         .lineLimit(1)

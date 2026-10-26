@@ -101,8 +101,6 @@ struct BackupAccountsView: View {
                 items: items,
                 onDismiss: { actionAccount = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: items.count))])
-            .presentationDragIndicator(.visible)
         }
         .alert(L10n.t("删除备份账号"), isPresented: Binding(
             get: { pendingDelete != nil },
@@ -191,7 +189,7 @@ struct BackupAccountRow: View {
             IconBadge(systemName: typeIcon.name, color: typeIcon.color, cornerRadius: Radius.medium)
 
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(account.displayName)
                         .font(.body.bold())
                         .lineLimit(1)

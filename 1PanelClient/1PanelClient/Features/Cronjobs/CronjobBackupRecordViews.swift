@@ -25,10 +25,10 @@ struct CronjobBackupRecordsView: View {
 
     var body: some View {
         List {
-            if vm.isLoading {
+            if vm.isLoading && vm.records.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = vm.loadError {
+            } else if let err = vm.loadError, vm.records.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await vm.load() }
                 }

@@ -146,7 +146,7 @@ struct ManageTab: View {
     @ViewBuilder
     private func manageRow(_ item: ManageItem) -> some View {
         NavigationLink(value: item) {
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 IconBadge(systemName: item.icon, color: item.color)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -184,11 +184,13 @@ struct ManageTab: View {
         case .apps:
             AppsTab(manager: manager)
         case .websites:
-            ManageHubView(title: L10n.t("网站"), items: [.websiteList, .certificates])
+            ManageHubView(title: L10n.t("网站"), items: [.websiteList, .certificates, .runtimes])
         case .websiteList:
             WebsitesTab(manager: manager)
         case .certificates:
             CertificatesTab(manager: manager)
+        case .runtimes:
+            RuntimesView(server: server)
         case .containers:
             ContainersTab(manager: manager)
         case .cronjob:
@@ -291,7 +293,7 @@ struct ManageHubView: View {
             Section {
                 ForEach(items.filter { gate.shows($0, prefsEnabled: prefs.isEnabled($0)) }) { item in
                     NavigationLink(value: item) {
-                        HStack(spacing: 14) {
+                        HStack(spacing: 12) {
                             IconBadge(systemName: item.icon, color: item.color)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.title)
@@ -431,6 +433,8 @@ enum ManageItem: String, Identifiable {
     case websiteList
     /// 证书（Hub 子页；原网站页菜单里的「SSL证书」移出改名）
     case certificates
+    /// 运行环境（Hub 子页；PHP / Node.js / Python / Go）
+    case runtimes
     case database
     case containers
     case terminal
@@ -493,7 +497,7 @@ enum ManageItem: String, Identifiable {
     /// 二级 Hub 子项：不在管理根列表展示（经 Hub 中间层进入），
     /// 但可在「自定义功能」中单独隐藏（含从根列表移入的老项，如告警/备份账号）
     static var hubChildren: [ManageItem] {
-        [.websiteList, .certificates, .cronjobList, .scriptLibrary,
+        [.websiteList, .certificates, .runtimes, .cronjobList, .scriptLibrary,
          .aiAccounts, .aiAgents, .aiMcp, .aiOllama, .aiVllm, .aiDownloader,
          .basicSettings, .alert, .backupAccount, .license, .snapshot]
     }
@@ -521,6 +525,7 @@ enum ManageItem: String, Identifiable {
         case .websites:    return L10n.t("网站")
         case .websiteList: return L10n.t("网站")
         case .certificates: return L10n.t("证书")
+        case .runtimes: return L10n.t("运行环境")
         case .database:    return L10n.t("数据库")
         case .containers:  return L10n.t("容器")
         case .terminal:    return L10n.t("SSH")
@@ -564,9 +569,10 @@ enum ManageItem: String, Identifiable {
     var subtitle: String {
         switch self {
         case .apps:        return L10n.t("已安装应用 / 应用商店")
-        case .websites:    return L10n.t("网站 / 证书")
+        case .websites:    return L10n.t("网站 / 证书 / 运行环境")
         case .websiteList: return L10n.t("网站列表与创建")
         case .certificates: return L10n.t("SSL 证书 / Acme / DNS")
+        case .runtimes: return L10n.t("PHP / Node.js / Python / Go")
         case .database:    return L10n.t("管理数据库实例")
         case .containers:  return L10n.t("Docker 容器")
         case .terminal:    return L10n.t("本机终端 / SSH 连接主机")
@@ -620,6 +626,7 @@ enum ManageItem: String, Identifiable {
         case .websites:    return "globe"
         case .websiteList: return "globe"
         case .certificates: return "lock.shield"
+        case .runtimes: return "shippingbox"
         case .database:    return "cylinder"
         case .containers:  return "shippingbox"
         case .terminal:    return "terminal"
@@ -666,6 +673,7 @@ enum ManageItem: String, Identifiable {
         case .websites:    return .green
         case .websiteList: return .green
         case .certificates: return .blue
+        case .runtimes: return .orange
         case .database:    return .purple
         case .containers:  return .indigo
         case .terminal:    return .primary  // 深色模式下 .black 图标不可见，改用自适应色

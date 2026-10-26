@@ -752,12 +752,12 @@ struct Fail2banIPListView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("取消")) { dismiss() }
                         .disabled(isSaving)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(L10n.t("确认")) {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.t("保存")) {
                         Task {
                             isSaving = true
                             await vm.saveIPs(

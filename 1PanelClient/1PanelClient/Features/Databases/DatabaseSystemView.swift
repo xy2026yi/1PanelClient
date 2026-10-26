@@ -151,8 +151,6 @@ struct DatabaseSystemView: View {
             ActionBottomSheet(title: vm.system.displayName, items: addMenuItems) {
                 showAddMenu = false
             }
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: addMenuItems.count))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showCreate) {
             CreateDatabaseView(system: vm.system) { await vm.loadDatabases() }
@@ -184,8 +182,6 @@ struct DatabaseSystemView: View {
                 ],
                 onDismiss: { actionDb = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         // 用户长按操作弹窗：编辑 / 删除
         .sheet(isPresented: Binding(
@@ -206,8 +202,6 @@ struct DatabaseSystemView: View {
                 ],
                 onDismiss: { actionUser = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showCreateUser) {
             CreateDatabaseUserView(system: vm.system, availableDatabases: vm.databases.map { $0.name ?? "" }.filter { !$0.isEmpty }) {

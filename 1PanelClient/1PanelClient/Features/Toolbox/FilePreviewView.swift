@@ -49,17 +49,8 @@ struct FilePreviewView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && content == nil {
                 LoadingStateView()
-            } else if let errorMessage {
-                ContentUnavailableView {
-                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(errorMessage)
-                } actions: {
-                    Button(L10n.t("重试")) { Task { await load() } }
-                        .buttonStyle(.borderedProminent)
-                }
             } else if let content, !content.isEmpty {
                 ScrollView {
                     Text(content)
@@ -68,6 +59,15 @@ struct FilePreviewView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
                         .contentWidthLimit(860)
+                }
+            } else if let errorMessage {
+                ContentUnavailableView {
+                    Label(L10n.t("加载失败"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(errorMessage)
+                } actions: {
+                    Button(L10n.t("重试")) { Task { await load() } }
+                        .buttonStyle(.borderedProminent)
                 }
             } else {
                 ContentUnavailableView(

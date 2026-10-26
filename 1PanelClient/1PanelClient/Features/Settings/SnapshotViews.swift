@@ -37,10 +37,10 @@ struct SnapshotListView: View {
 
     var body: some View {
         List {
-            if vm.isLoading {
+            if vm.isLoading && vm.snapshots.isEmpty {
                 HStack { Spacer(); LoadingStateView(); Spacer() }
                     .listRowBackground(Color.clear)
-            } else if let err = vm.loadError {
+            } else if let err = vm.loadError, vm.snapshots.isEmpty {
                 LoadErrorStateView(message: err) {
                     Task { await vm.load() }
                 }
@@ -81,8 +81,6 @@ struct SnapshotListView: View {
             ]) {
                 showAddMenu = false
             }
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 2))])
-            .presentationDragIndicator(.visible)
         }
         // 长按操作弹窗（呈现时捕获目标，动作在 onDismiss 后执行，闭包晚读恒为 nil）
         .sheet(isPresented: Binding(
@@ -109,8 +107,6 @@ struct SnapshotListView: View {
                 ],
                 onDismiss: { actionSnapshot = nil }
             )
-            .bottomSheetDetents([.height(ActionBottomSheet.height(for: 4))])
-            .presentationDragIndicator(.visible)
         }
         .task { await vm.load() }
         .refreshable { await vm.load() }
@@ -310,7 +306,7 @@ private struct SnapshotRecoverSheet: View {
                             .lineLimit(2)
                     }
                     if !diskCheckReady {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             ProgressView()
                             Text(L10n.t("正在检查磁盘空间…"))
                         }
@@ -470,7 +466,7 @@ private struct SnapshotLeafRow: View {
         )) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if !node.name.isEmpty, node.name != node.label {
                         Text(node.name)
                     }
